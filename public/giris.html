@@ -137,6 +137,7 @@ async function girisYap() {
     });
     const d = await r.json();
     if (!r.ok) return showError(d.hata);
+    localStorage.setItem('defterdar-last-login', Date.now().toString());
     showSuccess('Giris basarili, yonlendiriliyor...');
     setTimeout(() => window.location.href = '/', 800);
   } catch(e) { showError('Baglanti hatasi'); }
@@ -155,6 +156,7 @@ async function kayitOl() {
     });
     const d = await r.json();
     if (!r.ok) return showError(d.hata);
+    localStorage.setItem('defterdar-last-login', Date.now().toString());
     showSuccess('Kayit basarili, yonlendiriliyor...');
     setTimeout(() => window.location.href = '/', 800);
   } catch(e) { showError('Baglanti hatasi'); }

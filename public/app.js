@@ -1,8 +1,28 @@
 ﻿// ─── AUTH KONTROL ────────────────────────────────────────────────────────────
 (async function checkAuth() {
+  // localStorage'da son giriş zamanını kontrol et
+  const lastLogin = localStorage.getItem('defterdar-last-login');
+  const now = Date.now();
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+  // 24 saat geçmemişse session kontrolü yap
+  if (lastLogin && (now - parseInt(lastLogin)) < TWENTY_FOUR_HOURS) {
+    const r = await fetch('/api/auth/durum');
+    const d = await r.json();
+    if (d.girisYapildi) {
+      const badge = document.getElementById('user-badge');
+      const name = document.getElementById('user-name');
+      if (badge) badge.style.display = '';
+      if (name) name.textContent = d.kullanici_adi;
+      return; // Giriş geçerli, devam et
+    }
+  }
+
+  // 24 saat geçmiş veya session yok → giriş sayfasına yönlendir
   const r = await fetch('/api/auth/durum');
   const d = await r.json();
   if (!d.girisYapildi) {
+    localStorage.removeItem('defterdar-last-login');
     window.location.href = '/giris.html';
     return;
   }
@@ -14,6 +34,7 @@
 
 async function cikisYap() {
   await fetch('/api/auth/cikis', { method: 'POST' });
+  localStorage.removeItem('defterdar-last-login');
   window.location.href = '/giris.html';
 }
 

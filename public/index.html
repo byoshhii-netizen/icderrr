@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Defterdar Muhasebe</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="fa/css/all.min.css"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="logo-icon"><i class="fa-solid fa-book-open"></i></div>
+    <div class="brand-text">DEFTERDAR <span>Muhasebe</span></div>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-badge"><i class="fa-solid fa-shield-halved" style="color:var(--accent);margin-right:5px"></i>CMS Team</div>
+    <div class="topbar-dot" title="Sistem aktif"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo-area">
+      <div class="org-name" id="sidebar-org-name">Organizasyon Secilmedi</div>
+      <div class="org-sub" id="sidebar-org-sub">Bir organizasyon secin</div>
+    </div>
+
+    <div class="sidebar-section">Genel</div>
+    <div class="sidebar-item active" data-page="organizasyonlar" onclick="showPage('organizasyonlar')">
+      <i class="fa-solid fa-layer-group"></i> Organizasyonlar
+    </div>
+
+    <div class="sidebar-section">Kurban Yonetimi</div>
+    <div class="sidebar-item" data-page="kurbanlar" onclick="showPage('kurbanlar')">
+      <i class="fa-solid fa-cow"></i> Kurbanlar
+    </div>
+    <div class="sidebar-item" data-page="bagiscilar" onclick="showPage('bagiscilar')">
+      <i class="fa-solid fa-users"></i> Bagiscilar
+    </div>
+
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Raporlar</div>
+    <div class="sidebar-item" data-page="raporlar" onclick="showPage('raporlar')">
+      <i class="fa-solid fa-chart-bar"></i> Raporlar & Yazdir
+    </div>
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Sistem</div>
+    <div class="sidebar-item" data-page="cop" onclick="showPage('cop')">
+      <i class="fa-solid fa-trash-can"></i> Cop Kutusu
+    </div>
+    <div class="sidebar-item" data-page="denetim" onclick="showPage('denetim')">
+      <i class="fa-solid fa-shield-halved"></i> Denetim Masasi
+    </div>
+  </nav>
+
+  <main class="main" id="main-content"></main>
+</div>
+
+<div class="footer">Created By. CMS Team &nbsp;&mdash;&nbsp; Founder. Ismail DEMIRCAN</div>
+<div class="toast-container" id="toast-container"></div>
+
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title"></span>
+      <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

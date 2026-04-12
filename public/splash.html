@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #080c14;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    user-select: none;
+    -webkit-app-region: drag;
+  }
+
+  /* Arka plan parçacıkları */
+  .particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,126,248,0.6), transparent);
+    animation: float linear infinite;
+  }
+
+  @keyframes float {
+    0%   { transform: translateY(110vh) scale(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.4; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  /* Izgara çizgileri */
+  .grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(79,126,248,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,126,248,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridPulse 4s ease-in-out infinite;
+  }
+  @keyframes gridPulse {
+    0%,100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* Merkez içerik */
+  .center {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Logo halkası */
+  .logo-ring {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin-bottom: 28px;
+    animation: ringIn 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+  @keyframes ringIn {
+    from { opacity:0; transform: scale(0.3) rotate(-180deg); }
+    to   { opacity:1; transform: scale(1) rotate(0deg); }
+  }
+  .ring-svg {
+    position: absolute;
+    inset: 0;
+    animation: spin 3s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ring-inner {
+    position: absolute;
+    inset: 12px;
+    background: linear-gradient(135deg, #1a2540, #0f1520);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 30px rgba(79,126,248,0.3), inset 0 0 20px rgba(0,0,0,0.5);
+  }
+  .ring-inner i {
+    font-size: 36px;
+    background: linear-gradient(135deg, #4f7ef8, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Başlık */
+  .title-wrap {
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .title {
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #ffffff 0%, #4f7ef8 50%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: slideUp 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.4s forwards;
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  @keyframes slideUp {
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  .subtitle {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: #4f7ef8;
+    text-transform: uppercase;
+    font-weight: 500;
+    animation: fadeIn 0.6s ease 0.9s forwards;
+    opacity: 0;
+    margin-bottom: 40px;
+  }
+  @keyframes fadeIn { to { opacity:1; } }
+
+  /* Progress bar */
+  .progress-wrap {
+    width: 280px;
+    animation: fadeIn 0.6s ease 1.1s forwards;
+    opacity: 0;
+  }
+  .progress-track {
+    height: 3px;
+    background: rgba(79,126,248,0.15);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4f7ef8, #a78bfa);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 8px rgba(79,126,248,0.8);
+  }
+  .progress-text {
+    text-align: center;
+    font-size: 11px;
+    color: rgba(148,163,184,0.6);
+    letter-spacing: 1px;
+  }
+
+  /* CMS badge */
+  .cms-badge {
+    position: fixed;
+    bottom: 20px;
+    font-size: 11px;
+    color: rgba(100,116,139,0.6);
+    letter-spacing: 1px;
+    animation: fadeIn 0.6s ease 1.5s forwards;
+    opacity: 0;
+  }
+
+  /* Köşe dekorlar */
+  .corner {
+    position: fixed;
+    width: 60px;
+    height: 60px;
+    opacity: 0.3;
+  }
+  .corner-tl { top:16px; left:16px; border-top: 2px solid #4f7ef8; border-left: 2px solid #4f7ef8; }
+  .corner-tr { top:16px; right:16px; border-top: 2px solid #4f7ef8; border-right: 2px solid #4f7ef8; }
+  .corner-bl { bottom:16px; left:16px; border-bottom: 2px solid #4f7ef8; border-left: 2px solid #4f7ef8; }
+  .corner-br { bottom:16px; right:16px; border-bottom: 2px solid #4f7ef8; border-right: 2px solid #4f7ef8; }
+</style>
+<link rel="stylesheet" href="fa/css/all.min.css"/>
+</head>
+<body>
+
+<div class="grid"></div>
+<div class="particles" id="particles"></div>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="center">
+  <div class="logo-ring">
+    <svg class="ring-svg" viewBox="0 0 110 110" fill="none">
+      <circle cx="55" cy="55" r="50" stroke="url(#g1)" stroke-width="2" stroke-dasharray="8 4" stroke-linecap="round"/>
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4f7ef8"/>
+          <stop offset="100%" stop-color="#a78bfa"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="ring-inner">
+      <i class="fa-solid fa-book-open"></i>
+    </div>
+  </div>
+
+  <div class="title-wrap">
+    <div class="title">DEFTERDAR</div>
+  </div>
+  <div class="subtitle">Muhasebe Sistemi</div>
+
+  <div class="progress-wrap">
+    <div class="progress-track">
+      <div class="progress-fill" id="pbar"></div>
+    </div>
+    <div class="progress-text" id="ptext">Baslatiliyor...</div>
+  </div>
+</div>
+
+<div class="cms-badge">CMS TEAM &nbsp;&bull;&nbsp; ISMAIL DEMIRCAN</div>
+
+<script>
+  // Parçacıklar
+  const pc = document.getElementById('particles');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 6 + 2;
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}%;
+      animation-duration:${Math.random()*8+6}s;
+      animation-delay:${Math.random()*5}s;
+    `;
+    pc.appendChild(p);
+  }
+
+  // Progress
+  const msgs = ['','','',''];
+  let pct = 0;
+  const bar = document.getElementById('pbar');
+  const txt = document.getElementById('ptext');
+  const iv = setInterval(() => {
+    pct += Math.random() * 4 + 1;
+    if (pct > 100) pct = 100;
+    bar.style.width = pct + '%';
+    txt.textContent = pct < 30 ? msgs[0] : pct < 60 ? msgs[1] : pct < 90 ? msgs[2] : msgs[3];
+    if (pct >= 100) clearInterval(iv);
+  }, 60);
+</script>
+</body>
+</html>

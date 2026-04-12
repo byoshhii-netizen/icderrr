@@ -1,0 +1,64 @@
+{
+  "name": "defterdar-muhasebe",
+  "version": "1.1.0",
+  "description": "Defterdar Muhasebe - STK Muhasebe Sistemi",
+  "main": "electron.js",
+  "author": "CMS Team",
+  "scripts": {
+    "start": "node server.js",
+    "electron": "electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "electron": "^29.4.6",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.cmsteam.defterdar",
+    "productName": "Defterdar Muhasebe",
+    "copyright": "Copyright © 2024 CMS Team",
+    "forceCodeSigning": false,
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "nodeGypRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/defterdar.ico",
+      "publisherName": "CMS Team"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Defterdar Muhasebe",
+      "installerIcon": "assets/defterdar.ico",
+      "uninstallerIcon": "assets/defterdar.ico",
+      "installerHeaderIcon": "assets/defterdar.ico",
+      "deleteAppDataOnUninstall": false,
+      "uninstallDisplayName": "Defterdar Muhasebe",
+      "include": "build/installer.nsh"
+    },
+    "files": [
+      "**/*",
+      "!data/**",
+      "!dist/**",
+      "!node_modules/.cache/**",
+      "!*.md"
+    ],
+    "extraMetadata": {
+      "author": "CMS Team"
+    }
+  }
+}

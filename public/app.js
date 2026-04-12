@@ -1139,53 +1139,64 @@ function yazdirilabilirHTML(tip) {
 
 
 function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData) {
-  const toplam = hisseler.length;
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
 
-  // Sadece dolu hisseleri göster, ama minimum 7 satır (büyükbaş) veya 1 satır (küçükbaş)
   const minSatir = tur === 'buyukbas' ? 7 : 1;
   let rows = '';
   for (let i = 0; i < minSatir; i++) {
     const h = hisseler[i];
-    rows += '<tr style="height:38px">';
-    rows += '<td style="text-align:center;font-weight:bold;border:1.5px solid #000;padding:8px 6px;font-size:15px;width:60px">' + (i + 1) + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:15px">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:15px;width:130px;text-align:center">' + kurbanTuru + '</td>';
+    rows += '<tr style="height:42px">';
+    rows += '<td style="text-align:center;font-weight:bold;border:1.5px solid #000;padding:8px 6px;font-size:16px;width:60px">' + (i + 1) + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:8px 14px;font-size:16px">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:8px 14px;font-size:16px;width:140px;text-align:center">' + kurbanTuru + '</td>';
     rows += '</tr>';
   }
 
+  // Türk bayrağı SVG - her zaman sabit, dosyaya bağımlı değil
+  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="140" height="93">
+    <rect width="1200" height="800" fill="#E30A17"/>
+    <circle cx="425" cy="400" r="200" fill="white"/>
+    <circle cx="475" cy="400" r="160" fill="#E30A17"/>
+    <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
+  </svg>`;
+
   const baseUrl = window.location.origin;
-  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/yazi.png');
-  const bayrakSrc = _kullaniciAyarlar.bayrak_data || (baseUrl + '/tanzanya.svg');
-  const turkBayrakSrc = baseUrl + '/turkbayrak.png';
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
 
   const printStyle = `
     @page { margin: 12mm 15mm; size: A4; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; padding-bottom: 0; }
-    .header img { height: 90px; width: 140px; object-fit: contain; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .header-left { width: 140px; display: flex; align-items: center; }
     .header-center { flex: 1; text-align: center; }
-    .header-center img { height: 70px; max-width: 200px; object-fit: contain; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 15px; font-weight: bold; background: #fff; }
-    td { border: 1.5px solid #000; padding: 8px 12px; font-size: 15px; }
-    .footer { margin-top: 28px; text-align: center; font-size: 12px; color: #888; }
+    .header-center img { height: 90px; max-width: 220px; object-fit: contain; }
+    .header-right { width: 140px; display: flex; align-items: center; justify-content: flex-end; }
+    .header-right img { height: 93px; width: 140px; object-fit: contain; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
+    td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
+    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #ddd; padding-top: 6px; }
     @media print { body { margin: 0; } }
   `;
+
+  const bayrakImg = bayrakSrc
+    ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:93px;width:140px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
+    : '';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban #' + kurbanNo + '</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
-    '<img src="' + turkBayrakSrc + '" alt="Türk Bayrağı" onerror="this.style.visibility=\'hidden\'"/>' +
+    '<div class="header-left">' + turkBayrakSVG + '</div>' +
     '<div class="header-center"><img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/></div>' +
-    '<img src="' + bayrakSrc + '" alt="Bayrak" onerror="this.style.visibility=\'hidden\'"/>' +
+    '<div class="header-right">' + bayrakImg + '</div>' +
     '</div>' +
     '<table>' +
     '<thead><tr>' +
     '<th style="width:60px;text-align:center">No</th>' +
     '<th>İsim Soyisim</th>' +
-    '<th style="width:130px;text-align:center">Kurban Türü</th>' +
+    '<th style="width:140px;text-align:center">Kurban Türü</th>' +
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +

@@ -119,6 +119,14 @@ const SCHEMA = `
     sifre_hash TEXT NOT NULL,
     olusturma DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS kullanici_ayarlar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_id INTEGER NOT NULL UNIQUE,
+    logo_data TEXT,
+    bayrak_data TEXT,
+    kurulum_tamamlandi INTEGER DEFAULT 0,
+    olusturma DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `;
 
 let _db = null;

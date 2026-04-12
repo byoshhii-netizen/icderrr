@@ -413,6 +413,28 @@ router.get('/sistem/ip', (req, res) => {
   res.json({ ips });
 });
 
+// ─── KULLANICI AYARLARI ─────────────────────────────────────────────────────
+
+router.get('/ayarlar', async (req, res) => {
+  const db = await getDb();
+  const ayar = db.prepare('SELECT * FROM kullanici_ayarlar WHERE kullanici_id=?').get(req.session.userId);
+  res.json(ayar || { kurulum_tamamlandi: 0, logo_data: null, bayrak_data: null });
+});
+
+router.post('/ayarlar', async (req, res) => {
+  const db = await getDb();
+  const { logo_data, bayrak_data, kurulum_tamamlandi } = req.body;
+  const mevcut = db.prepare('SELECT id FROM kullanici_ayarlar WHERE kullanici_id=?').get(req.session.userId);
+  if (mevcut) {
+    db.prepare('UPDATE kullanici_ayarlar SET logo_data=?, bayrak_data=?, kurulum_tamamlandi=? WHERE kullanici_id=?')
+      .run(logo_data || null, bayrak_data || null, kurulum_tamamlandi ? 1 : 0, req.session.userId);
+  } else {
+    db.prepare('INSERT INTO kullanici_ayarlar (kullanici_id, logo_data, bayrak_data, kurulum_tamamlandi) VALUES (?,?,?,?)')
+      .run(req.session.userId, logo_data || null, bayrak_data || null, kurulum_tamamlandi ? 1 : 0);
+  }
+  res.json({ ok: true });
+});
+
 // ─── ÇÖP KUTUSU ────────────────────────────────────────────────────────────
 
 router.get('/cop-kutusu', async (req, res) => {

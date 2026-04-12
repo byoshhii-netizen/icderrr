@@ -1,24 +1,27 @@
 ﻿// ─── AUTH KONTROL ────────────────────────────────────────────────────────────
+// Kullanıcı ayarları global
+let _kullaniciAyarlar = { logo_data: null, bayrak_data: null, kurulum_tamamlandi: 0 };
+let _kullaniciAdi = '';
+
 (async function checkAuth() {
-  // localStorage'da son giriş zamanını kontrol et
   const lastLogin = localStorage.getItem('defterdar-last-login');
   const now = Date.now();
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
-  // 24 saat geçmemişse session kontrolü yap
   if (lastLogin && (now - parseInt(lastLogin)) < TWENTY_FOUR_HOURS) {
     const r = await fetch('/api/auth/durum');
     const d = await r.json();
     if (d.girisYapildi) {
+      _kullaniciAdi = d.kullanici_adi;
       const badge = document.getElementById('user-badge');
       const name = document.getElementById('user-name');
       if (badge) badge.style.display = '';
       if (name) name.textContent = d.kullanici_adi;
-      return; // Giriş geçerli, devam et
+      await yukleKullaniciAyarlar();
+      return;
     }
   }
 
-  // 24 saat geçmiş veya session yok → giriş sayfasına yönlendir
   const r = await fetch('/api/auth/durum');
   const d = await r.json();
   if (!d.girisYapildi) {
@@ -26,16 +29,150 @@
     window.location.href = '/giris.html';
     return;
   }
+  _kullaniciAdi = d.kullanici_adi;
   const badge = document.getElementById('user-badge');
   const name = document.getElementById('user-name');
   if (badge) badge.style.display = '';
   if (name) name.textContent = d.kullanici_adi;
+  await yukleKullaniciAyarlar();
 })();
+
+async function yukleKullaniciAyarlar() {
+  try {
+    const ayar = await api('GET', '/ayarlar');
+    _kullaniciAyarlar = ayar;
+    if (!ayar.kurulum_tamamlandi) {
+      setTimeout(() => modalKurulumSihirbazi(), 600);
+    }
+  } catch(e) {}
+}
 
 async function cikisYap() {
   await fetch('/api/auth/cikis', { method: 'POST' });
   localStorage.removeItem('defterdar-last-login');
   window.location.href = '/giris.html';
+}
+
+// ─── KURULUM SİHİRBAZI ───────────────────────────────────────────────────────
+let _setupLogoData = null;
+let _setupBayrakData = null;
+
+function modalKurulumSihirbazi() {
+  _setupLogoData = null;
+  _setupBayrakData = null;
+  openModal('Hoş Geldiniz! Kurulum', `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:36px;margin-bottom:6px">🎉</div>
+      <div style="font-size:14px;color:var(--text2)">Yazdırma şablonunuz için görselleri yükleyin.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+      <div class="form-group">
+        <label><i class="fa-solid fa-image"></i> Logonuz <span style="color:var(--text3);font-weight:400">(Orta + Bağışçı sol üst)</span></label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-logo-input').click()">
+          <div id="setup-logo-preview">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Logo yükle</div>
+          </div>
+        </div>
+        <input type="file" id="setup-logo-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'logo')"/>
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-flag"></i> Sağ Üst Bayrak <span style="color:var(--text3);font-weight:400">(Kurban yazdır)</span></label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-bayrak-input').click()">
+          <div id="setup-bayrak-preview">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Bayrak yükle</div>
+          </div>
+        </div>
+        <input type="file" id="setup-bayrak-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'bayrak')"/>
+      </div>
+    </div>
+    <div style="background:var(--bg4);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text3);line-height:1.7">
+      <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+      <strong>Kurban yazdır:</strong> Sol üst = Türk Bayrağı (sabit) &nbsp;|&nbsp; Orta = Logonuz &nbsp;|&nbsp; Sağ üst = Yüklediğiniz bayrak<br>
+      <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+      <strong>Bağışçı listesi:</strong> Sol üst = Logonuz &nbsp;|&nbsp; Ayarlardan sonradan değiştirilebilir
+    </div>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="kurulumAtla()">Şimdi Değil</button>
+      <button class="btn btn-primary" onclick="kurulumKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet ve Başla</button>
+    </div>
+  `, true, 'gear');
+}
+
+function onSetupImageChange(input, tip) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = e.target.result;
+    if (tip === 'logo') {
+      _setupLogoData = data;
+      document.getElementById('setup-logo-preview').innerHTML =
+        '<img src="' + data + '" style="max-height:80px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+    } else {
+      _setupBayrakData = data;
+      document.getElementById('setup-bayrak-preview').innerHTML =
+        '<img src="' + data + '" style="max-height:80px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function kurulumKaydet() {
+  try {
+    const logo = _setupLogoData || _kullaniciAyarlar.logo_data;
+    const bayrak = _setupBayrakData || _kullaniciAyarlar.bayrak_data;
+    await api('POST', '/ayarlar', { logo_data: logo, bayrak_data: bayrak, kurulum_tamamlandi: 1 });
+    _kullaniciAyarlar.logo_data = logo;
+    _kullaniciAyarlar.bayrak_data = bayrak;
+    _kullaniciAyarlar.kurulum_tamamlandi = 1;
+    closeModal();
+    toast('Ayarlar kaydedildi');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function kurulumAtla() {
+  try {
+    await api('POST', '/ayarlar', { kurulum_tamamlandi: 1 });
+    _kullaniciAyarlar.kurulum_tamamlandi = 1;
+  } catch(e) {}
+  closeModal();
+}
+
+// Ayarlar sayfasından da değiştirilebilir
+async function modalAyarlar() {
+  _setupLogoData = null;
+  _setupBayrakData = null;
+  const logoOnizleme = _kullaniciAyarlar.logo_data
+    ? '<img src="' + _kullaniciAyarlar.logo_data + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>'
+    : '<i class="fa-solid fa-image" style="font-size:22px;color:var(--text3)"></i><div style="color:var(--text3);font-size:12px;margin-top:4px">Yüklenmedi</div>';
+  const bayrakOnizleme = _kullaniciAyarlar.bayrak_data
+    ? '<img src="' + _kullaniciAyarlar.bayrak_data + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>'
+    : '<i class="fa-solid fa-flag" style="font-size:22px;color:var(--text3)"></i><div style="color:var(--text3);font-size:12px;margin-top:4px">Yüklenmedi</div>';
+
+  openModal('Yazdırma Ayarları', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+      <div class="form-group">
+        <label><i class="fa-solid fa-image"></i> Logonuz</label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-logo-input').click()">
+          <div id="setup-logo-preview">${logoOnizleme}</div>
+        </div>
+        <input type="file" id="setup-logo-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'logo')"/>
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-flag"></i> Sağ Üst Bayrak</label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-bayrak-input').click()">
+          <div id="setup-bayrak-preview">${bayrakOnizleme}</div>
+        </div>
+        <input type="file" id="setup-bayrak-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'bayrak')"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kurulumKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>
+  `, true, 'gear');
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -1003,63 +1140,56 @@ function yazdirilabilirHTML(tip) {
 
 function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData) {
   const toplam = hisseler.length;
-  const dolu = hisseler.filter(h => h.bagisci_adi).length;
-  const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
 
+  // Sadece dolu hisseleri göster, ama minimum 7 satır (büyükbaş) veya 1 satır (küçükbaş)
+  const minSatir = tur === 'buyukbas' ? 7 : 1;
   let rows = '';
-  hisseler.forEach(h => {
-    rows += '<tr>';
-    rows += '<td style="text-align:center;font-weight:bold;border:1px solid #000;padding:8px">' + h.hisse_no + '</td>';
-    rows += '<td style="border:1px solid #000;padding:8px">' + (h.bagisci_adi || '') + '</td>';
-    rows += '<td style="border:1px solid #000;padding:8px">' + kurbanTuru + '</td>';
-    rows += '</tr>';
-  });
-
-  // Boş satırlar ekle (7 hisse için)
-  for (let i = hisseler.length; i < 7; i++) {
-    rows += '<tr>';
-    rows += '<td style="text-align:center;border:1px solid #000;padding:8px">' + (i + 1) + '</td>';
-    rows += '<td style="border:1px solid #000;padding:8px"></td>';
-    rows += '<td style="border:1px solid #000;padding:8px">' + kurbanTuru + '</td>';
+  for (let i = 0; i < minSatir; i++) {
+    const h = hisseler[i];
+    rows += '<tr style="height:38px">';
+    rows += '<td style="text-align:center;font-weight:bold;border:1.5px solid #000;padding:8px 6px;font-size:15px;width:60px">' + (i + 1) + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:15px">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:15px;width:130px;text-align:center">' + kurbanTuru + '</td>';
     rows += '</tr>';
   }
 
+  const baseUrl = window.location.origin;
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/yazi.png');
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || (baseUrl + '/tanzanya.svg');
+  const turkBayrakSrc = baseUrl + '/turkbayrak.png';
+
   const printStyle = `
-    @page { margin: 15mm; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .header img { height: 80px; object-fit: contain; }
-    .header-center { text-align: center; flex: 1; }
-    .header-center img { height: 60px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #000; padding: 12px 8px; text-align: left; font-size: 14px; }
-    th { background: #fff; font-weight: bold; }
-    .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #666; }
-    @media print { body { margin: 0; padding: 15mm; } }
+    @page { margin: 12mm 15mm; size: A4; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; padding-bottom: 0; }
+    .header img { height: 90px; width: 140px; object-fit: contain; }
+    .header-center { flex: 1; text-align: center; }
+    .header-center img { height: 70px; max-width: 200px; object-fit: contain; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 15px; font-weight: bold; background: #fff; }
+    td { border: 1.5px solid #000; padding: 8px 12px; font-size: 15px; }
+    .footer { margin-top: 28px; text-align: center; font-size: 12px; color: #888; }
+    @media print { body { margin: 0; } }
   `;
 
-  // Railway URL'lerini kullan (production)
-  const baseUrl = window.location.origin;
-  
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban #' + kurbanNo + '</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
-    '<img src="' + baseUrl + '/turkbayrak.png" alt="Türk Bayrağı" onerror="this.src=\'' + baseUrl + '/icder.png\'" />' +
-    '<div class="header-center">' +
-    '<img src="' + baseUrl + '/yazi.png" alt="İÇDER" onerror="this.src=\'' + baseUrl + '/icder.png\'" />' +
-    '</div>' +
-    '<img src="' + baseUrl + '/tanzanya.svg" alt="Tanzanya Bayrağı" onerror="this.src=\'' + baseUrl + '/cad.png\'" />' +
+    '<img src="' + turkBayrakSrc + '" alt="Türk Bayrağı" onerror="this.style.visibility=\'hidden\'"/>' +
+    '<div class="header-center"><img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/></div>' +
+    '<img src="' + bayrakSrc + '" alt="Bayrak" onerror="this.style.visibility=\'hidden\'"/>' +
     '</div>' +
     '<table>' +
     '<thead><tr>' +
-    '<th style="width:80px;text-align:center">Hisse No</th>' +
+    '<th style="width:60px;text-align:center">No</th>' +
     '<th>İsim Soyisim</th>' +
-    '<th style="width:120px">Kurban Türü</th>' +
+    '<th style="width:130px;text-align:center">Kurban Türü</th>' +
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +
-    '<div class="footer">Defterdar Muhasebe - defterdar.xyz</div>' +
+    '<div class="footer">Defterdar Muhasebe &mdash; defterdar.xyz</div>' +
     '</body></html>';
 }
 
@@ -1353,7 +1483,6 @@ function yazdirBagiscilar() {
   const tbody = document.getElementById('bagisci-tbody');
   if (!tbody) return toast('Bagisci listesi yuklu degil', 'error');
 
-  const oLabel = {odendi:'Odendi', iptal:'Iptal', bekliyor:'Bekliyor'};
   const rows = Array.from(tbody.querySelectorAll('tr')).map(tr => {
     const cells = tr.querySelectorAll('td');
     if (!cells.length) return '';
@@ -1365,31 +1494,40 @@ function yazdirBagiscilar() {
     return r;
   }).join('');
 
-  const printStyle = 'body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:20px}' +
-    '.header{display:flex;justify-content:space-between;border-bottom:2px solid #1a2a50;padding-bottom:8px;margin-bottom:14px}' +
-    '.hl{font-size:16px;font-weight:bold;color:#1a2a50}.hl small{display:block;font-size:10px;color:#666;font-weight:normal}' +
-    'table{width:100%;border-collapse:collapse}' +
-    'th{background:#1a2a50;color:#fff;padding:6px 8px;text-align:left;font-size:10px}' +
-    'td{padding:6px 8px;border-bottom:1px solid #ddd;font-size:11px}' +
-    'tr:nth-child(even){background:#f5f5f5}' +
-    '.footer{margin-top:20px;font-size:10px;color:#999;display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:8px}' +
-    '@media print{body{margin:8px}}';
+  const baseUrl = window.location.origin;
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/yazi.png');
+
+  const printStyle = `
+    @page { margin: 12mm 15mm; size: A4; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 12px; }
+    .header img { height: 70px; object-fit: contain; }
+    .header-info { flex: 1; }
+    .header-info .title { font-size: 20px; font-weight: bold; }
+    .header-info .sub { font-size: 13px; color: #555; margin-top: 3px; }
+    .header-right { text-align: right; font-size: 13px; color: #555; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #1a2a50; color: #fff; padding: 9px 8px; text-align: left; font-size: 13px; }
+    td { padding: 8px; border-bottom: 1px solid #ddd; font-size: 13px; }
+    tr:nth-child(even) { background: #f5f5f5; }
+    .footer { margin-top: 20px; font-size: 11px; color: #999; display: flex; justify-content: space-between; border-top: 1px solid #ddd; padding-top: 8px; }
+    @media print { body { margin: 0; } }
+  `;
 
   const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bagisci Listesi</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
-    '<div style="display:flex;align-items:center;gap:10px">' +
-    '<img src="http://127.0.0.1:4500/icder.png" style="height:48px;object-fit:contain" onerror="this.style.display=\'none\'" />' +
-    '<div class="hl">DEFTERDAR MUHASEBE<small>Bagisci Listesi &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</small></div>' +
+    '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
+    '<div class="header-info">' +
+    '<div class="title">' + esc(_kullaniciAdi || 'Kullanici') + '</div>' +
+    '<div class="sub">Bağışçı Listesi &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
     '</div>' +
-    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
-    '<img src="http://127.0.0.1:4500/cad.png" style="height:48px;object-fit:contain" onerror="this.style.display=\'none\'" />' +
-    '<div style="font-size:11px;color:#555;text-align:right">Organizasyon: <strong>' + esc(S.orgAd) + '</strong><br>' + S.orgYil + '</div>' +
+    '<div class="header-right">Organizasyon: <strong>' + esc(S.orgAd) + '</strong><br>' + S.orgYil + '</div>' +
     '</div>' +
-    '</div>' +
-    '<table><thead><tr><th>#</th><th>Bagisci Adi</th><th>Telefon</th><th>Kimin Adina</th><th>Kurban No</th><th>Hisse</th><th>Tur</th><th>Odeme</th><th>Video</th></tr></thead>' +
+    '<table><thead><tr><th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kimin Adına</th><th>Kurban No</th><th>Hisse</th><th>Tür</th><th>Ödeme</th><th>Video</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>' +
-    '<div class="footer"><span>Defterdar Muhasebe &mdash; CMS Team</span></div>' +
+    '<div class="footer"><span>Defterdar Muhasebe &mdash; defterdar.xyz</span><span>' + new Date().toLocaleString('tr-TR') + '</span></div>' +
     '</body></html>';
 
   printHTML(html);

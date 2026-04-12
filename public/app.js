@@ -39,6 +39,10 @@ async function api(method, url, body) {
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function toast(msg, type='success') {
   const c = document.getElementById('toast-container');
+  if (!c) {
+    console.warn('toast-container not found, using console:', msg);
+    return;
+  }
   const t = document.createElement('div');
   t.className = `toast ${type}`;
   t.innerHTML = `<i class="fa-solid fa-${type==='success'?'circle-check':'circle-xmark'}"></i> ${msg}`;

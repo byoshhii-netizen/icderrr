@@ -106,17 +106,23 @@ function switchTab(tab) {
 
 function showError(msg) {
   const el = document.getElementById('msg-error');
+  if (!el) return console.error('msg-error element not found');
   el.textContent = msg; el.style.display = 'block';
-  document.getElementById('msg-success').style.display = 'none';
+  const successEl = document.getElementById('msg-success');
+  if (successEl) successEl.style.display = 'none';
 }
 function showSuccess(msg) {
   const el = document.getElementById('msg-success');
+  if (!el) return console.error('msg-success element not found');
   el.textContent = msg; el.style.display = 'block';
-  document.getElementById('msg-error').style.display = 'none';
+  const errorEl = document.getElementById('msg-error');
+  if (errorEl) errorEl.style.display = 'none';
 }
 function clearMsg() {
-  document.getElementById('msg-error').style.display = 'none';
-  document.getElementById('msg-success').style.display = 'none';
+  const errorEl = document.getElementById('msg-error');
+  const successEl = document.getElementById('msg-success');
+  if (errorEl) errorEl.style.display = 'none';
+  if (successEl) successEl.style.display = 'none';
 }
 
 async function girisYap() {

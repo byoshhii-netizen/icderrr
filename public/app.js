@@ -229,13 +229,14 @@ function showPage(page) {
   else if (page==='bagiscilar')  renderBagiscilar();
   else if (page==='raporlar')    renderRaporlar();
   else if (page==='cop')         renderCopKutusu();
+  else if (page==='yedek')       renderYedekGeriYukle();
   else if (page==='denetim')     renderDenetim();
   else if (page==='medya')       renderMedyaDeposu();
 }
 
 function setSidebarOrg(ad, yil) {
-  document.getElementById('sidebar-org-name').textContent = ad || 'Organizasyon Secilmedi';
-  document.getElementById('sidebar-org-sub').textContent  = yil ? `${yil} Yili` : 'Bir organizasyon secin';
+  document.getElementById('sidebar-org-name').textContent = ad || 'Organizasyon Seçilmedi';
+  document.getElementById('sidebar-org-sub').textContent  = yil ? `${yil} Yılı` : 'Bir organizasyon seçin';
 }
 
 // ─── YARDIMCI ────────────────────────────────────────────────────────────────
@@ -1590,6 +1591,161 @@ async function tumKurbanlariExcel() {
   downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel', 'defterdar-rapor.xlsx');
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// YEDEK GERİ YÜKLEME
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderYedekGeriYukle() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-database"></i></div>
+        Yedek Geri Yükle
+      </div>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card" style="border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.05)">
+        <div class="card-title"><i class="fa-solid fa-download"></i> Tam Yedek Al</div>
+        <div style="margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7">
+          Tüm organizasyonlarınızı, kurbanları, hisseleri ve ayarlarınızı tek bir JSON dosyasına yedekleyin.
+          Bu dosyayı güvenli bir yerde saklayın.
+        </div>
+        <button class="btn btn-success" onclick="tamYedekAl()">
+          <i class="fa-solid fa-download"></i> Tam Yedek İndir (JSON)
+        </button>
+      </div>
+
+      <div class="card" style="border-color:rgba(79,126,248,0.3);background:rgba(79,126,248,0.05)">
+        <div class="card-title"><i class="fa-solid fa-upload"></i> Yedek Geri Yükle</div>
+        <div style="margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7">
+          Daha önce aldığınız JSON yedek dosyasını yükleyerek tüm verilerinizi geri yükleyin.
+          Mevcut veriler korunur, yeni veriler eklenir veya güncellenir.
+        </div>
+        <input type="file" id="yedek-dosya-input" accept=".json" style="display:none" onchange="yedekDosyaSecildi(this)"/>
+        <button class="btn btn-primary" onclick="document.getElementById('yedek-dosya-input').click()">
+          <i class="fa-solid fa-upload"></i> Yedek Dosyası Seç
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-circle-info"></i> Yedekleme Hakkında</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8">
+        <p><strong style="color:var(--text)">Tam Yedek Sistemi:</strong></p>
+        <ul style="margin:8px 0;padding-left:20px">
+          <li>Tüm organizasyonlarınız, kurbanlar, hisseler ve bağışçı bilgileri tek dosyada</li>
+          <li>Kullanıcı ayarlarınız (logo, bayrak) dahil</li>
+          <li>JSON formatında, okunabilir ve taşınabilir</li>
+          <li>Geri yükleme sırasında mevcut veriler korunur</li>
+          <li>Aynı organizasyon varsa güncellenir, yoksa yeni eklenir</li>
+        </ul>
+        <p style="margin-top:12px"><strong style="color:var(--text)">Öneriler:</strong></p>
+        <ul style="margin:8px 0;padding-left:20px">
+          <li>Düzenli olarak yedek alın (haftada bir önerilir)</li>
+          <li>Yedek dosyalarını güvenli bir yerde saklayın (USB, bulut depolama)</li>
+          <li>Önemli değişikliklerden önce mutlaka yedek alın</li>
+          <li>Yedek dosyasını başka bir bilgisayara taşıyabilirsiniz</li>
+        </ul>
+      </div>
+    </div>`;
+}
+
+async function tamYedekAl() {
+  try {
+    toast('Yedek hazırlanıyor...');
+    const r = await fetch('/api/tam-yedek');
+    if (!r.ok) throw new Error('Yedek alınamadı');
+    
+    const blob = await r.blob();
+    const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `defterdar-yedek-${tarih}.json`;
+    
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }, 1000);
+    
+    toast('Yedek başarıyla indirildi');
+  } catch(e) {
+    toast('Yedek alınamadı: ' + e.message, 'error');
+  }
+}
+
+async function yedekDosyaSecildi(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  if (!file.name.endsWith('.json')) {
+    toast('Lütfen geçerli bir JSON yedek dosyası seçin', 'error');
+    input.value = '';
+    return;
+  }
+  
+  if (!confirm(`"${file.name}" dosyası yüklenecek. Mevcut verileriniz korunacak, yeni veriler eklenecek veya güncellenecek. Devam etmek istiyor musunuz?`)) {
+    input.value = '';
+    return;
+  }
+  
+  try {
+    toast('Yedek yükleniyor...');
+    
+    const formData = new FormData();
+    formData.append('dosya', file);
+    
+    const r = await fetch('/api/yedek-geri-yukle', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const d = await r.json();
+    
+    if (!r.ok) {
+      throw new Error(d.hata || 'Yedek yüklenemedi');
+    }
+    
+    toast('Yedek başarıyla geri yüklendi!');
+    
+    // Detaylı bilgi göster
+    openModal('Yedek Geri Yüklendi', `
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <div style="font-size:16px;font-weight:600;color:var(--green);margin-bottom:8px">Yedek Başarıyla Geri Yüklendi</div>
+        <div style="font-size:13px;color:var(--text2)">${d.mesaj || 'Verileriniz geri yüklendi'}</div>
+      </div>
+      
+      ${d.detay ? `
+        <div style="background:var(--bg4);border-radius:8px;padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">İSTATİSTİKLER</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+            <div><span style="color:var(--text3)">Yeni Organizasyon:</span> <strong>${d.detay.organizasyonlar || 0}</strong></div>
+            <div><span style="color:var(--text3)">Güncellenen:</span> <strong>${d.detay.guncellendi || 0}</strong></div>
+            <div><span style="color:var(--text3)">Yeni Kurban:</span> <strong>${d.detay.kurbanlar || 0}</strong></div>
+            <div><span style="color:var(--text3)">Yeni Hisse:</span> <strong>${d.detay.hisseler || 0}</strong></div>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="closeModal();showPage('organizasyonlar')">
+          <i class="fa-solid fa-check"></i> Tamam
+        </button>
+      </div>
+    `, false, 'check-circle');
+    
+    input.value = '';
+    
+  } catch(e) {
+    toast('Yedek yüklenemedi: ' + e.message, 'error');
+    input.value = '';
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TEMA TOGGLE

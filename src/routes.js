@@ -523,3 +523,166 @@ router.get('/sistem/ip', (req, res) => {
   }
   res.json({ ips });
 });
+
+
+// ─── TAM YEDEK SİSTEMİ ─────────────────────────────────────────────────────
+
+router.get('/tam-yedek', async (req, res) => {
+  const db = await getDb();
+  try {
+    // Tüm verileri topla
+    const organizasyonlar = db.prepare('SELECT * FROM organizasyonlar WHERE kullanici_id=?').all(req.session.userId);
+    const yedek = {
+      versiyon: '1.0',
+      tarih: new Date().toISOString(),
+      organizasyonlar: []
+    };
+
+    // Her organizasyon için kurban ve hisseleri topla
+    for (const org of organizasyonlar) {
+      const kurbanlar = db.prepare('SELECT * FROM kurbanlar WHERE organizasyon_id=?').all(org.id);
+      const orgData = { ...org, kurbanlar: [] };
+      
+      for (const k of kurbanlar) {
+        const hisseler = db.prepare('SELECT * FROM hisseler WHERE kurban_id=?').all(k.id);
+        orgData.kurbanlar.push({ ...k, hisseler });
+      }
+      
+      yedek.organizasyonlar.push(orgData);
+    }
+
+    // Kullanıcı ayarlarını ekle
+    const ayarlar = db.prepare('SELECT * FROM kullanici_ayarlar WHERE kullanici_id=?').get(req.session.userId);
+    yedek.ayarlar = ayarlar || {};
+
+    // JSON olarak indir
+    const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="defterdar-yedek-${tarih}.json"`);
+    res.json(yedek);
+  } catch(e) {
+    res.status(500).json({ hata: e.message });
+  }
+});
+
+// ─── YEDEK GERİ YÜKLEME ───────────────────────────────────────────────────
+
+const multer = require('multer');
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+});
+
+router.post('/yedek-geri-yukle', upload.single('dosya'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ hata: 'Dosya bulunamadı' });
+  
+  try {
+    const db = await getDb();
+    const yedek = JSON.parse(req.file.buffer.toString('utf8'));
+
+    if (!yedek.versiyon || !yedek.organizasyonlar) {
+      return res.status(400).json({ hata: 'Geçersiz yedek dosyası formatı' });
+    }
+
+    let istatistik = { 
+      organizasyonlar: 0, 
+      kurbanlar: 0, 
+      hisseler: 0, 
+      guncellendi: 0 
+    };
+
+    // Her organizasyonu geri yükle
+    for (const org of yedek.organizasyonlar) {
+      let orgId;
+      
+      // Organizasyon var mı kontrol et
+      const mevcutOrg = db.prepare('SELECT id FROM organizasyonlar WHERE ad=? AND yil=? AND kullanici_id=?')
+        .get(org.ad, org.yil, req.session.userId);
+      
+      if (mevcutOrg) {
+        // Güncelle
+        orgId = mevcutOrg.id;
+        db.prepare(`UPDATE organizasyonlar SET max_kurban=?, buyukbas_hisse_fiyati=?, kucukbas_hisse_fiyati=?, aciklama=?, aktif=? 
+          WHERE id=?`)
+          .run(org.max_kurban, org.buyukbas_hisse_fiyati, org.kucukbas_hisse_fiyati, org.aciklama, org.aktif ?? 1, orgId);
+        istatistik.guncellendi++;
+      } else {
+        // Yeni oluştur
+        const r = db.prepare(`INSERT INTO organizasyonlar (ad, yil, max_kurban, buyukbas_hisse_fiyati, kucukbas_hisse_fiyati, aciklama, aktif, kullanici_id)
+          VALUES (?,?,?,?,?,?,?,?)`)
+          .run(org.ad, org.yil, org.max_kurban, org.buyukbas_hisse_fiyati, org.kucukbas_hisse_fiyati, org.aciklama, org.aktif ?? 1, req.session.userId);
+        orgId = r.lastInsertRowid;
+        istatistik.organizasyonlar++;
+      }
+
+      // Kurbanları geri yükle
+      for (const k of (org.kurbanlar || [])) {
+        let kurbanId;
+        
+        // Kurban var mı kontrol et
+        const mevcutKurban = db.prepare('SELECT id FROM kurbanlar WHERE organizasyon_id=? AND kurban_no=?')
+          .get(orgId, k.kurban_no);
+        
+        if (mevcutKurban) {
+          // Güncelle
+          kurbanId = mevcutKurban.id;
+          db.prepare(`UPDATE kurbanlar SET tur=?, kurban_turu=?, kesen_kisi=?, kupe_no=?, alis_fiyati=?, toplam_hisse=?, kesildi=?, kesim_tarihi=?, aciklama=?, kucukbas_sayi=?
+            WHERE id=?`)
+            .run(k.tur, k.kurban_turu || 'Udhiye', k.kesen_kisi || null, k.kupe_no || null, k.alis_fiyati || 0, 
+              k.toplam_hisse, k.kesildi || 0, k.kesim_tarihi || null, k.aciklama || null, k.kucukbas_sayi || 1, kurbanId);
+        } else {
+          // Yeni oluştur
+          const r = db.prepare(`INSERT INTO kurbanlar (organizasyon_id, kurban_no, tur, kurban_turu, kesen_kisi, kupe_no, alis_fiyati, toplam_hisse, kesildi, kesim_tarihi, aciklama, kucukbas_sayi)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+            .run(orgId, k.kurban_no, k.tur, k.kurban_turu || 'Udhiye', k.kesen_kisi || null, k.kupe_no || null, 
+              k.alis_fiyati || 0, k.toplam_hisse, k.kesildi || 0, k.kesim_tarihi || null, k.aciklama || null, k.kucukbas_sayi || 1);
+          kurbanId = r.lastInsertRowid;
+          istatistik.kurbanlar++;
+        }
+
+        // Hisseleri geri yükle
+        for (const h of (k.hisseler || [])) {
+          const mevcutHisse = db.prepare('SELECT id FROM hisseler WHERE kurban_id=? AND hisse_no=?')
+            .get(kurbanId, h.hisse_no);
+          
+          if (mevcutHisse) {
+            // Güncelle
+            db.prepare(`UPDATE hisseler SET bagisci_adi=?, bagisci_telefon=?, kimin_adina=?, kimin_adina_telefon=?, odeme_durumu=?, video_ister=?, video_url=?, video_public_id=?, aciklama=?
+              WHERE id=?`)
+              .run(h.bagisci_adi || null, h.bagisci_telefon || null, h.kimin_adina || null, h.kimin_adina_telefon || null,
+                h.odeme_durumu || 'bekliyor', h.video_ister || 0, h.video_url || null, h.video_public_id || null, h.aciklama || null, mevcutHisse.id);
+          } else {
+            // Yeni oluştur
+            db.prepare(`INSERT INTO hisseler (kurban_id, hisse_no, bagisci_adi, bagisci_telefon, kimin_adina, kimin_adina_telefon, odeme_durumu, video_ister, video_url, video_public_id, aciklama)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+              .run(kurbanId, h.hisse_no, h.bagisci_adi || null, h.bagisci_telefon || null, h.kimin_adina || null, h.kimin_adina_telefon || null,
+                h.odeme_durumu || 'bekliyor', h.video_ister || 0, h.video_url || null, h.video_public_id || null, h.aciklama || null);
+            istatistik.hisseler++;
+          }
+        }
+      }
+    }
+
+    // Ayarları geri yükle
+    if (yedek.ayarlar && (yedek.ayarlar.logo_data || yedek.ayarlar.bayrak_data)) {
+      const mevcutAyar = db.prepare('SELECT id FROM kullanici_ayarlar WHERE kullanici_id=?').get(req.session.userId);
+      if (mevcutAyar) {
+        db.prepare('UPDATE kullanici_ayarlar SET logo_data=COALESCE(?, logo_data), bayrak_data=COALESCE(?, bayrak_data) WHERE kullanici_id=?')
+          .run(yedek.ayarlar.logo_data || null, yedek.ayarlar.bayrak_data || null, req.session.userId);
+      } else {
+        db.prepare('INSERT INTO kullanici_ayarlar (kullanici_id, logo_data, bayrak_data, kurulum_tamamlandi) VALUES (?,?,?,1)')
+          .run(req.session.userId, yedek.ayarlar.logo_data || null, yedek.ayarlar.bayrak_data || null);
+      }
+    }
+
+    res.json({
+      ok: true,
+      mesaj: `${istatistik.organizasyonlar} yeni organizasyon, ${istatistik.kurbanlar} yeni kurban, ${istatistik.hisseler} yeni hisse eklendi. ${istatistik.guncellendi} organizasyon güncellendi.`,
+      detay: istatistik
+    });
+  } catch(e) {
+    res.status(500).json({ hata: 'Yedek dosyası işlenemedi: ' + e.message });
+  }
+});
+
+module.exports = router;

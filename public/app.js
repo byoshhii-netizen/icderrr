@@ -394,10 +394,24 @@ async function renderKurbanlar() {
         <div class="icon-wrap"><i class="fa-solid fa-cow"></i></div>
         Kurbanlar <small>${esc(S.orgAd)}</small>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-secondary" onclick="showPage('organizasyonlar')"><i class="fa-solid fa-arrow-left"></i> Geri</button>
-        <button class="btn btn-secondary" onclick="tumKurbanlariYazdir()"><i class="fa-solid fa-print"></i> Tumu Yazdir</button>
-        <button class="btn btn-success" onclick="tumKurbanlariExcel()"><i class="fa-solid fa-file-excel"></i> Tumu Excel</button>
+        <div style="position:relative">
+          <button class="btn btn-secondary" onclick="togglePrintMenu(event)">
+            <i class="fa-solid fa-print"></i> Yazdırma Seçenekleri
+            <i class="fa-solid fa-chevron-down" style="margin-left:6px;font-size:10px"></i>
+          </button>
+          <div id="print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;z-index:1000">
+            <div onclick="tumKurbanlariYazdir()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>
+              <span>Tümünü Yazdır</span>
+            </div>
+            <div onclick="tumKurbanlariExcel()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>
+              <span>Excel İndir</span>
+            </div>
+          </div>
+        </div>
         <button class="btn btn-primary" onclick="modalYeniKurban()"><i class="fa-solid fa-plus"></i> Kurban Ekle</button>
       </div>
     </div>
@@ -423,7 +437,6 @@ async function renderKurbanlar() {
             <th style="width:40px">#</th>
             <th data-sort="kurban_no" onclick="sortKurbanlar('kurban_no')" style="cursor:pointer">No<span class="sort-icon"> ↑</span></th>
             <th data-sort="tur" onclick="sortKurbanlar('tur')" style="cursor:pointer">Hayvan<span class="sort-icon"> ↕</span></th>
-            <th>Kurban Turu</th>
             <th>Kupe No</th>
             <th data-sort="alis_fiyati" onclick="sortKurbanlar('alis_fiyati')" style="cursor:pointer">Alis Fiyati<span class="sort-icon"> ↕</span></th>
             <th data-sort="dolu_hisse" onclick="sortKurbanlar('dolu_hisse')" style="cursor:pointer">Hisse Durumu<span class="sort-icon"> ↕</span></th>
@@ -514,10 +527,25 @@ function filterKurbanlar() {
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-purple btn-sm" onclick="modalHisseler(${k.id},${k.kurban_no},'${k.tur}')"><i class="fa-solid fa-users"></i> Hisseler</button>
+          <div style="position:relative">
+            <button class="btn btn-secondary btn-sm btn-icon" title="Yazdırma Seçenekleri" onclick="toggleRowPrintMenu(event, ${k.id})">
+              <i class="fa-solid fa-print"></i>
+            </button>
+            <div id="row-print-menu-${k.id}" class="dropdown-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:180px;z-index:1000;white-space:nowrap">
+              <div onclick="yazdirKurbanSatir(${k.id})" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+                <i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>
+                <span>Yazdır</span>
+              </div>
+              <div onclick="excelKurbanSatir(${k.id})" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+                <i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>
+                <span>Excel İndir</span>
+              </div>
+            </div>
+          </div>
           <button class="btn btn-secondary btn-sm btn-icon" title="Duzenle" onclick="modalDuzenleKurban(${k.id})"><i class="fa-solid fa-pen"></i></button>
-          <button class="btn btn-secondary btn-sm btn-icon" title="Yazdir" onclick="yazdirKurbanSatir(${k.id})"><i class="fa-solid fa-print"></i></button>
-          <button class="btn btn-success btn-sm btn-icon" title="Excel" onclick="excelKurbanSatir(${k.id})"><i class="fa-solid fa-file-excel"></i></button>
           <button class="btn btn-danger btn-sm btn-icon" title="Sil" onclick="silKurban(${k.id})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -765,8 +793,22 @@ async function renderBagiscilar() {
     '<div class="page-header">' +
       '<div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-users"></i></div>Bagiscilar ' + orgSmall + '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-        '<button class="btn btn-secondary" onclick="yazdirBagiscilar()"><i class="fa-solid fa-print"></i> Yazdir</button>' +
-        '<button class="btn btn-success" onclick="excelBagiscilarIndir()"><i class="fa-solid fa-file-excel"></i> Excel Indir</button>' +
+        '<div style="position:relative">' +
+          '<button class="btn btn-secondary" onclick="toggleBagisciPrintMenu(event)">' +
+            '<i class="fa-solid fa-print"></i> Yazdırma Seçenekleri' +
+            '<i class="fa-solid fa-chevron-down" style="margin-left:6px;font-size:10px"></i>' +
+          '</button>' +
+          '<div id="bagisci-print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;z-index:1000">' +
+            '<div onclick="yazdirBagiscilar()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background=\'var(--hover-bg)\'" onmouseout="this.style.background=\'transparent\'">' +
+              '<i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>' +
+              '<span>Yazdır</span>' +
+            '</div>' +
+            '<div onclick="excelBagiscilarIndir()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background=\'var(--hover-bg)\'" onmouseout="this.style.background=\'transparent\'">' +
+              '<i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>' +
+              '<span>Excel İndir</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
         '<button class="btn btn-primary" onclick="modalYeniBagisci()"><i class="fa-solid fa-user-plus"></i> Bagisci Ekle</button>' +
       '</div>' +
     '</div>' +
@@ -984,12 +1026,26 @@ async function renderRaporlar() {
     <div class="page-header">
       <div class="page-title">
         <div class="icon-wrap"><i class="fa-solid fa-chart-bar"></i></div>
-        Raporlar & Yazdir
+        Raporlar & Yazdırma
         ${S.orgAd ? '<small>' + esc(S.orgAd) + '</small>' : ''}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-success" onclick="excelIndir()"><i class="fa-solid fa-file-excel"></i> Excel Indir</button>
-        <button class="btn btn-secondary" onclick="yazdir('tum')"><i class="fa-solid fa-print"></i> Tum Raporu Yazdir</button>
+        <div style="position:relative">
+          <button class="btn btn-secondary" onclick="toggleRaporPrintMenu(event)">
+            <i class="fa-solid fa-print"></i> Yazdırma Seçenekleri
+            <i class="fa-solid fa-chevron-down" style="margin-left:6px;font-size:10px"></i>
+          </button>
+          <div id="rapor-print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:220px;z-index:1000">
+            <div onclick="yazdir('tum')" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>
+              <span>Tüm Raporu Yazdır</span>
+            </div>
+            <div onclick="excelIndir()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>
+              <span>Excel İndir</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="rapor-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></div>`;
@@ -1098,9 +1154,45 @@ function yazdir(tip) {
 }
 
 async function yazdirKurban(kurbanId, kurbanNo, tur) {
+  // Yazdırma yönlendirme seçimi modal
+  const modalHtml = `
+    <div style="text-align:center;padding:20px">
+      <div style="font-size:18px;font-weight:600;margin-bottom:20px;color:var(--text1)">
+        <i class="fa-solid fa-print" style="color:var(--accent);margin-right:8px"></i>
+        Yazdırma Yönü Seçin
+      </div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-bottom:20px">
+        <div onclick="yazdirKurbanWithOrientation(${kurbanId}, ${kurbanNo}, '${tur}', 'portrait')" 
+             style="cursor:pointer;padding:24px;border:2px solid var(--border);border-radius:12px;background:var(--card-bg);transition:all 0.2s;width:140px"
+             onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(79,126,248,0.1)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--card-bg)'">
+          <i class="fa-solid fa-file-lines" style="font-size:48px;color:var(--accent);margin-bottom:12px"></i>
+          <div style="font-weight:600;font-size:15px;color:var(--text1)">Dikey</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">Portrait</div>
+        </div>
+        <div onclick="yazdirKurbanWithOrientation(${kurbanId}, ${kurbanNo}, '${tur}', 'landscape')" 
+             style="cursor:pointer;padding:24px;border:2px solid var(--border);border-radius:12px;background:var(--card-bg);transition:all 0.2s;width:140px"
+             onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(79,126,248,0.1)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--card-bg)'">
+          <i class="fa-solid fa-file" style="font-size:48px;color:var(--green);margin-bottom:12px;transform:rotate(90deg)"></i>
+          <div style="font-weight:600;font-size:15px;color:var(--text1)">Yatay</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">Landscape</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="closeModal()">
+        <i class="fa-solid fa-xmark"></i> İptal
+      </button>
+    </div>
+  `;
+  
+  openModal('Yazdırma Ayarları', modalHtml);
+}
+
+async function yazdirKurbanWithOrientation(kurbanId, kurbanNo, tur, orientation) {
+  closeModal();
   const hisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
   const kurbanData = _kurbanlar.find(k => k.id === kurbanId) || {};
-  const html = kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData);
+  const html = kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation);
   printHTML(html);
 }
 
@@ -1126,7 +1218,7 @@ function yazdirilabilirHTML(tip) {
     '<div class="header">' +
     '<div style="display:flex;align-items:center;gap:10px">' +
     '<img src="http://127.0.0.1:4500/icder.png" style="height:48px;object-fit:contain" onerror="this.style.display=\'none\'" />' +
-    '<div class="header-left">DEFTERDAR MUHASEBE<small>' + baslik + ' &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</small></div>' +
+    '<div class="header-left">İÇDER<small>' + baslik + ' &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</small></div>' +
     '</div>' +
     '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
     '<img src="http://127.0.0.1:4500/cad.png" style="height:48px;object-fit:contain" onerror="this.style.display=\'none\'" />' +
@@ -1134,12 +1226,12 @@ function yazdirilabilirHTML(tip) {
     '</div>' +
     '</div>' +
     (icerik ? icerik.innerHTML : '') +
-    '<div class="footer"><span>Defterdar Muhasebe &mdash; CMS Team</span></div>' +
+    '<div class="footer"><span>İÇDER &mdash; CMS Team</span></div>' +
     '</body></html>';
 }
 
 
-function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData) {
+function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'portrait') {
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
 
   const minSatir = tur === 'buyukbas' ? 7 : 1;
@@ -1166,13 +1258,15 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData) {
   const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
 
   const printStyle = `
-    @page { margin: 12mm 15mm; size: A4; }
+    @page { margin: 12mm 15mm; size: A4 ${orientation}; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .header-left { width: 140px; display: flex; align-items: center; }
-    .header-center { flex: 1; text-align: center; }
-    .header-center img { height: 90px; max-width: 220px; object-fit: contain; }
+    .header-center { flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .header-center img { height: 140px; max-width: 300px; object-fit: contain; }
+    .kurban-id { font-size: 32px; font-weight: bold; color: #1a2a50; text-align: center; margin: 0; }
+    .icder-title { font-size: 28px; font-weight: bold; color: #1a2a50; text-align: center; margin: 8px 0; }
     .header-right { width: 140px; display: flex; align-items: center; justify-content: flex-end; }
     .header-right img { height: 93px; width: 140px; object-fit: contain; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -1190,7 +1284,11 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData) {
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
     '<div class="header-left">' + turkBayrakSVG + '</div>' +
-    '<div class="header-center"><img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/></div>' +
+    '<div class="header-center">' +
+    '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
+    '<div class="icder-title">İÇDER</div>' +
+    '<div class="kurban-id">Kurban #' + kurbanNo + '</div>' +
+    '</div>' +
     '<div class="header-right">' + bayrakImg + '</div>' +
     '</div>' +
     '<table>' +
@@ -1201,7 +1299,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData) {
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +
-    '<div class="footer">Defterdar Muhasebe &mdash; defterdar.xyz</div>' +
+    '<div class="footer">İÇDER &mdash; defterdar.xyz</div>' +
     '</body></html>';
 }
 
@@ -1398,6 +1496,87 @@ async function downloadExcel(url, filename) {
   } catch(e) { toast('Excel indirilemedi: ' + e.message, 'error'); }
 }
 
+// ─── DROPDOWN MENU TOGGLE ─────────────────────────────────────────────────────
+function togglePrintMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('print-menu');
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
+function toggleBagisciPrintMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('bagisci-print-menu');
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
+function toggleRaporPrintMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('rapor-print-menu');
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
+function toggleRowPrintMenu(event, kurbanId) {
+  event.stopPropagation();
+  const menu = document.getElementById('row-print-menu-' + kurbanId);
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   showPage('organizasyonlar');
@@ -1539,7 +1718,7 @@ function yazdirBagiscilar() {
     '</div>' +
     '<table><thead><tr><th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kimin Adına</th><th>Kurban No</th><th>Hisse</th><th>Tür</th><th>Ödeme</th><th>Video</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>' +
-    '<div class="footer"><span>Defterdar Muhasebe &mdash; defterdar.xyz</span><span>' + new Date().toLocaleString('tr-TR') + '</span></div>' +
+    '<div class="footer"><span>İÇDER &mdash; defterdar.xyz</span><span>' + new Date().toLocaleString('tr-TR') + '</span></div>' +
     '</body></html>';
 
   printHTML(html);
@@ -1557,8 +1736,7 @@ async function excelBagiscilarIndir() {
 async function yazdirKurbanSatir(kurbanId) {
   const k = _kurbanlar.find(x => x.id === kurbanId);
   if (!k) return;
-  const hisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
-  printHTML(kurbanYazdirHTML(k.kurban_no, k.tur, hisseler, k));
+  await yazdirKurban(kurbanId, k.kurban_no, k.tur);
 }
 
 async function excelKurbanSatir(kurbanId) {
@@ -1576,10 +1754,10 @@ async function tumKurbanlariYazdir() {
     let rows = hisseler.map(h => '<tr><td>' + h.hisse_no + '</td><td>' + (h.bagisci_adi||'-') + '</td><td>' + (h.bagisci_telefon||'-') + '</td><td>' + (h.kimin_adina||'-') + '</td><td>' + (oLabel[h.odeme_durumu]||'-') + '</td><td>' + (h.video_ister?'Evet':'Hayir') + '</td></tr>').join('');
     allHtml += '<div style="margin-bottom:20px">';
     allHtml += '<div style="display:flex;justify-content:space-between;border-bottom:2px solid #1a2a50;padding-bottom:6px;margin-bottom:10px">';
-    allHtml += '<strong style="font-size:14px;color:#1a2a50">DEFTERDAR MUHASEBE &mdash; Kurban #' + k.kurban_no + '</strong>';
+    allHtml += '<strong style="font-size:14px;color:#1a2a50">İÇDER &mdash; Kurban #' + k.kurban_no + '</strong>';
     allHtml += '<span style="font-size:11px;color:#555">' + esc(S.orgAd) + ' | ' + S.orgYil + '</span></div>';
     allHtml += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr style="background:#1a2a50;color:#fff"><th style="padding:5px">Hisse</th><th>Bagisci</th><th>Telefon</th><th>Kimin Adina</th><th>Odeme</th><th>Video</th></tr>' + rows + '</table>';
-    allHtml += '<div style="font-size:10px;color:#999;display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:4px"><span>Defterdar Muhasebe</span><span></span></div>';
+    allHtml += '<div style="font-size:10px;color:#999;display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:4px"><span>İÇDER</span><span></span></div>';
     allHtml += '</div><div class="pb"></div>';
   }
   allHtml += '</body></html>';

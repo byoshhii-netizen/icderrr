@@ -82,7 +82,17 @@ ipcMain.handle('print-html', async (event, html) => {
   await printWin.loadFile(tmpFile);
 
   return new Promise((resolve) => {
-    printWin.webContents.print({ silent: false, printBackground: true }, (success) => {
+    printWin.webContents.print({
+      silent: false,
+      printBackground: true,
+      color: true,
+      margins: { marginType: 'printableArea' },
+      landscape: false,
+      scaleFactor: 100,
+      pagesPerSheet: 1,
+      collate: false,
+      copies: 1
+    }, (success, errorType) => {
       printWin.close();
       try { fs.unlinkSync(tmpFile); } catch(e) {}
       resolve({ ok: success });

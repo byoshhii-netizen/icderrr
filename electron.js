@@ -21,7 +21,7 @@ function createSplash() {
     frame: false, transparent: true,
     resizable: false, center: true,
     alwaysOnTop: true, skipTaskbar: true,
-    icon: path.join(__dirname, 'assets', 'defterdar.ico'),
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
     webPreferences: { nodeIntegration: false, contextIsolation: true }
   });
   splashWindow.loadFile(path.join(__dirname, 'public', 'splash.html'));
@@ -32,13 +32,13 @@ function createMain() {
     width: 1360, height: 860,
     minWidth: 1024, minHeight: 680,
     show: false,
-    icon: path.join(__dirname, 'assets', 'defterdar.ico'),
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     },
-    title: 'Defterdar Muhasebe'
+    title: 'İÇDER Kurban Programı'
   });
 
   mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
@@ -180,7 +180,7 @@ app.whenReady().then(() => {
   // Windows güvenlik duvarı kuralı ekle (sessizce)
   try {
     const { execSync } = require('child_process');
-    execSync('netsh advfirewall firewall add rule name="Defterdar Muhasebe 4500" dir=in action=allow protocol=TCP localport=4500', { stdio: 'ignore' });
+    execSync('netsh advfirewall firewall add rule name="İÇDER Kurban 4500" dir=in action=allow protocol=TCP localport=4500', { stdio: 'ignore' });
   } catch(e) {}
 
   createSplash();

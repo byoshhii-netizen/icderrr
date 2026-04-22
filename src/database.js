@@ -19,7 +19,7 @@ function getDataDir() {
 const dataDir = getDataDir();
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-const DB_PATH = path.join(dataDir, 'defterdar.db');
+const DB_PATH = path.join(dataDir, 'icder-kurban.db');
 
 let saveTimer = null;
 function scheduleSave(sqlDb) {
@@ -72,6 +72,13 @@ class DbWrapper {
 }
 
 const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS kullanicilar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_adi TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    sifre_hash TEXT NOT NULL,
+    olusturma DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
   CREATE TABLE IF NOT EXISTS organizasyonlar (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ad TEXT NOT NULL,
@@ -81,6 +88,7 @@ const SCHEMA = `
     kucukbas_hisse_fiyati REAL NOT NULL DEFAULT 0,
     aciklama TEXT,
     aktif INTEGER DEFAULT 1,
+    kullanici_id INTEGER DEFAULT 1,
     olusturma DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   CREATE TABLE IF NOT EXISTS kurbanlar (
@@ -118,6 +126,13 @@ const SCHEMA = `
     veri TEXT NOT NULL,
     silme_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS ayarlar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_id INTEGER DEFAULT 1,
+    logo_data TEXT,
+    bayrak_data TEXT,
+    kurulum_tamamlandi INTEGER DEFAULT 0
+  );
 `;
 
 let _db = null;
@@ -133,11 +148,31 @@ async function getDb() {
   }
   sqlDb.run('PRAGMA foreign_keys = ON');
   SCHEMA.split(';').map(s => s.trim()).filter(Boolean).forEach(s => sqlDb.run(s));
+  
+  // Varsayılan kullanıcı oluştur (EXE için)
+  try {
+    const userCheck = sqlDb.exec('SELECT id FROM kullanicilar WHERE id=1');
+    if (!userCheck || userCheck.length === 0) {
+      sqlDb.run("INSERT INTO kullanicilar (id, kullanici_adi, email, sifre_hash) VALUES (1, 'icder', 'icder@kurban.com', 'dummy')");
+    }
+  } catch(e) {}
+  
+  // Varsayılan ayarlar oluştur
+  try {
+    const ayarCheck = sqlDb.exec('SELECT id FROM ayarlar WHERE kullanici_id=1');
+    if (!ayarCheck || ayarCheck.length === 0) {
+      sqlDb.run("INSERT INTO ayarlar (kullanici_id, kurulum_tamamlandi) VALUES (1, 0)");
+    }
+  } catch(e) {}
+  
   // Migration: eski DB'ye yeni kolonları ekle
   try { sqlDb.run("ALTER TABLE kurbanlar ADD COLUMN kurban_turu TEXT DEFAULT 'Udhiye'"); } catch(e) {}
   try { sqlDb.run("ALTER TABLE kurbanlar ADD COLUMN kesen_kisi TEXT"); } catch(e) {}
   try { sqlDb.run("ALTER TABLE kurbanlar ADD COLUMN kucukbas_sayi INTEGER DEFAULT 1"); } catch(e) {}
+  try { sqlDb.run("ALTER TABLE organizasyonlar ADD COLUMN kullanici_id INTEGER DEFAULT 1"); } catch(e) {}
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS cop_kutusu (id INTEGER PRIMARY KEY AUTOINCREMENT, tur TEXT NOT NULL, veri TEXT NOT NULL, silme_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS ayarlar (id INTEGER PRIMARY KEY AUTOINCREMENT, kullanici_id INTEGER DEFAULT 1, logo_data TEXT, bayrak_data TEXT, kurulum_tamamlandi INTEGER DEFAULT 0)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS kullanicilar (id INTEGER PRIMARY KEY AUTOINCREMENT, kullanici_adi TEXT UNIQUE NOT NULL, email TEXT UNIQUE NOT NULL, sifre_hash TEXT NOT NULL, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   const data = sqlDb.export();
   fs.writeFileSync(DB_PATH, Buffer.from(data));
   _db = new DbWrapper(sqlDb);

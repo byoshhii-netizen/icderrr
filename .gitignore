@@ -1,7 +1,42 @@
+# Dependencies
 node_modules/
+package-lock.json
+
+# Build outputs
 dist/
 build/
+
+# Database
 data/*.db
-*.db-shm
-*.db-wal
-.env
+data/*.db-shm
+data/*.db-wal
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temp
+*.tmp
+*.temp
+
+# Python
+*.py
+__pycache__/
+
+# Old files
+fix_*.py
+defterdar.ico
+türkbayrak.png
+icder.png
+YAZDIR-SISTEMI-GUNCELLENDI.md
+YEDEK-SISTEM-TAMAMLANDI.md
+nixpacks.toml
+Procfile

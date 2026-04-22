@@ -3,15 +3,23 @@ const { getDb } = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
   ? require('./database-web')
   : require('./database');
 
-// ─── AUTH MIDDLEWARE ────────────────────────────────────────────────────────
-function requireAuth(req, res, next) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ hata: 'Giris yapmaniz gerekiyor' });
-  }
-  next();
-}
+// ─── AUTH MIDDLEWARE (EXE İÇİN KALDIRILDI) ────────────────────────────────
+// EXE versiyonunda giriş sistemi yok, direkt erişim
+// function requireAuth(req, res, next) {
+//   if (!req.session || !req.session.userId) {
+//     return res.status(401).json({ hata: 'Giris yapmaniz gerekiyor' });
+//   }
+//   next();
+// }
 
-router.use(requireAuth);
+// router.use(requireAuth);
+
+// EXE için: Sabit kullanıcı ID'si (1)
+router.use((req, res, next) => {
+  if (!req.session) req.session = {};
+  req.session.userId = 1; // Sabit kullanıcı
+  next();
+});
 
 // ─── ORGANİZASYONLAR ───────────────────────────────────────────────────────
 
@@ -417,19 +425,19 @@ router.get('/sistem/ip', (req, res) => {
 
 router.get('/ayarlar', async (req, res) => {
   const db = await getDb();
-  const ayar = db.prepare('SELECT * FROM kullanici_ayarlar WHERE kullanici_id=?').get(req.session.userId);
+  const ayar = db.prepare('SELECT * FROM ayarlar WHERE kullanici_id=?').get(req.session.userId);
   res.json(ayar || { kurulum_tamamlandi: 0, logo_data: null, bayrak_data: null });
 });
 
 router.post('/ayarlar', async (req, res) => {
   const db = await getDb();
   const { logo_data, bayrak_data, kurulum_tamamlandi } = req.body;
-  const mevcut = db.prepare('SELECT id FROM kullanici_ayarlar WHERE kullanici_id=?').get(req.session.userId);
+  const mevcut = db.prepare('SELECT id FROM ayarlar WHERE kullanici_id=?').get(req.session.userId);
   if (mevcut) {
-    db.prepare('UPDATE kullanici_ayarlar SET logo_data=?, bayrak_data=?, kurulum_tamamlandi=? WHERE kullanici_id=?')
+    db.prepare('UPDATE ayarlar SET logo_data=?, bayrak_data=?, kurulum_tamamlandi=? WHERE kullanici_id=?')
       .run(logo_data || null, bayrak_data || null, kurulum_tamamlandi ? 1 : 0, req.session.userId);
   } else {
-    db.prepare('INSERT INTO kullanici_ayarlar (kullanici_id, logo_data, bayrak_data, kurulum_tamamlandi) VALUES (?,?,?,?)')
+    db.prepare('INSERT INTO ayarlar (kullanici_id, logo_data, bayrak_data, kurulum_tamamlandi) VALUES (?,?,?,?)')
       .run(req.session.userId, logo_data || null, bayrak_data || null, kurulum_tamamlandi ? 1 : 0);
   }
   res.json({ ok: true });

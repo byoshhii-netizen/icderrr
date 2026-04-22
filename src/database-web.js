@@ -12,7 +12,7 @@ function getDataDir() {
 const dataDir = getDataDir();
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-const DB_PATH = path.join(dataDir, 'defterdar.db');
+const DB_PATH = path.join(dataDir, 'icder-kurban.db');
 
 let saveTimer = null;
 function scheduleSave(sqlDb) {

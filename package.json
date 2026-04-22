@@ -1,9 +1,9 @@
 {
-  "name": "defterdar-muhasebe",
-  "version": "1.1.0",
-  "description": "Defterdar Muhasebe - STK Muhasebe Sistemi",
+  "name": "icder-kurban",
+  "version": "1.0.1",
+  "description": "İÇDER Kurban Programı - İÇDER & Defterdar İşbirliği",
   "main": "electron.js",
-  "author": "CMS Team",
+  "author": "İÇDER & Defterdar",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -26,9 +26,9 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.cmsteam.defterdar",
-    "productName": "Defterdar Muhasebe",
-    "copyright": "Copyright © 2024 CMS Team",
+    "appId": "com.icder.kurban",
+    "productName": "İÇDER Kurban Programı",
+    "copyright": "Copyright © 2025 İÇDER & Defterdar",
     "forceCodeSigning": false,
     "npmRebuild": false,
     "buildDependenciesFromSource": false,
@@ -42,20 +42,20 @@
           ]
         }
       ],
-      "icon": "assets/defterdar.ico",
-      "publisherName": "CMS Team"
+      "icon": "assets/icon.ico",
+      "publisherName": "İÇDER"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Defterdar Muhasebe",
-      "installerIcon": "assets/defterdar.ico",
-      "uninstallerIcon": "assets/defterdar.ico",
-      "installerHeaderIcon": "assets/defterdar.ico",
+      "shortcutName": "İÇDER Kurban Programı",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
       "deleteAppDataOnUninstall": false,
-      "uninstallDisplayName": "Defterdar Muhasebe",
+      "uninstallDisplayName": "İÇDER Kurban Programı",
       "include": "build/installer.nsh"
     },
     "files": [
@@ -66,7 +66,7 @@
       "!*.md"
     ],
     "extraMetadata": {
-      "author": "CMS Team"
+      "author": "İÇDER & Defterdar"
     }
   }
 }

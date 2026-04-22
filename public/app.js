@@ -1,39 +1,10 @@
-﻿// ─── AUTH KONTROL ────────────────────────────────────────────────────────────
+﻿// ─── AUTH KONTROL KALDIRILDI (EXE İÇİN) ─────────────────────────────────────
 // Kullanıcı ayarları global
 let _kullaniciAyarlar = { logo_data: null, bayrak_data: null, kurulum_tamamlandi: 0 };
-let _kullaniciAdi = '';
+let _kullaniciAdi = 'İÇDER';
 
-(async function checkAuth() {
-  const lastLogin = localStorage.getItem('defterdar-last-login');
-  const now = Date.now();
-  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-
-  if (lastLogin && (now - parseInt(lastLogin)) < TWENTY_FOUR_HOURS) {
-    const r = await fetch('/api/auth/durum');
-    const d = await r.json();
-    if (d.girisYapildi) {
-      _kullaniciAdi = d.kullanici_adi;
-      const badge = document.getElementById('user-badge');
-      const name = document.getElementById('user-name');
-      if (badge) badge.style.display = '';
-      if (name) name.textContent = d.kullanici_adi;
-      await yukleKullaniciAyarlar();
-      return;
-    }
-  }
-
-  const r = await fetch('/api/auth/durum');
-  const d = await r.json();
-  if (!d.girisYapildi) {
-    localStorage.removeItem('defterdar-last-login');
-    window.location.href = '/giris.html';
-    return;
-  }
-  _kullaniciAdi = d.kullanici_adi;
-  const badge = document.getElementById('user-badge');
-  const name = document.getElementById('user-name');
-  if (badge) badge.style.display = '';
-  if (name) name.textContent = d.kullanici_adi;
+// Direkt başlat
+(async function init() {
   await yukleKullaniciAyarlar();
 })();
 
@@ -45,12 +16,6 @@ async function yukleKullaniciAyarlar() {
       setTimeout(() => modalKurulumSihirbazi(), 600);
     }
   } catch(e) {}
-}
-
-async function cikisYap() {
-  await fetch('/api/auth/cikis', { method: 'POST' });
-  localStorage.removeItem('defterdar-last-login');
-  window.location.href = '/giris.html';
 }
 
 // ─── KURULUM SİHİRBAZI ───────────────────────────────────────────────────────
@@ -1132,7 +1097,7 @@ async function yukleRapor() {
 
 function excelIndir() {
   if (!S.orgId) return toast('Once organizasyon secin', 'error');
-  downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel', 'defterdar-rapor.xlsx');
+  downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel', 'icder-kurban-rapor.xlsx');
 }
 
 // ─── YAZDIR FONKSİYONLARI ────────────────────────────────────────────────────
@@ -1226,7 +1191,7 @@ function yazdirilabilirHTML(tip) {
     '</div>' +
     '</div>' +
     (icerik ? icerik.innerHTML : '') +
-    '<div class="footer"><span>İÇDER &mdash; CMS Team</span></div>' +
+    '<div class="footer"><span>İÇDER</span></div>' +
     '</body></html>';
 }
 
@@ -1266,7 +1231,6 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     .header-center { flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
     .header-center img { height: 140px; max-width: 300px; object-fit: contain; }
     .kurban-id { font-size: 32px; font-weight: bold; color: #1a2a50; text-align: center; margin: 0; }
-    .icder-title { font-size: 28px; font-weight: bold; color: #1a2a50; text-align: center; margin: 8px 0; }
     .header-right { width: 140px; display: flex; align-items: center; justify-content: flex-end; }
     .header-right img { height: 93px; width: 140px; object-fit: contain; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -1286,7 +1250,6 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '<div class="header-left">' + turkBayrakSVG + '</div>' +
     '<div class="header-center">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
-    '<div class="icder-title">İÇDER</div>' +
     '<div class="kurban-id">Kurban #' + kurbanNo + '</div>' +
     '</div>' +
     '<div class="header-right">' + bayrakImg + '</div>' +
@@ -1299,7 +1262,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +
-    '<div class="footer">İÇDER &mdash; defterdar.xyz</div>' +
+    '<div class="footer">İÇDER</div>' +
     '</body></html>';
 }
 
@@ -1342,19 +1305,18 @@ async function renderDenetim() {
       <div class="card">
         <div class="card-title"><i class="fa-solid fa-circle-info"></i> Uygulama Bilgileri</div>
         <table style="font-size:13px;width:100%">
-          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Uygulama</td><td style="font-weight:600">Defterdar Muhasebe</td></tr>
-          <tr><td style="color:var(--text3);padding:7px 0">Versiyon</td><td>1.1.0</td></tr>
-          <tr><td style="color:var(--text3);padding:7px 0">Gelistirici</td><td style="color:var(--accent);font-weight:600">CMS Team</td></tr>
-          <tr><td style="color:var(--text3);padding:7px 0">Kurucu</td><td>Ismail DEMIRCAN</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Uygulama</td><td style="font-weight:600">İÇDER Kurban Programı</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Versiyon</td><td>1.0.0</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">İşbirliği</td><td style="color:var(--accent);font-weight:600">İÇDER & Defterdar</td></tr>
           <tr><td style="color:var(--text3);padding:7px 0">Modul</td><td>Kurban Organizasyonu</td></tr>
-          <tr><td style="color:var(--text3);padding:7px 0">Lisans</td><td>CMS Team &copy; 2025</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Lisans</td><td>İÇDER &copy; 2025</td></tr>
         </table>
       </div>
       <div class="card">
         <div class="card-title"><i class="fa-solid fa-database"></i> Veritabani</div>
         <table style="font-size:13px;width:100%">
           <tr><td style="color:var(--text3);padding:7px 0;width:130px">Motor</td><td>SQLite (sql.js)</td></tr>
-          <tr><td style="color:var(--text3);padding:7px 0">Konum</td><td>userData/data/defterdar.db</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Konum</td><td>userData/data/icder-kurban.db</td></tr>
           <tr><td style="color:var(--text3);padding:7px 0">Durum</td><td><span class="badge badge-green"><i class="fa-solid fa-circle"></i> Aktif</span></td></tr>
         </table>
       </div>
@@ -1645,7 +1607,7 @@ async function modalKapatmaYedek() {
     document.getElementById('btn-yedek-al').disabled = true;
 
     const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = 'defterdar-yedek-' + tarih + '.xlsx';
+    const filename = 'icder-kurban-yedek-' + tarih + '.xlsx';
     const excelUrl = 'http://127.0.0.1:4500/api/organizasyonlar/' + orgId + '/excel';
 
     const result = await window.electronAPI.backupAndQuit(excelUrl);
@@ -1711,14 +1673,13 @@ function yazdirBagiscilar() {
     '<div class="header">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
     '<div class="header-info">' +
-    '<div class="title">' + esc(_kullaniciAdi || 'Kullanici') + '</div>' +
     '<div class="sub">Bağışçı Listesi &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
     '</div>' +
     '<div class="header-right">Organizasyon: <strong>' + esc(S.orgAd) + '</strong><br>' + S.orgYil + '</div>' +
     '</div>' +
     '<table><thead><tr><th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kimin Adına</th><th>Kurban No</th><th>Hisse</th><th>Tür</th><th>Ödeme</th><th>Video</th></tr></thead>' +
     '<tbody>' + rows + '</tbody></table>' +
-    '<div class="footer"><span>İÇDER &mdash; defterdar.xyz</span><span>' + new Date().toLocaleString('tr-TR') + '</span></div>' +
+    '<div class="footer"><span>İÇDER</span><span>' + new Date().toLocaleString('tr-TR') + '</span></div>' +
     '</body></html>';
 
   printHTML(html);
@@ -1766,7 +1727,7 @@ async function tumKurbanlariYazdir() {
 
 async function tumKurbanlariExcel() {
   if (!S.orgId) return toast('Once organizasyon secin', 'error');
-  downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel', 'defterdar-rapor.xlsx');
+  downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel', 'icder-kurban-rapor.xlsx');
 }
 
 
@@ -1838,7 +1799,7 @@ async function tamYedekAl() {
     
     const blob = await r.blob();
     const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const filename = `defterdar-yedek-${tarih}.json`;
+    const filename = `icder-kurban-yedek-${tarih}.json`;
     
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1932,12 +1893,12 @@ function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
   const icon = document.getElementById('theme-icon');
   if (icon) icon.className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-  localStorage.setItem('defterdar-tema', isLight ? 'light' : 'dark');
+  localStorage.setItem('icder-kurban-tema', isLight ? 'light' : 'dark');
 }
 
 // Sayfa yüklenince kayıtlı temayı uygula
 (function initTheme() {
-  const saved = localStorage.getItem('defterdar-tema');
+  const saved = localStorage.getItem('icder-kurban-tema');
   if (saved === 'light') {
     document.body.classList.add('light');
     const icon = document.getElementById('theme-icon');

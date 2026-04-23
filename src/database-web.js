@@ -135,6 +135,23 @@ const SCHEMA = `
     kurulum_tamamlandi INTEGER DEFAULT 0,
     olusturma DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS destek_talepleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_id INTEGER NOT NULL,
+    baslik TEXT NOT NULL,
+    icerik TEXT NOT NULL,
+    durum TEXT DEFAULT 'bekliyor',
+    okundu INTEGER DEFAULT 0,
+    admin_cevap TEXT,
+    olusturma DATETIME DEFAULT CURRENT_TIMESTAMP,
+    guncelleme DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS sistem_ayarlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    anahtar TEXT NOT NULL UNIQUE,
+    deger TEXT,
+    olusturma DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `;
 
 let _db = null;
@@ -176,6 +193,16 @@ async function getDb() {
     const ayarCheck2 = sqlDb.exec('SELECT id FROM ayarlar WHERE kullanici_id=1');
     if (!ayarCheck2 || ayarCheck2.length === 0) {
       sqlDb.run("INSERT INTO ayarlar (kullanici_id, kurulum_tamamlandi, icder_sifre) VALUES (1, 0, '571571')");
+    }
+  } catch(e) {}
+  
+  // Sistem ayarlarını başlat
+  try {
+    const sistemCheck = sqlDb.exec("SELECT id FROM sistem_ayarlari WHERE anahtar='sistem_modu'");
+    if (!sistemCheck || sistemCheck.length === 0) {
+      sqlDb.run("INSERT INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_modu', 'acik')");
+      sqlDb.run("INSERT INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_notu', '')");
+      sqlDb.run("INSERT INTO sistem_ayarlari (anahtar, deger) VALUES ('admin_sifre', 'BeYA0411')");
     }
   } catch(e) {}
   

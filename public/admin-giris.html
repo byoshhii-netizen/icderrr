@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin Girişi — İÇDER Kurban</title>
+  <link rel="stylesheet" href="fa/css/all.min.css"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#1a0505,#2a0a0a);color:#ffe2e2;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+    .auth-wrap{width:100%;max-width:420px;padding:24px;}
+    .auth-logo{text-align:center;margin-bottom:32px;}
+    .auth-logo i{font-size:64px;color:#ef4444;margin-bottom:16px;}
+    .auth-logo h1{font-size:24px;font-weight:800;letter-spacing:1px;color:#ef4444;}
+    .auth-logo p{font-size:14px;color:#b89494;margin-top:6px;}
+    .auth-card{background:linear-gradient(135deg,#2a0a0a,#3a1212);border:1px solid#5a2929;border-radius:16px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+    .form-group{margin-bottom:20px;}
+    .form-group label{display:block;font-size:13px;color:#b89494;font-weight:600;margin-bottom:8px;text-align:center;}
+    .form-group input{width:100%;background:#3a1a1a;border:1px solid#5a3333;border-radius:10px;padding:14px 18px;color:#ffe2e2;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s;text-align:center;letter-spacing:2px;}
+    .form-group input:focus{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,0.15);}
+    .btn-auth{width:100%;padding:14px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:8px;}
+    .btn-auth:hover{background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 4px 20px rgba(239,68,68,0.4);}
+    .auth-error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none;text-align:center;}
+    .auth-footer{text-align:center;margin-top:24px;font-size:12px;color:#7a4b4b;}
+    .back-btn{background:transparent;border:none;color:#7a4b4b;cursor:pointer;font-size:13px;margin-top:16px;transition:color .2s}
+    .back-btn:hover{color:#ef4444}
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-logo">
+    <i class="fa-solid fa-shield-halved"></i>
+    <h1>ADMIN PANELİ</h1>
+    <p>Yönetici Girişi</p>
+  </div>
+
+  <div class="auth-card">
+    <div id="msg-error" class="auth-error"></div>
+
+    <div class="form-group">
+      <label><i class="fa-solid fa-key"></i> Admin Şifresi</label>
+      <input id="sifre-input" type="password" placeholder="••••••••" autocomplete="off"
+        onkeydown="if(event.key==='Enter') adminGiris()"/>
+    </div>
+    <button class="btn-auth" onclick="adminGiris()">
+      <i class="fa-solid fa-shield-halved"></i> Giriş Yap
+    </button>
+    <button class="back-btn" onclick="window.location.href='/icder-giris'">
+      <i class="fa-solid fa-arrow-left"></i> Geri Dön
+    </button>
+  </div>
+
+  <div class="auth-footer">
+    İÇDER Admin Paneli — Yetkisiz Giriş Yasaktır
+  </div>
+</div>
+
+<script>
+function showError(msg) {
+  const el = document.getElementById('msg-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+async function adminGiris() {
+  const sifre = document.getElementById('sifre-input').value;
+  if (!sifre) return showError('Lütfen admin şifresini girin');
+  
+  try {
+    const r = await fetch('/api/admin/giris', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ sifre })
+    });
+    const d = await r.json();
+    if (!r.ok) return showError(d.hata || 'Şifre yanlış');
+    
+    // Başarılı giriş
+    window.location.href = '/admin';
+  } catch(e) {
+    showError('Bağlantı hatası');
+  }
+}
+
+// Sayfa yüklenince input'a focus
+document.getElementById('sifre-input').focus();
+</script>
+</body>
+</html>

@@ -235,6 +235,7 @@ function showPage(page) {
   else if (page==='yedek')       renderYedekGeriYukle();
   else if (page==='denetim')     renderDenetim();
   else if (page==='medya')       renderMedyaDeposu();
+  else if (page==='destek')      renderDestekHatti();
 }
 
 function setSidebarOrg(ad, yil) {
@@ -1249,27 +1250,44 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
   const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
 
+  // Yatay modda daha büyük logolar
+  const logoHeight = orientation === 'landscape' ? '200px' : '180px';
+  const logoMaxWidth = orientation === 'landscape' ? '500px' : '400px';
+  const bayrakHeight = orientation === 'landscape' ? '120px' : '100px';
+  const bayrakWidth = orientation === 'landscape' ? '180px' : '150px';
+  const turkBayrakWidth = orientation === 'landscape' ? '180' : '150';
+  const turkBayrakHeight = orientation === 'landscape' ? '120' : '100';
+
   const printStyle = `
     @page { margin: 12mm 15mm; size: A4 ${orientation}; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-    .header-left { width: 140px; display: flex; align-items: center; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header-left { width: ${bayrakWidth}; display: flex; align-items: center; }
     .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
-    .header-center img { height: 140px; max-width: 300px; object-fit: contain; }
-    .header-right { width: 140px; display: flex; align-items: center; justify-content: flex-end; }
-    .header-right img { height: 93px; width: 140px; object-fit: contain; }
-    .kurban-title { font-size: 24px; font-weight: bold; color: #1a2a50; text-align: center; margin: 15px 0 25px 0; }
+    .header-center img { height: ${logoHeight}; max-width: ${logoMaxWidth}; object-fit: contain; }
+    .header-right { width: ${bayrakWidth}; display: flex; align-items: center; justify-content: flex-end; }
+    .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
+    .kurban-title { font-size: 36px; font-weight: bold; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
     td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
-    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: center; align-items: center; font-size: 12px; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
+    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
     .footer-left { font-weight: bold; font-size: 14px; }
+    .footer-right { font-size: 11px; color: #666; }
     @media print { body { margin: 0; } }
   `;
 
+  // Türk bayrağı SVG - boyut dinamik
+  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="${turkBayrakWidth}" height="${turkBayrakHeight}">
+    <rect width="1200" height="800" fill="#E30A17"/>
+    <circle cx="425" cy="400" r="200" fill="white"/>
+    <circle cx="475" cy="400" r="160" fill="#E30A17"/>
+    <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
+  </svg>`;
+
   const bayrakImg = bayrakSrc
-    ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:93px;width:140px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
+    ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bayrakHeight + ';width:' + bayrakWidth + ';object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
     : '';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
@@ -1292,6 +1310,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '</table>' +
     '<div class="footer">' +
     '<div class="footer-left">İÇDER</div>' +
+    '<div class="footer-right">Created by İsmail Demircan</div>' +
     '</div>' +
     '</body></html>';
 }
@@ -2367,4 +2386,135 @@ function handleHisseDrop(e, folder) {
   document.getElementById('upload-zone').classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
   if (file) yukleSeciliDosya(file, folder);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESTEK HATTI
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderDestekHatti() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-headset"></i></div>
+        Destek Hattı
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniTalep()">
+        <i class="fa-solid fa-plus"></i> Yeni Talep Aç
+      </button>
+    </div>
+    <div id="talepler-listesi">
+      <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+    </div>`;
+  
+  try {
+    const list = await api('GET', '/destek/taleplerim');
+    const container = document.getElementById('talepler-listesi');
+    
+    if (!list.length) {
+      container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-headset"></i><p>Henüz destek talebi yok.</p></div>';
+      return;
+    }
+    
+    container.innerHTML = list.map(t => {
+      const durumBadge = t.durum === 'cevaplandi' ? 'badge-green' : t.durum === 'kapandi' ? 'badge-gray' : 'badge-yellow';
+      const durumText = t.durum === 'cevaplandi' ? 'Cevaplandı' : t.durum === 'kapandi' ? 'Kapatıldı' : 'Bekliyor';
+      const okunduBadge = t.admin_cevap && !t.okundu ? '<span class="badge badge-red" style="margin-left:8px">Yeni Cevap</span>' : '';
+      
+      return `
+        <div class="card" style="cursor:pointer;transition:all .2s" onclick="modalTalepDetay(${t.id})" 
+          onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+            <div>
+              <div style="font-size:16px;font-weight:600;color:var(--text1);margin-bottom:4px">${esc(t.baslik)}</div>
+              <div style="font-size:12px;color:var(--text3)">
+                <i class="fa-solid fa-clock"></i> ${new Date(t.olusturma).toLocaleString('tr-TR')}
+              </div>
+            </div>
+            <div>
+              <span class="badge ${durumBadge}">${durumText}</span>
+              ${okunduBadge}
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.5;max-height:60px;overflow:hidden">
+            ${esc(t.icerik).substring(0, 150)}${t.icerik.length > 150 ? '...' : ''}
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+function modalYeniTalep() {
+  openModal('Yeni Destek Talebi', `
+    <div class="form-group">
+      <label>Başlık</label>
+      <input type="text" id="talep-baslik" placeholder="Sorun başlığı"/>
+    </div>
+    <div class="form-group">
+      <label>Açıklama</label>
+      <textarea id="talep-icerik" rows="6" placeholder="Sorununuzu detaylı açıklayın..."></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="talepGonder()"><i class="fa-solid fa-paper-plane"></i> Gönder</button>
+    </div>
+  `, false, 'headset');
+}
+
+async function talepGonder() {
+  const baslik = document.getElementById('talep-baslik').value.trim();
+  const icerik = document.getElementById('talep-icerik').value.trim();
+  
+  if (!baslik || !icerik) return toast('Başlık ve içerik gerekli', 'error');
+  
+  try {
+    await api('POST', '/destek/talep-olustur', { baslik, icerik });
+    closeModal();
+    toast('Talebiniz gönderildi');
+    renderDestekHatti();
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function modalTalepDetay(id) {
+  try {
+    const talep = await api('GET', `/destek/talep/${id}`);
+    
+    const durumBadge = talep.durum === 'cevaplandi' ? 'badge-green' : talep.durum === 'kapandi' ? 'badge-gray' : 'badge-yellow';
+    const durumText = talep.durum === 'cevaplandi' ? 'Cevaplandı' : talep.durum === 'kapandi' ? 'Kapatıldı' : 'Bekliyor';
+    
+    const cevapHTML = talep.admin_cevap ? `
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:16px;margin-top:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px">
+          <i class="fa-solid fa-reply"></i> Admin Cevabı
+        </div>
+        <div style="font-size:14px;color:var(--text1);line-height:1.6">${esc(talep.admin_cevap)}</div>
+      </div>
+    ` : '<div style="color:var(--text3);font-size:13px;margin-top:16px;text-align:center"><i class="fa-solid fa-clock"></i> Henüz cevap verilmedi</div>';
+    
+    openModal('Talep Detayı', `
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;font-size:18px;color:var(--text1)">${esc(talep.baslik)}</h3>
+          <span class="badge ${durumBadge}">${durumText}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3)">
+          <i class="fa-solid fa-clock"></i> ${new Date(talep.olusturma).toLocaleString('tr-TR')}
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px">
+        <div style="font-size:14px;color:var(--text1);line-height:1.6;white-space:pre-wrap">${esc(talep.icerik)}</div>
+      </div>
+      ${cevapHTML}
+      <div class="form-actions" style="margin-top:20px">
+        <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
+      </div>
+    `, true, 'headset');
+  } catch(e) {
+    toast(e.message, 'error');
+  }
 }

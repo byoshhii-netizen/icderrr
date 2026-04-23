@@ -34,9 +34,9 @@ function icderGirisKontrol(req, res, next) {
   // İçder giriş kontrolü
   if (req.session.icderGiris) {
     const gecenSure = Date.now() - req.session.icderGiris;
-    const birGun = 24 * 60 * 60 * 1000; // 24 saat
-    if (gecenSure < birGun) {
-      return next(); // Giriş yapılmış ve 24 saat geçmemiş
+    const otuzSaat = 30 * 60 * 60 * 1000; // 30 saat
+    if (gecenSure < otuzSaat) {
+      return next(); // Giriş yapılmış ve 30 saat geçmemiş
     }
   }
   

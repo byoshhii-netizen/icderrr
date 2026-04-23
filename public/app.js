@@ -97,6 +97,30 @@ async function kurulumKaydet() {
   } catch(e) { toast(e.message, 'error'); }
 }
 
+async function sifreDegistir() {
+  const mevcutSifre = document.getElementById('sifre-mevcut').value.trim();
+  const yeniSifre = document.getElementById('sifre-yeni').value.trim();
+  const adminSifre = document.getElementById('sifre-admin').value.trim();
+  
+  if (!mevcutSifre || !yeniSifre || !adminSifre) {
+    return toast('Tüm alanları doldurun', 'error');
+  }
+  
+  try {
+    await api('POST', '/auth/icder-sifre-degistir', { 
+      mevcut_sifre: mevcutSifre, 
+      yeni_sifre: yeniSifre, 
+      admin_sifre: adminSifre 
+    });
+    document.getElementById('sifre-mevcut').value = '';
+    document.getElementById('sifre-yeni').value = '';
+    document.getElementById('sifre-admin').value = '';
+    toast('Şifre başarıyla değiştirildi');
+  } catch(e) { 
+    toast(e.message, 'error'); 
+  }
+}
+
 async function kurulumAtla() {
   try {
     await api('POST', '/ayarlar', { kurulum_tamamlandi: 1 });
@@ -132,6 +156,27 @@ async function modalAyarlar() {
         </div>
         <input type="file" id="setup-bayrak-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'bayrak')"/>
       </div>
+    </div>
+    <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)"/>
+    <div style="margin-bottom:16px">
+      <h3 style="margin:0 0 12px 0;font-size:16px;color:var(--text1)"><i class="fa-solid fa-lock"></i> İÇDER Kurban Şifresi Değiştir</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Mevcut Şifre</label>
+          <input type="password" id="sifre-mevcut" placeholder="Mevcut şifreniz"/>
+        </div>
+        <div class="form-group">
+          <label>Yeni Şifre</label>
+          <input type="password" id="sifre-yeni" placeholder="Yeni şifre"/>
+        </div>
+        <div class="form-group">
+          <label>Yönetici Şifresi</label>
+          <input type="password" id="sifre-admin" placeholder="İcderYetkili_00571"/>
+        </div>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:8px" onclick="sifreDegistir()">
+        <i class="fa-solid fa-key"></i> Şifreyi Değiştir
+      </button>
     </div>
     <div class="form-actions">
       <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
@@ -1294,6 +1339,15 @@ async function renderDenetim() {
           <tr><td style="color:var(--text3);padding:7px 0;width:130px">Kullanim</td><td style="font-size:12px;color:var(--text2)">Ayni WiFi'deki telefon veya bilgisayardan tarayicida yukardaki adresi ac</td></tr>
         </table>
       </div>
+      <div class="card" style="grid-column:1/-1;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.05)">
+        <div class="card-title"><i class="fa-solid fa-key"></i> Giriş Şifresi Değiştir</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Site girişinde kullanılan şifreyi değiştirin. Varsayılan şifre: <strong>571571</strong>
+        </div>
+        <button class="btn btn-danger" onclick="modalSifreDegistir()">
+          <i class="fa-solid fa-lock"></i> Şifre Değiştir
+        </button>
+      </div>
       <div class="card">
         <div class="card-title"><i class="fa-solid fa-circle-info"></i> Uygulama Bilgileri</div>
         <table style="font-size:13px;width:100%">
@@ -1321,6 +1375,43 @@ async function renderDenetim() {
         </table>
       </div>
     </div>`;
+}
+
+// ─── ŞİFRE DEĞİŞTİRME MODALI ────────────────────────────────────────────────
+function modalSifreDegistir() {
+  openModal('Giriş Şifresi Değiştir', `
+    <div class="form-group">
+      <label><i class="fa-solid fa-key"></i> Yeni Şifre</label>
+      <input type="password" id="yeni-sifre" class="form-control" placeholder="Yeni şifrenizi girin" />
+    </div>
+    <div class="form-group">
+      <label><i class="fa-solid fa-shield-halved"></i> Yönetici Şifresi</label>
+      <input type="password" id="yonetici-sifre" class="form-control" placeholder="İcderYetkili_00571" />
+      <small style="color:var(--text3);font-size:11px;margin-top:4px;display:block">
+        Şifre değiştirmek için yönetici şifresi gereklidir
+      </small>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-danger" onclick="sifreDegistir()"><i class="fa-solid fa-check"></i> Değiştir</button>
+    </div>
+  `, false, 'key');
+}
+
+async function sifreDegistir() {
+  const yeniSifre = document.getElementById('yeni-sifre').value.trim();
+  const yoneticiSifre = document.getElementById('yonetici-sifre').value.trim();
+
+  if (!yeniSifre) return toast('Yeni şifre gerekli', 'error');
+  if (!yoneticiSifre) return toast('Yönetici şifresi gerekli', 'error');
+
+  try {
+    await api('POST', '/auth/icder-sifre-degistir', { yeni_sifre: yeniSifre, yonetici_sifre: yoneticiSifre });
+    closeModal();
+    toast('Şifre başarıyla değiştirildi');
+  } catch (e) {
+    toast(e.message, 'error');
+  }
 }
 
 

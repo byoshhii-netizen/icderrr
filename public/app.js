@@ -1215,13 +1215,13 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     @page { margin: 12mm 15mm; size: A4 ${orientation}; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     .header-left { width: 140px; display: flex; align-items: center; }
-    .header-center { flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-    .header-center img { height: 120px; max-width: 250px; object-fit: contain; }
-    .kurban-id { font-size: 32px; font-weight: bold; color: #1a2a50; text-align: center; margin: 0; }
+    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
+    .header-center img { height: 93px; max-width: 200px; object-fit: contain; }
     .header-right { width: 140px; display: flex; align-items: center; justify-content: flex-end; }
     .header-right img { height: 93px; width: 140px; object-fit: contain; }
+    .kurban-title { font-size: 36px; font-weight: bold; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
     td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
@@ -1240,10 +1240,10 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '<div class="header-left">' + turkBayrakSVG + '</div>' +
     '<div class="header-center">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
-    '<div class="kurban-id">Kurban : ' + kurbanNo + '</div>' +
     '</div>' +
     '<div class="header-right">' + bayrakImg + '</div>' +
     '</div>' +
+    '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
     '<table>' +
     '<thead><tr>' +
     '<th style="width:60px;text-align:center">No</th>' +

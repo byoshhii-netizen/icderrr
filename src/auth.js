@@ -54,4 +54,58 @@ router.get('/durum', (req, res) => {
   }
 });
 
+// ─── İÇDER KURBAN ŞİFRE KONTROLÜ ───────────────────────────────────────────
+router.post('/icder-sifre-kontrol', async (req, res) => {
+  const { sifre } = req.body;
+  if (!sifre) return res.status(400).json({ hata: 'Şifre gerekli' });
+
+  const db = await getDb();
+  // Ayarlar tablosundan şifreyi al
+  const ayar = db.prepare('SELECT icder_sifre FROM ayarlar WHERE kullanici_id=1').get();
+  const dogruSifre = ayar?.icder_sifre || '571571'; // Varsayılan şifre
+
+  if (sifre === dogruSifre) {
+    req.session.icderGiris = Date.now(); // Giriş zamanını kaydet
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ hata: 'Şifre yanlış' });
+  }
+});
+
+// ─── İÇDER ŞİFRE DEĞİŞTİRME ────────────────────────────────────────────────
+router.post('/icder-sifre-degistir', async (req, res) => {
+  const { yeni_sifre, yonetici_sifre } = req.body;
+  if (!yeni_sifre || !yonetici_sifre) {
+    return res.status(400).json({ hata: 'Tüm alanlar gerekli' });
+  }
+
+  // Yönetici şifresini kontrol et
+  if (yonetici_sifre !== 'İcderYetkili_00571') {
+    return res.status(401).json({ hata: 'Yönetici şifresi yanlış' });
+  }
+
+  const db = await getDb();
+  // Ayarlar tablosunda şifreyi güncelle
+  const mevcut = db.prepare('SELECT id FROM ayarlar WHERE kullanici_id=1').get();
+  if (mevcut) {
+    db.prepare('UPDATE ayarlar SET icder_sifre=? WHERE kullanici_id=1').run(yeni_sifre);
+  } else {
+    db.prepare('INSERT INTO ayarlar (kullanici_id, icder_sifre) VALUES (1, ?)').run(yeni_sifre);
+  }
+
+  res.json({ ok: true });
+});
+
+// ─── İÇDER GİRİŞ DURUMU ────────────────────────────────────────────────────
+router.get('/icder-giris-durumu', (req, res) => {
+  if (req.session.icderGiris) {
+    const gecenSure = Date.now() - req.session.icderGiris;
+    const birGun = 24 * 60 * 60 * 1000; // 24 saat
+    if (gecenSure < birGun) {
+      return res.json({ girisYapildi: true });
+    }
+  }
+  res.json({ girisYapildi: false });
+});
+
 module.exports = router;

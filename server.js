@@ -22,6 +22,29 @@ app.use('/api/medya', require('./src/cloudinary'));
 
 app.get('/giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'giris.html')));
 app.get('/kayit', (req, res) => res.sendFile(path.join(__dirname, 'public', 'giris.html')));
+app.get('/icder-giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'icder-giris.html')));
+
+// İçder giriş kontrolü middleware
+function icderGirisKontrol(req, res, next) {
+  // API istekleri için kontrol yapma
+  if (req.path.startsWith('/api') || req.path.startsWith('/fa') || req.path.startsWith('/icder-giris') || req.path.includes('.')) {
+    return next();
+  }
+  
+  // İçder giriş kontrolü
+  if (req.session.icderGiris) {
+    const gecenSure = Date.now() - req.session.icderGiris;
+    const birGun = 24 * 60 * 60 * 1000; // 24 saat
+    if (gecenSure < birGun) {
+      return next(); // Giriş yapılmış ve 24 saat geçmemiş
+    }
+  }
+  
+  // Giriş yapılmamış veya süresi dolmuş, icder-giris'e yönlendir
+  return res.redirect('/icder-giris');
+}
+
+app.use(icderGirisKontrol);
 
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ ok: false });

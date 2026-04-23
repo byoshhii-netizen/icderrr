@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>İÇDER Kurban — Giriş</title>
+  <link rel="stylesheet" href="fa/css/all.min.css"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#070f0b,#0d1a12);color:#e2f0e8;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+    .auth-wrap{width:100%;max-width:420px;padding:24px;}
+    .auth-logo{text-align:center;margin-bottom:32px;}
+    .auth-logo img{height:80px;margin-bottom:16px;}
+    .auth-logo h1{font-size:24px;font-weight:800;letter-spacing:1px;color:#10b981;}
+    .auth-logo p{font-size:14px;color:#94b8a3;margin-top:6px;}
+    .auth-card{background:linear-gradient(135deg,#0d1a12,#112718);border:1px solid #1f4529;border-radius:16px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+    .form-group{margin-bottom:20px;}
+    .form-group label{display:block;font-size:13px;color:#94b8a3;font-weight:600;margin-bottom:8px;text-align:center;}
+    .form-group input{width:100%;background:#1a3522;border:1px solid #264833;border-radius:10px;padding:14px 18px;color:#e2f0e8;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s;text-align:center;letter-spacing:2px;}
+    .form-group input:focus{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,0.15);}
+    .btn-auth{width:100%;padding:14px;background:linear-gradient(135deg,#10b981,#34d399);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:8px;}
+    .btn-auth:hover{background:linear-gradient(135deg,#34d399,#10b981);box-shadow:0 4px 20px rgba(16,185,129,0.4);}
+    .auth-error{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none;text-align:center;}
+    .auth-footer{text-align:center;margin-top:24px;font-size:12px;color:#4b7a5e;}
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-logo">
+    <img src="/icder.png" alt="İÇDER" onerror="this.style.display='none'"/>
+    <h1>İÇDER KURBAN</h1>
+    <p>Kurban Yönetim Sistemi</p>
+  </div>
+
+  <div class="auth-card">
+    <div id="msg-error" class="auth-error"></div>
+
+    <div class="form-group">
+      <label><i class="fa-solid fa-lock"></i> Şifrenizi Giriniz</label>
+      <input id="sifre-input" type="password" placeholder="••••••" autocomplete="off" maxlength="10"
+        onkeydown="if(event.key==='Enter') girisYap()"/>
+    </div>
+    <button class="btn-auth" onclick="girisYap()">
+      <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
+    </button>
+  </div>
+
+  <div class="auth-footer">
+    İÇDER & Defterdar İşbirliği
+  </div>
+</div>
+
+<script>
+function showError(msg) {
+  const el = document.getElementById('msg-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+async function girisYap() {
+  const sifre = document.getElementById('sifre-input').value;
+  if (!sifre) return showError('Lütfen şifrenizi girin');
+  
+  try {
+    const r = await fetch('/api/auth/icder-sifre-kontrol', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ sifre })
+    });
+    const d = await r.json();
+    if (!r.ok) return showError(d.hata || 'Şifre yanlış');
+    
+    // Başarılı giriş
+    window.location.href = '/';
+  } catch(e) {
+    showError('Bağlantı hatası');
+  }
+}
+
+// Zaten giriş yapılmışsa ana sayfaya yönlendir
+fetch('/api/auth/icder-giris-durumu').then(r=>r.json()).then(d => {
+  if (d.girisYapildi) window.location.href = '/';
+});
+
+// Sayfa yüklenince input'a focus
+document.getElementById('sifre-input').focus();
+</script>
+</body>
+</html>

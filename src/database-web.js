@@ -154,6 +154,7 @@ async function getDb() {
   try { sqlDb.run("ALTER TABLE kurbanlar ADD COLUMN kesen_kisi TEXT"); } catch(e) {}
   try { sqlDb.run("ALTER TABLE kurbanlar ADD COLUMN kucukbas_sayi INTEGER DEFAULT 1"); } catch(e) {}
   try { sqlDb.run("ALTER TABLE organizasyonlar ADD COLUMN kullanici_id INTEGER NOT NULL DEFAULT 0"); } catch(e) {}
+  try { sqlDb.run("ALTER TABLE ayarlar ADD COLUMN icder_sifre TEXT DEFAULT '571571'"); } catch(e) {}
   
   // Varsayılan kullanıcı oluştur (web için)
   try {
@@ -174,7 +175,7 @@ async function getDb() {
   try {
     const ayarCheck2 = sqlDb.exec('SELECT id FROM ayarlar WHERE kullanici_id=1');
     if (!ayarCheck2 || ayarCheck2.length === 0) {
-      sqlDb.run("INSERT INTO ayarlar (kullanici_id, kurulum_tamamlandi) VALUES (1, 0)");
+      sqlDb.run("INSERT INTO ayarlar (kullanici_id, kurulum_tamamlandi, icder_sifre) VALUES (1, 0, '571571')");
     }
   } catch(e) {}
   

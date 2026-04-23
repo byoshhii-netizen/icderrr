@@ -1199,39 +1199,48 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     rows += '</tr>';
   }
 
-  // Türk bayrağı SVG - her zaman sabit, dosyaya bağımlı değil
-  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="140" height="93">
+  const baseUrl = window.location.origin;
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
+
+  // Yatay modda daha büyük logolar
+  const logoHeight = orientation === 'landscape' ? '200px' : '180px';
+  const logoMaxWidth = orientation === 'landscape' ? '500px' : '400px';
+  const bayrakHeight = orientation === 'landscape' ? '120px' : '100px';
+  const bayrakWidth = orientation === 'landscape' ? '180px' : '150px';
+  const turkBayrakWidth = orientation === 'landscape' ? '180' : '150';
+  const turkBayrakHeight = orientation === 'landscape' ? '120' : '100';
+
+  const printStyle = `
+    @page { margin: 12mm 15mm; size: A4 ${orientation}; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header-left { width: ${bayrakWidth}; display: flex; align-items: center; }
+    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
+    .header-center img { height: ${logoHeight}; max-width: ${logoMaxWidth}; object-fit: contain; }
+    .header-right { width: ${bayrakWidth}; display: flex; align-items: center; justify-content: flex-end; }
+    .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
+    .kurban-title { font-size: 36px; font-weight: bold; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
+    td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
+    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
+    .footer-left { font-weight: bold; font-size: 14px; }
+    .footer-right { font-size: 11px; color: #666; }
+    @media print { body { margin: 0; } }
+  `;
+
+  // Türk bayrağı SVG - boyut dinamik
+  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="${turkBayrakWidth}" height="${turkBayrakHeight}">
     <rect width="1200" height="800" fill="#E30A17"/>
     <circle cx="425" cy="400" r="200" fill="white"/>
     <circle cx="475" cy="400" r="160" fill="#E30A17"/>
     <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
   </svg>`;
 
-  const baseUrl = window.location.origin;
-  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
-  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
-
-  const printStyle = `
-    @page { margin: 12mm 15mm; size: A4 ${orientation}; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-    .header-left { width: 140px; display: flex; align-items: center; }
-    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
-    .header-center img { height: 140px; max-width: 300px; object-fit: contain; }
-    .header-right { width: 140px; display: flex; align-items: center; justify-content: flex-end; }
-    .header-right img { height: 93px; width: 140px; object-fit: contain; }
-    .kurban-title { font-size: 24px; font-weight: bold; color: #1a2a50; text-align: center; margin: 15px 0 25px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
-    td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
-    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: center; align-items: center; font-size: 12px; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
-    .footer-left { font-weight: bold; font-size: 14px; }
-    @media print { body { margin: 0; } }
-  `;
-
   const bayrakImg = bayrakSrc
-    ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:93px;width:140px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
+    ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bayrakHeight + ';width:' + bayrakWidth + ';object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
     : '';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
@@ -1254,6 +1263,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '</table>' +
     '<div class="footer">' +
     '<div class="footer-left">İÇDER</div>' +
+    '<div class="footer-right">Created by İsmail Demircan</div>' +
     '</div>' +
     '</body></html>';
 }

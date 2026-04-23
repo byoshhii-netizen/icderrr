@@ -1325,6 +1325,30 @@ async function renderDenetim() {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+      <div class="card" style="grid-column:1/-1;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.05)">
+        <div class="card-title"><i class="fa-solid fa-key"></i> Şifre Yönetimi</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:8px">
+              <strong>İÇDER Giriş Şifresi:</strong> 571571 (varsayılan)
+            </div>
+            <div style="font-size:12px;color:var(--text3)">
+              Site girişinde kullanılır. 30 saat sonra tekrar sorulur.
+            </div>
+          </div>
+          <div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:8px">
+              <strong>Yönetici Şifresi:</strong> İcderYetkili_00571
+            </div>
+            <div style="font-size:12px;color:var(--text3)">
+              Şifre değiştirmek için gereklidir.
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-danger" onclick="modalSifreDegistir()">
+          <i class="fa-solid fa-lock"></i> Giriş Şifresini Değiştir
+        </button>
+      </div>
       <div class="card" style="grid-column:1/-1;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.05)">
         <div class="card-title"><i class="fa-solid fa-globe"></i> Web Site</div>
         <table style="font-size:13px;width:100%">
@@ -1333,6 +1357,22 @@ async function renderDenetim() {
           <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="window.open('https://defterdar.xyz/', '_blank')"><i class="fa-solid fa-external-link"></i> Aç</button>
           <div style="font-size:11px;color:var(--text3);margin-top:3px">Defterdar web sitesine git</div></td></tr>
         </table>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-database"></i> Veritabani Yönetimi</div>
+        <table style="font-size:13px;width:100%;margin-bottom:12px">
+          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Motor</td><td>SQLite (sql.js)</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Konum</td><td>userData/data/icder-kurban.db</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Durum</td><td><span class="badge badge-green"><i class="fa-solid fa-circle"></i> Aktif</span></td></tr>
+        </table>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="showPage('yedek')">
+            <i class="fa-solid fa-download"></i> Yedek Al
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="showPage('cop')">
+            <i class="fa-solid fa-trash-can"></i> Çöp Kutusu
+          </button>
+        </div>
       </div>
       <div class="card">
         <div class="card-title"><i class="fa-solid fa-circle-info"></i> Uygulama Bilgileri</div>
@@ -1346,22 +1386,71 @@ async function renderDenetim() {
         </table>
       </div>
       <div class="card">
-        <div class="card-title"><i class="fa-solid fa-database"></i> Veritabani</div>
-        <table style="font-size:13px;width:100%">
-          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Motor</td><td>SQLite (sql.js)</td></tr>
-          <tr><td style="color:var(--text3);padding:7px 0">Konum</td><td>userData/data/icder-kurban.db</td></tr>
-          <tr><td style="color:var(--text3);padding:7px 0">Durum</td><td><span class="badge badge-green"><i class="fa-solid fa-circle"></i> Aktif</span></td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-title"><i class="fa-solid fa-gear"></i> Sistem</div>
-        <table style="font-size:13px;width:100%">
+        <div class="card-title"><i class="fa-solid fa-gear"></i> Sistem Bilgileri</div>
+        <table style="font-size:13px;width:100%;margin-bottom:12px">
           <tr><td style="color:var(--text3);padding:7px 0;width:130px">Platform</td><td>Electron + Node.js</td></tr>
           <tr><td style="color:var(--text3);padding:7px 0">Sunucu</td><td>Express.js :4500</td></tr>
           <tr><td style="color:var(--text3);padding:7px 0">Kurulum</td><td>NSIS + MSI</td></tr>
         </table>
+        <button class="btn btn-secondary btn-sm" onclick="modalSistemDetay()">
+          <i class="fa-solid fa-info-circle"></i> Detaylı Bilgi
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-palette"></i> Tema Ayarları</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Uygulamanın görünümünü özelleştirin
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="modalTemaSecim()">
+          <i class="fa-solid fa-palette"></i> Tema Değiştir
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-print"></i> Yazdırma Ayarları</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Logo ve bayrak görsellerini yönetin
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="modalAyarlar()">
+          <i class="fa-solid fa-image"></i> Görselleri Düzenle
+        </button>
       </div>
     </div>`;
+}
+
+// ─── SİSTEM DETAY MODALI ────────────────────────────────────────────────────
+function modalSistemDetay() {
+  const userAgent = navigator.userAgent;
+  const platform = navigator.platform;
+  const language = navigator.language;
+  const online = navigator.onLine ? 'Çevrimiçi' : 'Çevrimdışı';
+  
+  openModal('Sistem Detayları', `
+    <div style="font-size:13px">
+      <div style="margin-bottom:16px">
+        <div style="color:var(--text3);margin-bottom:4px">Platform</div>
+        <div style="color:var(--text);font-weight:600">${platform}</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="color:var(--text3);margin-bottom:4px">Dil</div>
+        <div style="color:var(--text);font-weight:600">${language}</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="color:var(--text3);margin-bottom:4px">Bağlantı Durumu</div>
+        <div style="color:var(--text);font-weight:600">${online}</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="color:var(--text3);margin-bottom:4px">Ekran Çözünürlüğü</div>
+        <div style="color:var(--text);font-weight:600">${screen.width} x ${screen.height}</div>
+      </div>
+      <div>
+        <div style="color:var(--text3);margin-bottom:4px">User Agent</div>
+        <div style="color:var(--text2);font-size:11px;word-break:break-all">${userAgent}</div>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
+    </div>
+  `, false, 'info-circle');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

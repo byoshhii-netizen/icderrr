@@ -26,17 +26,28 @@ app.get('/icder-giris', (req, res) => res.sendFile(path.join(__dirname, 'public'
 
 // İçder giriş kontrolü middleware
 function icderGirisKontrol(req, res, next) {
-  // API istekleri için kontrol yapma
-  if (req.path.startsWith('/api') || req.path.startsWith('/fa') || req.path.startsWith('/icder-giris') || req.path.includes('.')) {
+  // API istekleri, statik dosyalar ve giriş sayfası için kontrol yapma
+  if (req.path.startsWith('/api') || 
+      req.path.startsWith('/fa') || 
+      req.path === '/icder-giris' || 
+      req.path === '/icder-giris.html' ||
+      req.path.includes('.css') ||
+      req.path.includes('.js') ||
+      req.path.includes('.png') ||
+      req.path.includes('.jpg') ||
+      req.path.includes('.ico')) {
     return next();
   }
   
   // İçder giriş kontrolü
   if (req.session.icderGiris) {
     const gecenSure = Date.now() - req.session.icderGiris;
-    const otuzSaat = 30 * 60 * 60 * 1000; // 30 saat
-    if (gecenSure < otuzSaat) {
-      return next(); // Giriş yapılmış ve 30 saat geçmemiş
+    const yirmidortSaat = 24 * 60 * 60 * 1000; // 24 saat
+    if (gecenSure < yirmidortSaat) {
+      return next(); // Giriş yapılmış ve 24 saat geçmemiş
+    } else {
+      // Oturum süresi dolmuş, session'ı temizle
+      delete req.session.icderGiris;
     }
   }
   

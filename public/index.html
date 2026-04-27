@@ -12,10 +12,22 @@
 <div class="topbar">
   <div class="topbar-brand">
     <div class="logo-icon">
-      <img src="icder.png" alt="İÇDER" style="width:24px;height:24px;object-fit:contain" onerror="this.style.display='none';this.parentElement.innerHTML='<i class=\'fa-solid fa-mosque\'></i>'"/>
+      <img src="icder.png" alt="İÇDER" style="width:32px;height:32px;object-fit:contain;border-radius:50%" onerror="this.style.display='none';this.parentElement.innerHTML='<i class=\'fa-solid fa-mosque\'></i>'"/>
     </div>
     <div class="brand-text">İÇDER <span>Kurban Programı</span></div>
   </div>
+  
+  <!-- Seçili Organizasyon Göstergesi -->
+  <div class="selected-org" id="selected-org-display" style="display:none">
+    <div class="selected-org-info">
+      <div class="selected-org-name" id="selected-org-name">Organizasyon Adı</div>
+      <div class="selected-org-year" id="selected-org-year">2026</div>
+    </div>
+    <button class="selected-org-close" onclick="cikOrganizasyondan()" title="Organizasyondan Çık">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  
   <div class="topbar-right">
     <div class="topbar-badge"><i class="fa-solid fa-handshake" style="color:var(--accent);margin-right:5px"></i>İÇDER & Defterdar</div>
     <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Tema Değiştir">
@@ -156,48 +168,9 @@
       </div>
     </div>
     <hr class="sidebar-divider"/>
-    <div class="sidebar-section">Depo/Stok</div>
-    <div class="sidebar-item" data-page="depo-stok" onclick="toggleDepoStokMenu()">
-      <i class="fa-solid fa-warehouse"></i> Depo/Stok
-      <i class="fa-solid fa-chevron-down" id="depo-stok-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
-    </div>
-    <div id="depo-stok-submenu" style="display:none;background:rgba(255,0,0,0.1);border-left:3px solid var(--red);margin-left:12px;border-radius:8px;overflow:hidden">
-      <div class="sidebar-item" data-page="kategori-tanimlari" onclick="showPage('kategori-tanimlari')" style="padding-left:32px;font-size:13px">
-        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Kategori Tanımları
-      </div>
-      <div class="sidebar-item" data-page="urun-tanimlari" onclick="showPage('urun-tanimlari')" style="padding-left:32px;font-size:13px">
-        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Ürün Tanımları
-      </div>
-      <div class="sidebar-item" data-page="stok-girisi" onclick="showPage('stok-girisi')" style="padding-left:32px;font-size:13px">
-        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Stok Girişi
-      </div>
-      <div class="sidebar-item" data-page="stok-cikisi" onclick="showPage('stok-cikisi')" style="padding-left:32px;font-size:13px">
-        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Stok Çıkışı
-      </div>
-      <div class="sidebar-item" data-page="fatura-raporlari" onclick="showPage('fatura-raporlari')" style="padding-left:32px;font-size:13px">
-        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Fatura Raporları
-      </div>
-      <div class="sidebar-item" data-page="depo-sayimi" onclick="showPage('depo-sayimi')" style="padding-left:32px;font-size:13px">
-        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Depo Sayımı
-      </div>
-    </div>
-    
-    <hr class="sidebar-divider"/>
     <div class="sidebar-section">Medya</div>
     <div class="sidebar-item" data-page="medya" onclick="showPage('medya')">
       <i class="fa-solid fa-photo-film"></i> Medya Deposu
-    </div>
-    
-    <hr class="sidebar-divider"/>
-    <div class="sidebar-section">Partner Kuruluş</div>
-    <div class="sidebar-item" data-page="partner-kurulus" onclick="togglePartnerMenu()">
-      <i class="fa-solid fa-handshake"></i> Partner Kuruluş
-      <i class="fa-solid fa-chevron-down" id="partner-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
-    </div>
-    <div id="partner-submenu" style="display:none;background:rgba(255,0,0,0.1);border-left:3px solid var(--red);margin-left:12px;border-radius:8px;overflow:hidden">
-      <div class="sidebar-item" data-page="partner-kurum-listesi" onclick="showPage('partner-kurum-listesi')" style="padding-left:32px;font-size:13px">
-        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Partner Kurum Listesi
-      </div>
     </div>
     <hr class="sidebar-divider"/>
     <div class="sidebar-section">Yardım</div>
@@ -233,6 +206,11 @@
 <div class="footer">İÇDER & Defterdar İşbirliği &nbsp;&mdash;&nbsp; İÇDER Kurban Programı</div>
 <div class="toast-container" id="toast-container"></div>
 
+<!-- Sabit Destek Hattı Butonu -->
+<div class="floating-support-btn" onclick="showPage('destek')" title="Destek Hattı">
+  <i class="fa-solid fa-headset"></i>
+</div>
+
 <div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOutside(event)">
   <div class="modal" id="modal-box">
     <div class="modal-header">
@@ -244,5 +222,32 @@
 </div>
 
 <script src="app.js"></script>
+<script>
+// ── Mouse wheel scroll düzeltmesi (Electron için)
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main-content');
+  
+  function bindScroll(el) {
+    if (!el || el._scrollBound) return;
+    el._scrollBound = true;
+    el.addEventListener('wheel', function(e) {
+      e.stopPropagation();
+      el.scrollTop += e.deltaY;
+    }, { passive: true });
+  }
+  
+  bindScroll(sidebar);
+  bindScroll(main);
+  
+  // main-content içeriği değişince de scroll'u aktif tut
+  if (main) {
+    const observer = new MutationObserver(function() {
+      bindScroll(document.getElementById('main-content'));
+    });
+    observer.observe(main, { childList: true, subtree: false });
+  }
+});
+</script>
 </body>
 </html>

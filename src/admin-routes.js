@@ -1,5 +1,7 @@
 const router = require('express').Router();
-const { getDb } = require('./database-web');
+const { getDb } = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
+  ? require('./database-web')
+  : require('./database');
 
 // Admin middleware
 async function adminKontrol(req, res, next) {
@@ -158,6 +160,22 @@ router.delete('/talep-sil', adminKontrol, async (req, res) => {
 
   const db = await getDb();
   db.prepare('DELETE FROM destek_talepleri WHERE id=?').run(id);
+  res.json({ ok: true });
+});
+
+// ─── YAZDIRMA AYARLARI YÖNETİMİ ────────────────────────────────────────────
+router.get('/yazdirma-ayarlari', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const list = db.prepare('SELECT kullanici_id, logo_data, bayrak_data, kurulum_tamamlandi FROM ayarlar ORDER BY kullanici_id').all();
+  res.json(list);
+});
+
+router.delete('/yazdirma-ayar-sil', adminKontrol, async (req, res) => {
+  const { kullanici_id } = req.body;
+  if (!kullanici_id) return res.status(400).json({ hata: 'Kullanıcı ID gerekli' });
+
+  const db = await getDb();
+  db.prepare('DELETE FROM ayarlar WHERE kullanici_id=?').run(kullanici_id);
   res.json({ ok: true });
 });
 

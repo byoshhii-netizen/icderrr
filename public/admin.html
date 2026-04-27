@@ -61,6 +61,9 @@
     <div class="sidebar-item" data-page="sifreler" onclick="showAdminPage('sifreler')">
       <i class="fa-solid fa-key"></i> Şifre Yönetimi
     </div>
+    <div class="sidebar-item" data-page="yazdirma-ayarlari" onclick="showAdminPage('yazdirma-ayarlari')">
+      <i class="fa-solid fa-print"></i> Yazdırma Ayarları
+    </div>
   </nav>
 
   <main class="main" id="main-content"></main>
@@ -80,5 +83,31 @@
 </div>
 
 <script src="admin-app.js"></script>
+<script>
+// Mouse wheel scroll düzeltmesi (Electron için)
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main-content');
+  [sidebar, main].forEach(el => {
+    if (!el) return;
+    el.addEventListener('wheel', function(e) {
+      e.stopPropagation();
+      el.scrollTop += e.deltaY;
+    }, { passive: true });
+  });
+  // main-content içeriği değişince de scroll'u aktif tut
+  const observer = new MutationObserver(function() {
+    const m = document.getElementById('main-content');
+    if (m && !m._scrollBound) {
+      m._scrollBound = true;
+      m.addEventListener('wheel', function(e) {
+        e.stopPropagation();
+        m.scrollTop += e.deltaY;
+      }, { passive: true });
+    }
+  });
+  if (main) observer.observe(main, { childList: true });
+});
+</script>
 </body>
 </html>

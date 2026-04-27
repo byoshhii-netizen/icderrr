@@ -22,40 +22,6 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 const DB_PATH = path.join(dataDir, 'icder-kurban.db');
 
-// Otomatik yedekleme sistemi
-function otomatikYedekAl() {
-  try {
-    if (!fs.existsSync(DB_PATH)) return;
-    
-    const yedekDir = path.join(dataDir, 'yedekler');
-    if (!fs.existsSync(yedekDir)) fs.mkdirSync(yedekDir, { recursive: true });
-    
-    const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const yedekPath = path.join(yedekDir, `yedek-${tarih}.db`);
-    
-    fs.copyFileSync(DB_PATH, yedekPath);
-    
-    // Eski yedekleri temizle (30 günden eski)
-    const files = fs.readdirSync(yedekDir);
-    const now = Date.now();
-    files.forEach(file => {
-      const filePath = path.join(yedekDir, file);
-      const stats = fs.statSync(filePath);
-      const ageInDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
-      if (ageInDays > 30) {
-        fs.unlinkSync(filePath);
-      }
-    });
-    
-    console.log('Otomatik yedek alındı:', yedekPath);
-  } catch(e) {
-    console.error('Otomatik yedek hatası:', e);
-  }
-}
-
-// Her 6 saatte bir otomatik yedek al
-setInterval(otomatikYedekAl, 6 * 60 * 60 * 1000);
-
 let saveTimer = null;
 function scheduleSave(sqlDb) {
   if (saveTimer) return;
@@ -64,8 +30,6 @@ function scheduleSave(sqlDb) {
     try {
       const data = sqlDb.export();
       fs.writeFileSync(DB_PATH, Buffer.from(data));
-      // Her kayıtta otomatik yedek al
-      otomatikYedekAl();
     } catch (e) { console.error('DB kayit hatasi:', e); }
   }, 1000);
 }

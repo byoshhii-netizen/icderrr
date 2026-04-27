@@ -2453,6 +2453,7 @@ function renderBagisciYonetimi() {
 }
 
 function renderBagisAl() {
+  if (S.orgId) { renderBagisAlKurban(); return; }
   const m = document.getElementById('main-content');
   m.innerHTML = `
     <div class="page-header">
@@ -2461,38 +2462,199 @@ function renderBagisAl() {
         Bağış Al
       </div>
     </div>
-    <div class="card">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Bağışçı Seç</label>
-          <select id="bagis-bagisci">
-            <option value="">Bağışçı seçin...</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Bağış Türü</label>
-          <select id="bagis-tur">
-            <option value="nakit">Nakit</option>
-            <option value="kumbara">Kumbara</option>
-            <option value="online">Online</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Tutar (TL)</label>
-          <input type="number" id="bagis-tutar" placeholder="0.00"/>
-        </div>
-        <div class="form-group" style="grid-column:1/-1">
-          <label>Not</label>
-          <textarea id="bagis-not" placeholder="Opsiyonel..."></textarea>
-        </div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" onclick="kaydetBagis()">
-          <i class="fa-solid fa-floppy-disk"></i> Bağışı Kaydet
-        </button>
-      </div>
+    <div class="card" style="text-align:center;padding:40px">
+      <i class="fa-solid fa-layer-group" style="font-size:48px;color:var(--accent);margin-bottom:16px;display:block"></i>
+      <h3 style="margin-bottom:8px">Önce bir organizasyon seçin</h3>
+      <p style="color:var(--text3);margin-bottom:20px">Bağış almak için sol menüden bir organizasyon seçin.</p>
+      <button class="btn btn-primary" onclick="showPage('organizasyonlar')">
+        <i class="fa-solid fa-layer-group"></i> Organizasyonlara Git
+      </button>
     </div>`;
 }
+
+let _bagisAlMod = null;
+let _bagisAlKurban = null;
+let _bagisAlHisseler = [];
+
+async function renderBagisAlKurban() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = '<div class="page-header"><div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-hand-holding-heart"></i></div>Bağış Al <small>' + esc(S.orgAd) + '</small></div></div>' +
+    '<div class="card"><div class="card-title"><i class="fa-solid fa-cow"></i> Kurban Seçimi</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
+    '<button class="btn btn-primary" style="padding:20px;font-size:15px;flex-direction:column;gap:8px;height:auto" onclick="bagisAlMevcut()">' +
+    '<i class="fa-solid fa-list" style="font-size:24px"></i><span>Mevcut Kurbandan Seç</span>' +
+    '<span style="font-size:12px;opacity:0.8">Oluşturulmuş kurbanlardan birini seç</span></button>' +
+    '<button class="btn btn-success" style="padding:20px;font-size:15px;flex-direction:column;gap:8px;height:auto" onclick="bagisAlYeni()">' +
+    '<i class="fa-solid fa-plus-circle" style="font-size:24px"></i><span>Yeni Kurban Oluştur</span>' +
+    '<span style="font-size:12px;opacity:0.8">Yeni kurban ekle ve bağışçıları gir</span></button></div>' +
+    '<div id="bagis-al-icerik"></div></div>';
+}
+
+async function bagisAlMevcut() {
+  _bagisAlMod = 'mevcut';
+  const icerik = document.getElementById('bagis-al-icerik');
+  icerik.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Kurbanlar yükleniyor...</p></div>';
+  try {
+    const kurbanlar = await api('GET', '/organizasyonlar/' + S.orgId + '/kurbanlar');
+    const bos = kurbanlar.filter(k => !k.kesildi && k.dolu_hisse < k.toplam_hisse);
+    if (!bos.length) {
+      icerik.innerHTML = '<div class="empty-state"><i class="fa-solid fa-cow"></i><p>Boş hisseli kurban bulunamadı.</p>' +
+        '<button class="btn btn-success" onclick="bagisAlYeni()" style="margin-top:12px"><i class="fa-solid fa-plus"></i> Yeni Kurban Oluştur</button></div>';
+      return;
+    }
+    let html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text2)"><i class="fa-solid fa-info-circle" style="color:var(--accent)"></i> Bağışçı eklemek istediğiniz kurbanı seçin:</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
+    bos.forEach(k => {
+      html += '<div class="org-card" onclick="bagisAlKurbanSec(' + k.id + ')" style="cursor:pointer">' +
+        '<div class="org-card-name">Kurban #' + k.kurban_no + '</div>' +
+        '<div class="org-card-year"><span class="badge ' + (k.tur==='buyukbas'?'badge-green':'badge-yellow') + '">' + (k.tur==='buyukbas'?'Büyükbaş':'Küçükbaş') + '</span></div>' +
+        '<div class="org-card-stats">' +
+        '<div class="org-card-stat"><div class="val" style="color:var(--accent)">' + k.dolu_hisse + '/' + k.toplam_hisse + '</div><div class="lbl">Dolu/Toplam</div></div>' +
+        '<div class="org-card-stat"><div class="val" style="color:var(--green)">' + (k.toplam_hisse - k.dolu_hisse) + '</div><div class="lbl">Boş Hisse</div></div>' +
+        '</div></div>';
+    });
+    html += '</div>';
+    icerik.innerHTML = html;
+  } catch(e) {
+    icerik.innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Kurbanlar yüklenemedi</p></div>';
+  }
+}
+
+function bagisAlYeni() {
+  _bagisAlMod = 'yeni';
+  const icerik = document.getElementById('bagis-al-icerik');
+  icerik.innerHTML = '<div style="margin-bottom:16px;font-size:13px;color:var(--text2)"><i class="fa-solid fa-info-circle" style="color:var(--accent)"></i> Yeni kurban türünü seçin:</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+    '<button class="btn btn-primary" style="padding:18px;font-size:14px;flex-direction:column;gap:6px;height:auto" onclick="bagisAlTurSec(\'buyukbas\')">' +
+    '<i class="fa-solid fa-cow" style="font-size:28px"></i><span>Büyükbaş</span><span style="font-size:12px;opacity:0.8">7 Hisse</span></button>' +
+    '<button class="btn btn-success" style="padding:18px;font-size:14px;flex-direction:column;gap:6px;height:auto" onclick="bagisAlTurSec(\'kucukbas\')">' +
+    '<i class="fa-solid fa-hippo" style="font-size:28px"></i><span>Küçükbaş</span><span style="font-size:12px;opacity:0.8">1 Hisse</span></button></div>';
+}
+
+async function bagisAlKurbanSec(kurbanId) {
+  try {
+    const list = await api('GET', '/organizasyonlar/' + S.orgId + '/kurbanlar');
+    _bagisAlKurban = list.find(k => k.id === kurbanId);
+    if (!_bagisAlKurban) return toast('Kurban bulunamadı', 'error');
+    _bagisAlHisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
+    bagisAlFormGoster(_bagisAlKurban.tur, _bagisAlKurban, _bagisAlHisseler);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function bagisAlTurSec(tur) {
+  const toplam = tur === 'buyukbas' ? 7 : 1;
+  _bagisAlKurban = { tur, toplam_hisse: toplam, id: null };
+  _bagisAlHisseler = Array.from({length: toplam}, (_, i) => ({ hisse_no: i+1, bagisci_adi: null }));
+  bagisAlFormGoster(tur, _bagisAlKurban, _bagisAlHisseler);
+}
+
+function bagisAlFormGoster(tur, kurban, hisseler) {
+  const toplam = kurban.toplam_hisse || (tur === 'buyukbas' ? 7 : 1);
+  const icerik = document.getElementById('bagis-al-icerik');
+  let hisseFormlari = '';
+  for (let i = 0; i < toplam; i++) {
+    const h = hisseler[i] || {};
+    const dolu = h.bagisci_adi ? true : false;
+    hisseFormlari += '<div class="card" id="hisse-card-' + i + '" style="margin:0;border:1px solid ' + (dolu?'rgba(16,185,129,0.4)':'var(--border)') + ';background:' + (dolu?'rgba(16,185,129,0.05)':'var(--bg3)') + '">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
+      '<div style="width:32px;height:32px;border-radius:8px;background:var(--glow);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;border:1px solid rgba(79,126,248,.2)">' + (i+1) + '</div>' +
+      '<div style="font-weight:600;font-size:14px">' + (toplam===1?'Bağışçı Bilgileri':(i+1)+'. Hisse') + '</div>' +
+      '<span id="hisse-badge-' + i + '" class="badge ' + (dolu?'badge-green':'badge-gray') + '" style="margin-left:auto">' + (dolu?'<i class="fa-solid fa-check"></i> Dolu':'Boş') + '</span>' +
+      '</div>' +
+      '<div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">' +
+      '<div class="form-group"><label>Bağışçı Adı Soyadı *</label><input id="h-ad-' + i + '" value="' + esc(h.bagisci_adi||'') + '" placeholder="Ad Soyad" oninput="hisseGuncelle(' + i + ')"/></div>' +
+      '<div class="form-group"><label>Telefon</label><input id="h-tel-' + i + '" value="' + esc(h.bagisci_telefon||'') + '" placeholder="05xx xxx xx xx"/></div>' +
+      '<div class="form-group"><label>Kimin Adına</label><input id="h-adina-' + i + '" value="' + esc(h.kimin_adina||'') + '" placeholder="Vefat eden / başka kişi"/></div>' +
+      '<div class="form-group"><label>Adına Tel</label><input id="h-adina-tel-' + i + '" value="' + esc(h.kimin_adina_telefon||'') + '" placeholder="Opsiyonel"/></div>' +
+      '<div class="form-group"><label>Ödeme Durumu</label><select id="h-odeme-' + i + '">' +
+      '<option value="bekliyor" ' + ((h.odeme_durumu||'bekliyor')==='bekliyor'?'selected':'') + '>Bekliyor</option>' +
+      '<option value="odendi" ' + (h.odeme_durumu==='odendi'?'selected':'') + '>Ödendi</option>' +
+      '<option value="iptal" ' + (h.odeme_durumu==='iptal'?'selected':'') + '>İptal</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>Video İster mi?</label><select id="h-video-' + i + '">' +
+      '<option value="0" ' + (!h.video_ister?'selected':'') + '>Hayır</option>' +
+      '<option value="1" ' + (h.video_ister?'selected':'') + '>Evet</option>' +
+      '</select></div>' +
+      (h.id ? '<div class="form-group" style="grid-column:1/-1;display:flex;justify-content:flex-end"><button class="btn btn-danger btn-sm" onclick="hisseSil(' + h.id + ',' + i + ')"><i class="fa-solid fa-trash"></i> Hisseyi Temizle</button></div>' : '') +
+      '</div></div>';
+  }
+  const kurbanBilgi = kurban.id
+    ? '<div style="background:var(--bg4);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px"><i class="fa-solid fa-cow" style="color:var(--accent)"></i><span>Kurban <strong>#' + kurban.kurban_no + '</strong> &mdash; ' + (tur==='buyukbas'?'Büyükbaş':'Küçükbaş') + ' &mdash; ' + toplam + ' Hisse</span></div>'
+    : '<div style="background:var(--bg4);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px"><i class="fa-solid fa-plus-circle" style="color:var(--green)"></i><span>Yeni <strong>' + (tur==='buyukbas'?'Büyükbaş':'Küçükbaş') + '</strong> kurban oluşturulacak &mdash; ' + toplam + ' Hisse</span></div>';
+  icerik.innerHTML = kurbanBilgi +
+    '<div style="display:grid;gap:12px;margin-bottom:20px">' + hisseFormlari + '</div>' +
+    '<div class="form-actions">' +
+    '<button class="btn btn-secondary" onclick="' + (_bagisAlMod==='mevcut'?'bagisAlMevcut()':'bagisAlYeni()') + '"><i class="fa-solid fa-arrow-left"></i> Geri</button>' +
+    '<button class="btn btn-primary" onclick="bagisAlKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>' +
+    '</div>';
+}
+
+function hisseGuncelle(idx) {
+  const ad = document.getElementById('h-ad-' + idx)?.value?.trim();
+  const card = document.getElementById('hisse-card-' + idx);
+  const badge = document.getElementById('hisse-badge-' + idx);
+  if (!card || !badge) return;
+  if (ad) {
+    badge.className = 'badge badge-green';
+    badge.innerHTML = '<i class="fa-solid fa-check"></i> Dolu';
+    card.style.borderColor = 'rgba(16,185,129,0.4)';
+    card.style.background = 'rgba(16,185,129,0.05)';
+  } else {
+    badge.className = 'badge badge-gray';
+    badge.innerHTML = 'Boş';
+    card.style.borderColor = 'var(--border)';
+    card.style.background = 'var(--bg3)';
+  }
+}
+
+async function hisseSil(hisseId, idx) {
+  if (!confirm('Bu hisseyi temizlemek istediğinizden emin misiniz?')) return;
+  try {
+    await api('DELETE', '/hisseler/' + hisseId + '/temizle');
+    toast('Hisse temizlendi');
+    bagisAlKurbanSec(_bagisAlKurban.id);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function bagisAlKaydet() {
+  const toplam = _bagisAlKurban.toplam_hisse || (_bagisAlKurban.tur === 'buyukbas' ? 7 : 1);
+  const hisseler = [];
+  for (let i = 0; i < toplam; i++) {
+    hisseler.push({
+      bagisci_adi: document.getElementById('h-ad-' + i)?.value?.trim() || null,
+      bagisci_telefon: document.getElementById('h-tel-' + i)?.value?.trim() || null,
+      kimin_adina: document.getElementById('h-adina-' + i)?.value?.trim() || null,
+      kimin_adina_telefon: document.getElementById('h-adina-tel-' + i)?.value?.trim() || null,
+      odeme_durumu: document.getElementById('h-odeme-' + i)?.value || 'bekliyor',
+      video_ister: parseInt(document.getElementById('h-video-' + i)?.value || '0')
+    });
+  }
+  const dolular = hisseler.filter(h => h.bagisci_adi);
+  if (!dolular.length) { toast('En az bir hisse için bağışçı adı girin', 'error'); return; }
+  try {
+    if (_bagisAlMod === 'mevcut' && _bagisAlKurban.id) {
+      for (let i = 0; i < _bagisAlHisseler.length; i++) {
+        const h = _bagisAlHisseler[i];
+        if (h && h.id) await api('PUT', '/hisseler/' + h.id, hisseler[i]);
+      }
+      toast(dolular.length + ' bağışçı kaydedildi');
+    } else {
+      await api('POST', '/organizasyonlar/' + S.orgId + '/kurban-ve-hisseler', { tur: _bagisAlKurban.tur, hisseler });
+      toast('Kurban oluşturuldu, ' + dolular.length + ' bağışçı eklendi');
+    }
+    await loadKurbanlar().catch(() => {});
+    renderBagisAlKurban();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function cikisYap() {
+  if (!confirm('Çıkış yapmak istediğinizden emin misiniz?')) return;
+  try {
+    await fetch('/api/auth/cikis', { method: 'POST' });
+  } catch(e) {}
+  window.location.href = '/icder-giris';
+}
+
 
 function renderGonulluYonetimi() {
   const m = document.getElementById('main-content');

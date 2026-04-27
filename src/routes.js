@@ -787,4 +787,59 @@ router.post('/excel-geri-yukle', upload.single('dosya'), async (req, res) => {
   }
 });
 
+// ─── MEVCUT KURBANA BAĞIŞÇI EKLEME ─────────────────────────────────────────
+
+router.post('/organizasyonlar/:orgId/kurbanlar/:kurbanId/bagiscilar', async (req, res) => {
+  const db = await getDb();
+  const { kurbanId } = req.params;
+  const { bagiscilar } = req.body;
+  
+  if (!bagiscilar || !Array.isArray(bagiscilar)) {
+    return res.status(400).json({ hata: 'Bağışçı listesi gerekli' });
+  }
+
+  // Kurbanı kontrol et
+  const kurban = db.prepare('SELECT * FROM kurbanlar WHERE id=?').get(kurbanId);
+  if (!kurban) {
+    return res.status(404).json({ hata: 'Kurban bulunamadı' });
+  }
+
+  // Mevcut boş hisseleri al
+  const bosHisseler = db.prepare('SELECT * FROM hisseler WHERE kurban_id=? AND bagisci_adi IS NULL ORDER BY hisse_no').all(kurbanId);
+  
+  if (bosHisseler.length < bagiscilar.length) {
+    return res.status(400).json({ hata: `Bu kurbanda sadece ${bosHisseler.length} boş hisse var` });
+  }
+
+  // Bağışçıları hisselere ata
+  let eklenenSayi = 0;
+  for (let i = 0; i < bagiscilar.length && i < bosHisseler.length; i++) {
+    const bagisci = bagiscilar[i];
+    const hisse = bosHisseler[i];
+    
+    if (bagisci.bagisci_adi && bagisci.bagisci_telefon) {
+      db.prepare(`UPDATE hisseler SET 
+        bagisci_adi=?, bagisci_telefon=?, kimin_adina=?, kimin_adina_telefon=?, 
+        odeme_durumu=?, video_ister=? 
+        WHERE id=?`)
+        .run(
+          bagisci.bagisci_adi.trim(),
+          bagisci.bagisci_telefon.trim(),
+          bagisci.kimin_adina || null,
+          bagisci.kimin_adina_telefon || null,
+          bagisci.odeme_durumu || 'bekliyor',
+          bagisci.video_ister ? 1 : 0,
+          hisse.id
+        );
+      eklenenSayi++;
+    }
+  }
+
+  res.json({ 
+    ok: true, 
+    eklenen: eklenenSayi,
+    mesaj: `${eklenenSayi} bağışçı kurban #${kurban.kurban_no}'a eklendi`
+  });
+});
+
 module.exports = router;

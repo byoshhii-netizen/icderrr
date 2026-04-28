@@ -163,6 +163,33 @@ router.delete('/talep-sil', adminKontrol, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── ORGANİZASYON CRUD ──────────────────────────────────────────────────────
+router.post('/org-olustur', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const { ad, yil, max_kurban, buyukbas_hisse_fiyati, kucukbas_hisse_fiyati } = req.body;
+  if (!ad || !yil || !max_kurban) return res.status(400).json({ hata: 'Zorunlu alanlar eksik' });
+  const r = db.prepare(`INSERT INTO organizasyonlar (ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati,kullanici_id)
+    VALUES (?,?,?,?,?,1)`).run(ad, yil, max_kurban, buyukbas_hisse_fiyati||0, kucukbas_hisse_fiyati||0);
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+
+router.put('/org-guncelle/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const { ad, yil, max_kurban, buyukbas_hisse_fiyati, kucukbas_hisse_fiyati } = req.body;
+  db.prepare(`UPDATE organizasyonlar SET ad=?,yil=?,max_kurban=?,buyukbas_hisse_fiyati=?,kucukbas_hisse_fiyati=? WHERE id=?`)
+    .run(ad, yil, max_kurban, buyukbas_hisse_fiyati||0, kucukbas_hisse_fiyati||0, req.params.id);
+  res.json({ ok: true });
+});
+
+router.delete('/org-sil/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const kurbanlar = db.prepare('SELECT id FROM kurbanlar WHERE organizasyon_id=?').all(req.params.id);
+  kurbanlar.forEach(k => db.prepare('DELETE FROM hisseler WHERE kurban_id=?').run(k.id));
+  db.prepare('DELETE FROM kurbanlar WHERE organizasyon_id=?').run(req.params.id);
+  db.prepare('DELETE FROM organizasyonlar WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 // ─── YAZDIRMA AYARLARI YÖNETİMİ ────────────────────────────────────────────
 router.get('/yazdirma-ayarlari', adminKontrol, async (req, res) => {
   const db = await getDb();
@@ -180,3 +207,5 @@ router.delete('/yazdirma-ayar-sil', adminKontrol, async (req, res) => {
 });
 
 module.exports = router;
+
+// Not: module.exports zaten yukarıda tanımlı, bu satır yok sayılır

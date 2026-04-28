@@ -6,7 +6,6 @@ let _kullaniciAdi = 'İÇDER';
 // Direkt başlat
 (async function init() {
   await yukleKullaniciAyarlar();
-  await gosterAgBilgileri();
 })();
 
 async function yukleKullaniciAyarlar() {
@@ -19,32 +18,8 @@ async function yukleKullaniciAyarlar() {
   } catch(e) {}
 }
 
-// ─── AĞ BİLGİLERİNİ GÖSTER ───────────────────────────────────────────────────
-async function gosterAgBilgileri() {
-  try {
-    const data = await api('GET', '/sistem/ip');
-    if (data.ips && data.ips.length > 0) {
-      const ipListesi = data.ips.map(info => `<div style="margin:4px 0;font-family:monospace">http://${info.ip}:4500</div>`).join('');
-      toast(`
-        <div style="text-align:left">
-          <div style="font-weight:600;margin-bottom:8px;font-size:14px">
-            <i class="fa-solid fa-wifi" style="color:#4f7ef8;margin-right:6px"></i>
-            Ağ Üzerinden Erişim Aktif
-          </div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:8px">
-            Aynı WiFi ağındaki cihazlardan bu adreslere erişebilirsiniz:
-          </div>
-          ${ipListesi}
-          <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.6);border-top:1px solid rgba(255,255,255,0.1);padding-top:8px">
-            <i class="fa-solid fa-shield-halved"></i> Veriler güvenli bir şekilde saklanır ve asla silinmez
-          </div>
-        </div>
-      `, 'success', 8000);
-    }
-  } catch(e) {
-    console.log('Ağ bilgileri alınamadı:', e);
-  }
-}
+// ─── AĞ BİLGİLERİNİ GÖSTER (KALDIRILDI) ─────────────────────────────────────
+async function gosterAgBilgileri() { /* Bildirim kaldırıldı */ }
 
 // ─── KURULUM SİHİRBAZI ───────────────────────────────────────────────────────
 let _setupLogoData = null;
@@ -1367,19 +1342,15 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     @page { margin: 12mm 15mm; size: A4 ${orientation}; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .header-left { width: ${bayrakWidth}; display: flex; align-items: center; }
-    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header-center { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
     .header-center img { height: ${logoHeight}; max-width: ${logoMaxWidth}; object-fit: contain; }
-    .header-right { width: ${bayrakWidth}; display: flex; align-items: center; justify-content: flex-end; }
-    .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
+    .header-flags { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .kurban-title { font-size: 36px; font-weight: bold; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
     td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
-    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
-    .footer-left { font-weight: bold; font-size: 14px; }
-    .footer-right { font-size: 11px; color: #666; }
+    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; text-align: center; font-size: 14px; font-weight: bold; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
     @media print { body { margin: 0; } }
   `;
 
@@ -1398,11 +1369,13 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
-    '<div class="header-left">' + turkBayrakSVG + '</div>' +
+    '<div class="header-flags">' +
+    '<div>' + turkBayrakSVG + '</div>' +
+    '<div>' + bayrakImg + '</div>' +
+    '</div>' +
     '<div class="header-center">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
     '</div>' +
-    '<div class="header-right">' + bayrakImg + '</div>' +
     '</div>' +
     '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
     '<table>' +
@@ -1413,9 +1386,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +
-    '<div class="footer">' +
-    '<div class="footer-left">İÇDER</div>' +
-    '</div>' +
+    '<div class="footer">İÇDER</div>' +
     '</body></html>';
 }
 
@@ -4251,7 +4222,7 @@ function filterBildirimler() {
 // DESTEK HATTI / ÇAĞRI MERKEZİ
 // ═══════════════════════════════════════════════════════════════════════════
 
-function renderDestekHatti() {
+async function renderDestekHatti() {
   const m = document.getElementById('main-content');
   m.innerHTML = `
     <div class="page-header">
@@ -4263,6 +4234,142 @@ function renderDestekHatti() {
         <i class="fa-solid fa-plus"></i> Yeni Destek Talebi
       </button>
     </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card" style="margin:0">
+        <h3 style="margin-bottom:15px;display:flex;align-items:center;gap:8px">
+          <i class="fa-solid fa-phone" style="color:var(--accent)"></i>
+          İletişim Bilgileri
+        </h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+            <i class="fa-solid fa-phone" style="color:var(--green);font-size:20px"></i>
+            <div><div style="font-size:12px;color:var(--text3)">Telefon</div><div style="font-weight:600">0 (850) 123 45 67</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+            <i class="fa-solid fa-envelope" style="color:var(--accent);font-size:20px"></i>
+            <div><div style="font-size:12px;color:var(--text3)">E-posta</div><div style="font-weight:600">destek@icder.org</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+            <i class="fa-brands fa-whatsapp" style="color:var(--green);font-size:20px"></i>
+            <div><div style="font-size:12px;color:var(--text3)">WhatsApp</div><div style="font-weight:600">0 (555) 123 45 67</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+            <i class="fa-solid fa-clock" style="color:var(--yellow);font-size:20px"></i>
+            <div><div style="font-size:12px;color:var(--text3)">Çalışma Saatleri</div><div style="font-weight:600">Hafta İçi 09:00 - 18:00</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 style="margin-bottom:15px;display:flex;align-items:center;gap:8px">
+          <i class="fa-solid fa-question-circle" style="color:var(--accent)"></i>
+          Hızlı Yardım
+        </h3>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="padding:10px;background:var(--bg3);border-radius:8px;cursor:pointer" onclick="acikSSS('kurban')">
+            <i class="fa-solid fa-chevron-right" style="font-size:10px;color:var(--accent)"></i>
+            <span style="margin-left:8px">Kurban organizasyonu nasıl oluşturulur?</span>
+          </div>
+          <div style="padding:10px;background:var(--bg3);border-radius:8px;cursor:pointer" onclick="acikSSS('hisse')">
+            <i class="fa-solid fa-chevron-right" style="font-size:10px;color:var(--accent)"></i>
+            <span style="margin-left:8px">Hisse nasıl eklenir?</span>
+          </div>
+          <div style="padding:10px;background:var(--bg3);border-radius:8px;cursor:pointer" onclick="acikSSS('yazdirma')">
+            <i class="fa-solid fa-chevron-right" style="font-size:10px;color:var(--accent)"></i>
+            <span style="margin-left:8px">Yazdırma ayarları nasıl yapılır?</span>
+          </div>
+          <div style="padding:10px;background:var(--bg3);border-radius:8px;cursor:pointer" onclick="acikSSS('yedek')">
+            <i class="fa-solid fa-chevron-right" style="font-size:10px;color:var(--accent)"></i>
+            <span style="margin-left:8px">Yedekleme nasıl yapılır?</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">Destek Taleplerim</h3>
+        <button class="btn btn-secondary btn-sm" onclick="yukleDestekTalepleri()">
+          <i class="fa-solid fa-refresh"></i> Yenile
+        </button>
+      </div>
+      <div id="destek-talep-listesi">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+      </div>
+    </div>`;
+  
+  await yukleDestekTalepleri();
+}
+
+async function yukleDestekTalepleri() {
+  const el = document.getElementById('destek-talep-listesi');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/destek/taleplerim');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state">
+        <i class="fa-solid fa-headset"></i>
+        <p>Henüz destek talebi bulunmuyor</p>
+        <button class="btn btn-primary" onclick="modalYeniDestek()" style="margin-top:15px">
+          <i class="fa-solid fa-plus"></i> İlk Talebi Oluştur
+        </button>
+      </div>`;
+      return;
+    }
+    const durumRenk = { bekliyor: 'badge-yellow', inceleniyor: 'badge-blue', cevaplandi: 'badge-green', kapandi: 'badge-gray' };
+    const durumText = { bekliyor: 'Bekliyor', inceleniyor: 'İnceleniyor', cevaplandi: 'Cevaplandı', kapandi: 'Kapatıldı' };
+    let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Başlık</th><th>Durum</th><th>Oluşturma</th><th>Admin Cevabı</th></tr></thead><tbody>';
+    list.forEach((t, i) => {
+      const tarih = new Date(t.olusturma).toLocaleDateString('tr-TR');
+      html += '<tr>';
+      html += '<td>' + (i+1) + '</td>';
+      html += '<td><strong>' + esc(t.baslik) + '</strong><div style="font-size:12px;color:var(--text3);margin-top:2px">' + esc(t.icerik.substring(0,60)) + (t.icerik.length>60?'...':'') + '</div></td>';
+      html += '<td><span class="badge ' + (durumRenk[t.durum]||'badge-gray') + '">' + (durumText[t.durum]||t.durum) + '</span></td>';
+      html += '<td style="font-size:12px;color:var(--text3)">' + tarih + '</td>';
+      html += '<td>' + (t.admin_cevap ? '<span style="color:var(--green)">' + esc(t.admin_cevap) + '</span>' : '<span style="color:var(--text3)">-</span>') + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Talepler yüklenemedi: ' + e.message + '</p></div>';
+  }
+}
+
+function modalYeniDestek() {
+  openModal('Yeni Destek Talebi', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Konu / Başlık *</label>
+        <input id="destek-konu" placeholder="Talep konusu"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Açıklama *</label>
+        <textarea id="destek-aciklama" rows="5" placeholder="Sorununuzu detaylı açıklayın..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="gonderDestekTalebi()">
+        <i class="fa-solid fa-paper-plane"></i> Talep Gönder
+      </button>
+    </div>
+  `, false, 'headset');
+}
+
+async function gonderDestekTalebi() {
+  const baslik = document.getElementById('destek-konu')?.value?.trim();
+  const icerik = document.getElementById('destek-aciklama')?.value?.trim();
+  if (!baslik || !icerik) { toast('Lütfen tüm alanları doldurun', 'error'); return; }
+  try {
+    await api('POST', '/destek/talep-olustur', { baslik, icerik });
+    toast('Destek talebi oluşturuldu');
+    closeModal();
+    await yukleDestekTalepleri();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function filterDestekTalepleri() { yukleDestekTalepleri(); }
     
     <div class="stats-grid" style="margin-bottom:20px">
       <div class="stat-card blue">
@@ -4445,68 +4552,6 @@ function renderDestekHatti() {
     </div>`;
 }
 
-// Placeholder fonksiyonlar
-function modalYeniDestek() {
-  openModal('Yeni Destek Talebi', `
-    <div class="form-grid">
-      <div class="form-group" style="grid-column:1/-1">
-        <label>Konu *</label>
-        <input id="destek-konu" placeholder="Talep konusu"/>
-      </div>
-      <div class="form-group">
-        <label>Kategori *</label>
-        <select id="destek-kategori">
-          <option value="">Kategori seçin...</option>
-          <option value="teknik">Teknik Destek</option>
-          <option value="kullanim">Kullanım Sorunu</option>
-          <option value="hata">Hata Bildirimi</option>
-          <option value="oneri">Öneri</option>
-          <option value="diger">Diğer</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Öncelik *</label>
-        <select id="destek-oncelik">
-          <option value="dusuk">Düşük</option>
-          <option value="orta" selected>Orta</option>
-          <option value="yuksek">Yüksek</option>
-          <option value="acil">Acil</option>
-        </select>
-      </div>
-      <div class="form-group" style="grid-column:1/-1">
-        <label>Açıklama *</label>
-        <textarea id="destek-aciklama" rows="5" placeholder="Sorununuzu detaylı açıklayın..."></textarea>
-      </div>
-      <div class="form-group" style="grid-column:1/-1">
-        <label>Ekran Görüntüsü</label>
-        <input type="file" id="destek-dosya" accept="image/*"/>
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
-      <button class="btn btn-primary" onclick="gonderDestekTalebi()">
-        <i class="fa-solid fa-paper-plane"></i> Talep Gönder
-      </button>
-    </div>
-  `, false, 'headset');
-}
-
-function gonderDestekTalebi() {
-  toast('Destek talebi gönderme özelliği yakında eklenecek', 'info');
-  closeModal();
-}
-
-function filterDestekTalepleri() {
-  // Destek talepleri filtreleme
-}
-
-function acikSSS(konu) {
-  toast(`${konu} hakkında yardım içeriği yakında eklenecek`, 'info');
-}
-
-function oynatVideo(video) {
-  toast(`${video} video eğitimi yakında eklenecek`, 'info');
-}
 // ═══════════════════════════════════════════════════════════════════════════
 // PARTNER KURULUŞ
 // ═══════════════════════════════════════════════════════════════════════════

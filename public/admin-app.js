@@ -208,21 +208,26 @@ async function renderOrganizasyonlar() {
         <div class="icon-wrap"><i class="fa-solid fa-layer-group"></i></div>
         Tüm Organizasyonlar
       </div>
+      <button class="btn btn-primary" onclick="adminYeniOrg()">
+        <i class="fa-solid fa-plus"></i> Yeni Organizasyon
+      </button>
     </div>
     <div class="card">
       <div class="table-wrap" id="org-table">
         <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
       </div>
     </div>`;
-  
+  await adminYukleOrg();
+}
+
+async function adminYukleOrg() {
   try {
     const list = await adminApi('GET', '/organizasyonlar');
     if (!list.length) {
       document.getElementById('org-table').innerHTML = '<div class="empty-state"><i class="fa-solid fa-layer-group"></i><p>Henüz organizasyon yok</p></div>';
       return;
     }
-    
-    let html = '<table><thead><tr><th>ID</th><th>Organizasyon Adı</th><th>Yıl</th><th>Maks. Kurban</th><th>Büyükbaş Fiyat</th><th>Küçükbaş Fiyat</th><th>Oluşturma</th><th>İşlemler</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>ID</th><th>Organizasyon Adı</th><th>Yıl</th><th>Maks. Kurban</th><th>Büyükbaş</th><th>Küçükbaş</th><th>Oluşturma</th><th>İşlemler</th></tr></thead><tbody>';
     list.forEach(o => {
       html += `<tr>
         <td>${o.id}</td>
@@ -232,23 +237,85 @@ async function renderOrganizasyonlar() {
         <td>${o.buyukbas_hisse_fiyati} TL</td>
         <td>${o.kucukbas_hisse_fiyati} TL</td>
         <td>${new Date(o.olusturma).toLocaleDateString('tr-TR')}</td>
-        <td>
-          <button class="btn btn-secondary btn-sm" onclick="orgDetay(${o.id})">
-            <i class="fa-solid fa-eye"></i> Detay
-          </button>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="adminDuzenleOrg(${o.id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="adminSilOrg(${o.id},'${o.ad.replace(/'/g,"\\'")}')"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`;
     });
     html += '</tbody></table>';
     document.getElementById('org-table').innerHTML = html;
   } catch (e) {
-    document.getElementById('org-table').innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Organizasyonlar yüklenemedi</p></div>';
+    document.getElementById('org-table').innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Yüklenemedi</p></div>';
   }
 }
 
-function orgDetay(id) {
-  toast('Organizasyon detay sayfası yakında eklenecek', 'info');
+function adminYeniOrg() {
+  openModal('Yeni Organizasyon', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1"><label>Ad *</label><input id="ao-ad" placeholder="Organizasyon adı"/></div>
+      <div class="form-group"><label>Yıl *</label><input id="ao-yil" type="number" value="${new Date().getFullYear()}"/></div>
+      <div class="form-group"><label>Maks. Kurban *</label><input id="ao-max" type="number" placeholder="100"/></div>
+      <div class="form-group"><label>Büyükbaş Hisse (TL)</label><input id="ao-bb" type="number" placeholder="0"/></div>
+      <div class="form-group"><label>Küçükbaş Hisse (TL)</label><input id="ao-kb" type="number" placeholder="0"/></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="adminKaydetOrg()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'layer-group');
 }
+
+async function adminKaydetOrg() {
+  const ad = document.getElementById('ao-ad').value.trim();
+  const yil = parseInt(document.getElementById('ao-yil').value);
+  const max_kurban = parseInt(document.getElementById('ao-max').value);
+  const buyukbas_hisse_fiyati = parseFloat(document.getElementById('ao-bb').value)||0;
+  const kucukbas_hisse_fiyati = parseFloat(document.getElementById('ao-kb').value)||0;
+  if (!ad||!yil||!max_kurban) return toast('Zorunlu alanlar eksik','error');
+  try {
+    await adminApi('POST', '/org-olustur', {ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati});
+    closeModal(); toast('Organizasyon oluşturuldu'); adminYukleOrg();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function adminDuzenleOrg(id) {
+  const list = await adminApi('GET', '/organizasyonlar');
+  const o = list.find(x=>x.id===id); if (!o) return;
+  openModal('Organizasyonu Düzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1"><label>Ad *</label><input id="ao-ad" value="${o.ad}"/></div>
+      <div class="form-group"><label>Yıl *</label><input id="ao-yil" type="number" value="${o.yil}"/></div>
+      <div class="form-group"><label>Maks. Kurban *</label><input id="ao-max" type="number" value="${o.max_kurban}"/></div>
+      <div class="form-group"><label>Büyükbaş Hisse (TL)</label><input id="ao-bb" type="number" value="${o.buyukbas_hisse_fiyati}"/></div>
+      <div class="form-group"><label>Küçükbaş Hisse (TL)</label><input id="ao-kb" type="number" value="${o.kucukbas_hisse_fiyati}"/></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="adminGuncOrg(${id})"><i class="fa-solid fa-floppy-disk"></i> Güncelle</button>
+    </div>`, false, 'pen');
+}
+
+async function adminGuncOrg(id) {
+  const ad = document.getElementById('ao-ad').value.trim();
+  const yil = parseInt(document.getElementById('ao-yil').value);
+  const max_kurban = parseInt(document.getElementById('ao-max').value);
+  const buyukbas_hisse_fiyati = parseFloat(document.getElementById('ao-bb').value)||0;
+  const kucukbas_hisse_fiyati = parseFloat(document.getElementById('ao-kb').value)||0;
+  try {
+    await adminApi('PUT', '/org-guncelle/' + id, {ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati});
+    closeModal(); toast('Güncellendi'); adminYukleOrg();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function adminSilOrg(id, ad) {
+  if (!confirm('"' + ad + '" organizasyonunu silmek istediğinizden emin misiniz?\nTüm kurbanlar ve hisseler de silinecek!')) return;
+  try {
+    await adminApi('DELETE', '/org-sil/' + id);
+    toast('Organizasyon silindi'); adminYukleOrg();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function orgDetay(id) { adminDuzenleOrg(id); }
 
 // ─── KURBANLAR ───────────────────────────────────────────────────────────────
 async function renderKurbanlar() {
@@ -338,27 +405,29 @@ async function renderTalepler() {
         <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
       </div>
     </div>`;
-  
+  await adminYukleTalepler();
+}
+
+async function adminYukleTalepler() {
   try {
     const list = await adminApi('GET', '/talepler');
     if (!list.length) {
       document.getElementById('talep-table').innerHTML = '<div class="empty-state"><i class="fa-solid fa-headset"></i><p>Henüz destek talebi yok</p></div>';
       return;
     }
-    
-    let html = '<table><thead><tr><th>ID</th><th>Konu</th><th>Kategori</th><th>Durum</th><th>Oluşturma</th><th>İşlemler</th></tr></thead><tbody>';
+    const durumRenk = { bekliyor: 'badge-yellow', inceleniyor: 'badge-blue', cevaplandi: 'badge-green', kapandi: 'badge-gray' };
+    const durumText = { bekliyor: 'Bekliyor', inceleniyor: 'İnceleniyor', cevaplandi: 'Cevaplandı', kapandi: 'Kapatıldı' };
+    let html = '<table><thead><tr><th>ID</th><th>Başlık</th><th>İçerik</th><th>Durum</th><th>Oluşturma</th><th>İşlemler</th></tr></thead><tbody>';
     list.forEach(t => {
-      const durumRenk = { beklemede: 'yellow', inceleniyor: 'blue', cevaplandi: 'green', kapandi: 'gray' };
       html += `<tr>
         <td>${t.id}</td>
-        <td><strong>${t.konu}</strong></td>
-        <td>${t.kategori}</td>
-        <td><span class="badge badge-${durumRenk[t.durum] || 'gray'}">${t.durum}</span></td>
+        <td><strong>${t.baslik}</strong></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.icerik}</td>
+        <td><span class="badge ${durumRenk[t.durum]||'badge-gray'}">${durumText[t.durum]||t.durum}</span></td>
         <td>${new Date(t.olusturma).toLocaleDateString('tr-TR')}</td>
-        <td>
-          <button class="btn btn-secondary btn-sm" onclick="talepDetay(${t.id})">
-            <i class="fa-solid fa-eye"></i> Detay
-          </button>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="adminCevapla(${t.id})"><i class="fa-solid fa-reply"></i> Cevapla</button>
+          <button class="btn btn-danger btn-sm" onclick="adminSilTalep(${t.id})"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`;
     });
@@ -369,9 +438,44 @@ async function renderTalepler() {
   }
 }
 
-function talepDetay(id) {
-  toast('Talep detay sayfası yakında eklenecek', 'info');
+function adminCevapla(id) {
+  openModal('Talebe Cevap Ver', `
+    <div class="form-group">
+      <label>Durum</label>
+      <select id="talep-durum">
+        <option value="inceleniyor">İnceleniyor</option>
+        <option value="cevaplandi">Cevaplandı</option>
+        <option value="kapandi">Kapatıldı</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Cevap *</label>
+      <textarea id="talep-cevap" rows="4" placeholder="Kullanıcıya cevabınızı yazın..."></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="adminGonderCevap(${id})"><i class="fa-solid fa-paper-plane"></i> Gönder</button>
+    </div>`, false, 'reply');
 }
+
+async function adminGonderCevap(id) {
+  const cevap = document.getElementById('talep-cevap').value.trim();
+  if (!cevap) return toast('Cevap boş olamaz', 'error');
+  try {
+    await adminApi('POST', '/talep-cevapla', { id, cevap });
+    closeModal(); toast('Cevap gönderildi'); adminYukleTalepler();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function adminSilTalep(id) {
+  if (!confirm('Bu talebi silmek istediğinizden emin misiniz?')) return;
+  try {
+    await adminApi('DELETE', '/talep-sil', { id });
+    toast('Talep silindi'); adminYukleTalepler();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function talepDetay(id) { adminCevapla(id); }
 
 // ─── ŞİFRE YÖNETİMİ ──────────────────────────────────────────────────────────
 async function renderSifreler() {

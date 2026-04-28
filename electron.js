@@ -86,12 +86,17 @@ ipcMain.handle('print-html', async (event, html) => {
       silent: false,
       printBackground: true,
       color: true,
-      margins: { marginType: 'printableArea' },
+      margins: { marginType: 'none' },
       landscape: false,
       scaleFactor: 100,
       pagesPerSheet: 1,
       collate: false,
-      copies: 1
+      copies: 1,
+      pageSize: 'A4',
+      headerFooter: {
+        title: '',
+        url: ''
+      }
     }, (success, errorType) => {
       printWin.close();
       try { fs.unlinkSync(tmpFile); } catch(e) {}

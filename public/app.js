@@ -1339,19 +1339,23 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   const turkBayrakHeight = orientation === 'landscape' ? '120' : '100';
 
   const printStyle = `
-    @page { margin: 12mm 15mm; size: A4 ${orientation}; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .header-center { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    @page { margin: 15mm; size: A4 ${orientation}; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #1a2a50; }
+    .header-left { width: ${bayrakWidth}; display: flex; align-items: center; }
+    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; padding: 0 10px; }
     .header-center img { height: ${logoHeight}; max-width: ${logoMaxWidth}; object-fit: contain; }
-    .header-flags { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .header-right { width: ${bayrakWidth}; display: flex; align-items: center; justify-content: flex-end; }
+    .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
     .kurban-title { font-size: 36px; font-weight: bold; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
     td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
-    .footer { position: fixed; bottom: 12mm; left: 15mm; right: 15mm; text-align: center; font-size: 14px; font-weight: bold; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
-    @media print { body { margin: 0; } }
+    .footer { position: fixed; bottom: 8mm; left: 0; right: 0; text-align: center; font-size: 14px; font-weight: bold; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+    }
   `;
 
   // Türk bayrağı SVG - boyut dinamik
@@ -1369,13 +1373,11 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
-    '<div class="header-flags">' +
-    '<div>' + turkBayrakSVG + '</div>' +
-    '<div>' + bayrakImg + '</div>' +
-    '</div>' +
+    '<div class="header-left">' + turkBayrakSVG + '</div>' +
     '<div class="header-center">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
     '</div>' +
+    '<div class="header-right">' + bayrakImg + '</div>' +
     '</div>' +
     '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
     '<table>' +

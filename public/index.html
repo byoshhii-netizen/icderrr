@@ -225,28 +225,44 @@
 <script>
 // ── Mouse wheel scroll düzeltmesi (Electron için)
 document.addEventListener('DOMContentLoaded', function() {
-  const sidebar = document.getElementById('sidebar');
-  const main = document.getElementById('main-content');
-  
-  function bindScroll(el) {
-    if (!el || el._scrollBound) return;
-    el._scrollBound = true;
-    el.addEventListener('wheel', function(e) {
-      e.stopPropagation();
-      el.scrollTop += e.deltaY;
-    }, { passive: true });
-  }
-  
-  bindScroll(sidebar);
-  bindScroll(main);
-  
-  // main-content içeriği değişince de scroll'u aktif tut
-  if (main) {
-    const observer = new MutationObserver(function() {
-      bindScroll(document.getElementById('main-content'));
-    });
-    observer.observe(main, { childList: true, subtree: false });
-  }
+  const SCROLL_SPEED = 120; // piksel cinsinden scroll miktarı
+
+  document.addEventListener('wheel', function(e) {
+    // Hangi scroll edilebilir elementin içindeyiz?
+    let el = e.target;
+    let scrolled = false;
+
+    while (el && el !== document.body) {
+      const style = window.getComputedStyle(el);
+      const overflowY = style.overflowY;
+      const canScroll = (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay');
+
+      if (canScroll && el.scrollHeight > el.clientHeight) {
+        const delta = e.deltaMode === 0 ? e.deltaY          // piksel
+                    : e.deltaMode === 1 ? e.deltaY * SCROLL_SPEED  // satır
+                    : e.deltaY * el.clientHeight;            // sayfa
+
+        const before = el.scrollTop;
+        el.scrollTop += delta;
+        if (el.scrollTop !== before) {
+          scrolled = true;
+          break;
+        }
+      }
+      el = el.parentElement;
+    }
+
+    // Hiçbir iç element scroll olmadıysa main-content'i scroll et
+    if (!scrolled) {
+      const main = document.getElementById('main-content');
+      if (main) {
+        const delta = e.deltaMode === 0 ? e.deltaY
+                    : e.deltaMode === 1 ? e.deltaY * SCROLL_SPEED
+                    : e.deltaY * main.clientHeight;
+        main.scrollTop += delta;
+      }
+    }
+  }, { passive: true });
 });
 </script>
 </body>

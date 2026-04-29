@@ -93,7 +93,9 @@ router.post('/organizasyonlar/:orgId/kurbanlar', async (req, res) => {
   const { tur, kupe_no, alis_fiyati, aciklama, kurban_turu, kesen_kisi, kucukbas_sayi } = req.body;
   if (!tur) return res.status(400).json({ hata: 'Tur zorunlu' });
 
-  const kurban_no = mevcutSayi + 1;
+  // Türe göre ayrı numaralama: büyükbaş kendi içinde, küçükbaş kendi içinde
+  const maxNoTur = db.prepare('SELECT MAX(kurban_no) as m FROM kurbanlar WHERE organizasyon_id=? AND tur=?').get(orgId, tur);
+  const kurban_no = (maxNoTur?.m || 0) + 1;
   const toplam_hisse = tur === 'buyukbas' ? 7 : 1;
 
   const r = db.prepare(`INSERT INTO kurbanlar (organizasyon_id,kurban_no,tur,kupe_no,alis_fiyati,toplam_hisse,aciklama,kurban_turu,kesen_kisi,kucukbas_sayi)
@@ -124,6 +126,15 @@ router.delete('/kurbanlar/:id', async (req, res) => {
   db.prepare('INSERT INTO cop_kutusu (tur, veri) VALUES (?,?)').run('kurban', JSON.stringify({ kurban: k, hisseler }));
   db.prepare('DELETE FROM hisseler WHERE kurban_id=?').run(req.params.id);
   db.prepare('DELETE FROM kurbanlar WHERE id=?').run(req.params.id);
+
+  // Silme sonrası kurban_no'ları türe göre ayrı ayrı yeniden sırala
+  ['buyukbas', 'kucukbas'].forEach(turAdi => {
+    const kalanlar = db.prepare('SELECT id FROM kurbanlar WHERE organizasyon_id=? AND tur=? ORDER BY kurban_no ASC').all(k.organizasyon_id, turAdi);
+    kalanlar.forEach((row, idx) => {
+      db.prepare('UPDATE kurbanlar SET kurban_no=? WHERE id=?').run(idx + 1, row.id);
+    });
+  });
+
   res.json({ ok: true });
 });
 
@@ -188,7 +199,8 @@ router.post('/organizasyonlar/:orgId/kurban-ve-hisseler', async (req, res) => {
   const { tur, kupe_no, alis_fiyati, aciklama, hisseler, kurban_turu, kesen_kisi, kucukbas_sayi } = req.body;
   if (!tur) return res.status(400).json({ hata: 'Tur zorunlu' });
 
-  const kurban_no = mevcutSayi + 1;
+  const maxNo2 = db.prepare('SELECT MAX(kurban_no) as m FROM kurbanlar WHERE organizasyon_id=? AND tur=?').get(orgId, tur);
+  const kurban_no = (maxNo2?.m || 0) + 1;
   const toplam_hisse = tur === 'buyukbas' ? 7 : 1;
 
   // Kurbanı oluştur

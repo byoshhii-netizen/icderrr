@@ -516,11 +516,6 @@ async function renderKurbanlar() {
     <div class="card">
       <div class="filter-bar" style="margin-bottom:16px">
         <input id="k-ara" placeholder="Kurban no ara..." oninput="filterKurbanlar()"/>
-        <select id="k-tur" onchange="loadKurbanlar()">
-          <option value="">Tum Turler</option>
-          <option value="buyukbas">Buyukbas</option>
-          <option value="kucukbas">Kucukbas</option>
-        </select>
         <select id="k-durum" onchange="loadKurbanlar()">
           <option value="">Tum Durumlar</option>
           <option value="bos">Bos Hisseli</option>
@@ -528,45 +523,61 @@ async function renderKurbanlar() {
           <option value="kesildi">Kesildi</option>
         </select>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th style="width:40px">#</th>
-            <th data-sort="kurban_no" onclick="sortKurbanlar('kurban_no')" style="cursor:pointer">No<span class="sort-icon"> ↑</span></th>
-            <th data-sort="tur" onclick="sortKurbanlar('tur')" style="cursor:pointer">Hayvan<span class="sort-icon"> ↕</span></th>
-            <th>Kupe No</th>
-            <th data-sort="alis_fiyati" onclick="sortKurbanlar('alis_fiyati')" style="cursor:pointer">Alis Fiyati<span class="sort-icon"> ↕</span></th>
-            <th data-sort="dolu_hisse" onclick="sortKurbanlar('dolu_hisse')" style="cursor:pointer">Hisse Durumu<span class="sort-icon"> ↕</span></th>
-            <th>Durum</th>
-            <th>Kesim</th>
-            <th>Islemler</th>
-          </tr></thead>
-          <tbody id="kurban-tbody"></tbody>
-        </table>
+      <!-- Büyükbaş -->
+      <div style="margin-bottom:28px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--accent)">
+          <i class="fa-solid fa-cow" style="color:var(--accent);font-size:18px"></i>
+          <span style="font-size:16px;font-weight:700;color:var(--accent)">Büyükbaş</span>
+          <span id="buyukbas-sayac" style="font-size:12px;color:var(--text3);margin-left:4px"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:40px">#</th>
+              <th>No</th>
+              <th>Küpe No</th>
+              <th>Alış Fiyatı</th>
+              <th>Hisse Durumu</th>
+              <th>Durum</th>
+              <th>Kesim</th>
+              <th>İşlemler</th>
+            </tr></thead>
+            <tbody id="buyukbas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Küçükbaş -->
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--yellow)">
+          <i class="fa-solid fa-hippo" style="color:var(--yellow);font-size:18px"></i>
+          <span style="font-size:16px;font-weight:700;color:var(--yellow)">Küçükbaş</span>
+          <span id="kucukbas-sayac" style="font-size:12px;color:var(--text3);margin-left:4px"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:40px">#</th>
+              <th>No</th>
+              <th>Küpe No</th>
+              <th>Alış Fiyatı</th>
+              <th>Hisse Durumu</th>
+              <th>Durum</th>
+              <th>Kesim</th>
+              <th>İşlemler</th>
+            </tr></thead>
+            <tbody id="kucukbas-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>`;
   await loadKurbanlar();
 }
 
 async function loadKurbanlar() {
-  const tur = document.getElementById('k-tur')?.value||'';
   const durum = document.getElementById('k-durum')?.value||'';
   let url = `/organizasyonlar/${S.orgId}/kurbanlar?`;
-  if (tur) url+=`tur=${tur}&`;
   if (durum) url+=`durum=${durum}`;
   _kurbanlar = await api('GET', url);
-  filterKurbanlar();
-}
-
-let _sortCol = 'kurban_no', _sortDir = 1;
-
-function sortKurbanlar(col) {
-  if (_sortCol === col) _sortDir *= -1;
-  else { _sortCol = col; _sortDir = 1; }
-  // Başlık oklarını güncelle
-  document.querySelectorAll('th[data-sort]').forEach(th => {
-    th.querySelector('.sort-icon').textContent = th.dataset.sort === _sortCol ? (_sortDir===1?' ↑':' ↓') : ' ↕';
-  });
   filterKurbanlar();
 }
 
@@ -574,20 +585,18 @@ function filterKurbanlar() {
   const ara = (document.getElementById('k-ara')?.value||'').toLowerCase();
   let list = _kurbanlar.filter(k => !ara || String(k.kurban_no).includes(ara) || (k.kupe_no||'').toLowerCase().includes(ara));
 
-  // Sırala
-  list = [...list].sort((a,b) => {
-    let av = a[_sortCol], bv = b[_sortCol];
-    if (typeof av === 'string') av = av.toLowerCase(), bv = (bv||'').toLowerCase();
-    if (av == null) av = -1; if (bv == null) bv = -1;
-    return av > bv ? _sortDir : av < bv ? -_sortDir : 0;
-  });
+  const buyukbaslar = list.filter(k => k.tur === 'buyukbas').sort((a,b) => a.kurban_no - b.kurban_no);
+  const kucukbaslar = list.filter(k => k.tur === 'kucukbas').sort((a,b) => a.kurban_no - b.kurban_no);
 
-  const tbody = document.getElementById('kurban-tbody');
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fa-solid fa-cow"></i><p>Kurban bulunamadi.</p></div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = list.map((k, idx) => {
+  // Sayaçları güncelle
+  const bSayac = document.getElementById('buyukbas-sayac');
+  const kSayac = document.getElementById('kucukbas-sayac');
+  if (bSayac) bSayac.textContent = `(${buyukbaslar.length} adet)`;
+  if (kSayac) kSayac.textContent = `(${kucukbaslar.length} adet)`;
+
+  const bosRow = (colspan) => `<tr><td colspan="${colspan}"><div class="empty-state" style="padding:16px"><i class="fa-solid fa-inbox"></i><p style="font-size:13px">Kayıt yok</p></div></td></tr>`;
+
+  const renderRow = (k, idx) => {
     const dolu = k.dolu_hisse, top = k.toplam_hisse;
     const pct = Math.round((dolu/top)*100);
     let durumBadge;
@@ -597,7 +606,6 @@ function filterKurbanlar() {
     return `<tr>
       <td style="color:var(--text3);font-size:12px;font-weight:600">${idx+1}</td>
       <td><span class="kurban-no-badge">${k.kurban_no}</span></td>
-      <td>${k.tur==='buyukbas'?'<span class="badge badge-blue"><i class="fa-solid fa-cow"></i> Buyukbas</span>':'<span class="badge badge-gray"><i class="fa-solid fa-hippo"></i> Kucukbas</span>'}</td>
       <td>${k.kupe_no?esc(k.kupe_no):'<span style="color:var(--text3)">-</span>'}</td>
       <td>${k.alis_fiyati?para(k.alis_fiyati):'-'}</td>
       <td>
@@ -618,7 +626,12 @@ function filterKurbanlar() {
         </div>
       </td>
     </tr>`;
-  }).join('');
+  };
+
+  const bTbody = document.getElementById('buyukbas-tbody');
+  const kTbody = document.getElementById('kucukbas-tbody');
+  if (bTbody) bTbody.innerHTML = buyukbaslar.length ? buyukbaslar.map(renderRow).join('') : bosRow(8);
+  if (kTbody) kTbody.innerHTML = kucukbaslar.length ? kucukbaslar.map(renderRow).join('') : bosRow(8);
 }
 
 function modalYeniKurban() {

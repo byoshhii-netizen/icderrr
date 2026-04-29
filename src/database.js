@@ -174,6 +174,15 @@ async function getDb() {
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS cop_kutusu (id INTEGER PRIMARY KEY AUTOINCREMENT, tur TEXT NOT NULL, veri TEXT NOT NULL, silme_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS ayarlar (id INTEGER PRIMARY KEY AUTOINCREMENT, kullanici_id INTEGER DEFAULT 1, logo_data TEXT, bayrak_data TEXT, kurulum_tamamlandi INTEGER DEFAULT 0)"); } catch(e) {}
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS kullanicilar (id INTEGER PRIMARY KEY AUTOINCREMENT, kullanici_adi TEXT UNIQUE NOT NULL, email TEXT UNIQUE NOT NULL, sifre_hash TEXT NOT NULL, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  // sistem_ayarlari tablosu ve varsayılan değerler
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS sistem_ayarlari (id INTEGER PRIMARY KEY AUTOINCREMENT, anahtar TEXT UNIQUE NOT NULL, deger TEXT)"); } catch(e) {}
+  try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('admin_sifre', 'BeYA0411')"); } catch(e) {}
+  try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_modu', 'acik')"); } catch(e) {}
+  try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_notu', '')"); } catch(e) {}
+  // ayarlar tablosuna icder_sifre kolonu ekle
+  try { sqlDb.run("ALTER TABLE ayarlar ADD COLUMN icder_sifre TEXT DEFAULT '571571'"); } catch(e) {}
+  // destek_talepleri tablosu
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS destek_talepleri (id INTEGER PRIMARY KEY AUTOINCREMENT, konu TEXT, mesaj TEXT, ad TEXT, email TEXT, admin_cevap TEXT, durum TEXT DEFAULT 'bekliyor', okundu INTEGER DEFAULT 0, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP, guncelleme DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   const data = sqlDb.export();
   fs.writeFileSync(DB_PATH, Buffer.from(data));
   _db = new DbWrapper(sqlDb);

@@ -223,46 +223,33 @@
 
 <script src="app.js"></script>
 <script>
-// ── Mouse wheel scroll düzeltmesi (Electron için)
+// ── Mouse wheel scroll (Electron fix)
 document.addEventListener('DOMContentLoaded', function() {
-  const SCROLL_SPEED = 120; // piksel cinsinden scroll miktarı
+  const main = document.getElementById('main-content');
+  const sidebar = document.getElementById('sidebar');
 
-  document.addEventListener('wheel', function(e) {
-    // Hangi scroll edilebilir elementin içindeyiz?
+  function handleWheel(e) {
+    const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * 800 : e.deltaY;
+
+    // Hedef elementin scroll edilebilir atalarını bul
     let el = e.target;
-    let scrolled = false;
-
-    while (el && el !== document.body) {
-      const style = window.getComputedStyle(el);
-      const overflowY = style.overflowY;
-      const canScroll = (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay');
-
-      if (canScroll && el.scrollHeight > el.clientHeight) {
-        const delta = e.deltaMode === 0 ? e.deltaY          // piksel
-                    : e.deltaMode === 1 ? e.deltaY * SCROLL_SPEED  // satır
-                    : e.deltaY * el.clientHeight;            // sayfa
-
+    while (el && el !== document.documentElement) {
+      const st = window.getComputedStyle(el);
+      const oy = st.overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
         const before = el.scrollTop;
         el.scrollTop += delta;
-        if (el.scrollTop !== before) {
-          scrolled = true;
-          break;
-        }
+        if (el.scrollTop !== before) return; // scroll oldu, dur
       }
       el = el.parentElement;
     }
 
-    // Hiçbir iç element scroll olmadıysa main-content'i scroll et
-    if (!scrolled) {
-      const main = document.getElementById('main-content');
-      if (main) {
-        const delta = e.deltaMode === 0 ? e.deltaY
-                    : e.deltaMode === 1 ? e.deltaY * SCROLL_SPEED
-                    : e.deltaY * main.clientHeight;
-        main.scrollTop += delta;
-      }
-    }
-  }, { passive: true });
+    // Hiçbiri scroll olmadıysa main'i scroll et
+    if (main) main.scrollTop += delta;
+  }
+
+  // passive:false ile preventDefault kullanabilelim
+  document.addEventListener('wheel', handleWheel, { passive: true });
 });
 </script>
 </body>

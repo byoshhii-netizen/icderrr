@@ -309,11 +309,10 @@ body {
   border-right:1px solid var(--border);
   display:flex; flex-direction:column;
   padding:14px 0 18px;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x:hidden;
   scroll-behavior: smooth;
-  height: 100%;
-  /* Electron'da mouse wheel için */
+  min-height: 0;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -375,15 +374,14 @@ body {
 /* ── MAIN ── */
 .main {
   flex:1; 
+  min-height: 0;
   overflow-y: auto;
-  overflow-x:auto;
+  overflow-x: hidden;
   padding:28px 32px;
-  display:flex; flex-direction:column; gap:24px;
   background: radial-gradient(ellipse at 20% 0%, rgba(79,126,248,0.04) 0%, transparent 60%),
               radial-gradient(ellipse at 80% 100%, rgba(167,139,250,0.03) 0%, transparent 60%),
               var(--bg);
   scroll-behavior: smooth;
-  height: 100%;
   -webkit-overflow-scrolling: touch;
 }
 

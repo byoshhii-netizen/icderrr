@@ -22,7 +22,48 @@ function getAutoBackupDir() {
   }
 }
 
-// ── OTOMATİK YEDEK AL (her 10 dakikada bir)
+// ── OTOMATİK YEDEK AL (ayara göre dinamik)
+let _otoYedekInterval = null;
+
+async function otoYedekAyarOku() {
+  try {
+    const res = await new Promise((resolve, reject) => {
+      const req = http.get(`http://127.0.0.1:${PORT}/api/admin/otomatik-yedek-ayar`, (r) => {
+        let data = '';
+        r.on('data', c => data += c);
+        r.on('end', () => resolve({ status: r.statusCode, data }));
+      });
+      req.on('error', reject);
+      req.setTimeout(5000, () => { req.destroy(); reject(new Error('timeout')); });
+    });
+    if (res.status === 200) {
+      const ayar = JSON.parse(res.data);
+      return { aktif: ayar.aktif !== false, dakika: Math.max(1, parseInt(ayar.dakika) || 10) };
+    }
+  } catch(e) {}
+  return { aktif: true, dakika: 10 }; // varsayılan
+}
+
+async function otoYedekBaslat() {
+  const ayar = await otoYedekAyarOku();
+  console.log(`[OTO-YEDEK] Ayar: aktif=${ayar.aktif}, dakika=${ayar.dakika}`);
+
+  if (_otoYedekInterval) {
+    clearInterval(_otoYedekInterval);
+    _otoYedekInterval = null;
+  }
+
+  if (!ayar.aktif) {
+    console.log('[OTO-YEDEK] Kapalı, çalışmıyor.');
+    return;
+  }
+
+  const ms = ayar.dakika * 60 * 1000;
+  otomatikYedekAl(); // İlk yedek hemen
+  _otoYedekInterval = setInterval(otomatikYedekAl, ms);
+  console.log(`[OTO-YEDEK] Her ${ayar.dakika} dakikada bir çalışacak.`);
+}
+
 async function otomatikYedekAl() {
   try {
     const res = await new Promise((resolve, reject) => {
@@ -301,11 +342,8 @@ app.whenReady().then(() => {
   });
   server.on('listening', () => waitForServer(() => {
     createMain();
-    // Sunucu hazır olunca 10 dakikada bir otomatik yedek al
-    setTimeout(() => {
-      otomatikYedekAl(); // İlk yedek hemen
-      setInterval(otomatikYedekAl, 10 * 60 * 1000); // Sonraki her 10 dk
-    }, 5000); // Sunucu tam oturuncaya kadar 5sn bekle
+    // Sunucu hazır olunca oto yedek başlat (ayarları DB'den okur)
+    setTimeout(otoYedekBaslat, 5000);
   }));
   server.listen(PORT, '0.0.0.0');
 });

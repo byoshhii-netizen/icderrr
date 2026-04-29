@@ -522,22 +522,23 @@ router.post('/oto-yedek-yukle', adminKontrol, async (req, res) => {
 router.get('/otomatik-yedek-ayar', adminKontrol, async (req, res) => {
   const db = await getDb();
   try {
-    const saat = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='otomatik_yedek_saat'").get();
-    res.json({ saat: saat?.deger || null });
+    const aktif  = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='oto_yedek_aktif'").get();
+    const dakika = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='oto_yedek_dakika'").get();
+    res.json({
+      aktif:  aktif?.deger  !== '0',          // varsayılan: açık
+      dakika: parseInt(dakika?.deger || '10') // varsayılan: 10 dk
+    });
   } catch (e) { res.status(500).json({ hata: e.message }); }
 });
 
 router.post('/otomatik-yedek-ayar', adminKontrol, async (req, res) => {
-  const { saat } = req.body;
+  const { aktif, dakika } = req.body;
   const db = await getDb();
   try {
-    const mevcut = db.prepare("SELECT id FROM sistem_ayarlari WHERE anahtar='otomatik_yedek_saat'").get();
-    if (mevcut) {
-      db.prepare("UPDATE sistem_ayarlari SET deger=? WHERE anahtar='otomatik_yedek_saat'").run(String(saat));
-    } else {
-      db.prepare("INSERT INTO sistem_ayarlari (anahtar, deger) VALUES ('otomatik_yedek_saat', ?)").run(String(saat));
-    }
-    res.json({ ok: true });
+    db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('oto_yedek_aktif', ?)").run(aktif ? '1' : '0');
+    const dk = Math.max(1, Math.min(1440, parseInt(dakika) || 10));
+    db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('oto_yedek_dakika', ?)").run(String(dk));
+    res.json({ ok: true, aktif, dakika: dk });
   } catch (e) { res.status(500).json({ hata: e.message }); }
 });
 

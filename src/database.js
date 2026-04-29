@@ -179,6 +179,8 @@ async function getDb() {
   try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('admin_sifre', 'BeYA0411')"); } catch(e) {}
   try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_modu', 'acik')"); } catch(e) {}
   try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_notu', '')"); } catch(e) {}
+  try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('oto_yedek_aktif', '1')"); } catch(e) {}
+  try { sqlDb.run("INSERT OR IGNORE INTO sistem_ayarlari (anahtar, deger) VALUES ('oto_yedek_dakika', '10')"); } catch(e) {}
   // ayarlar tablosuna icder_sifre kolonu ekle
   try { sqlDb.run("ALTER TABLE ayarlar ADD COLUMN icder_sifre TEXT DEFAULT '571571'"); } catch(e) {}
   // destek_talepleri tablosu

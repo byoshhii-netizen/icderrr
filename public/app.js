@@ -2000,7 +2000,103 @@ async function renderYedekGeriYukle() {
           <li>Yedek dosyasını başka bir bilgisayara taşıyabilirsiniz</li>
         </ul>
       </div>
-    </div>`;
+    </div>
+
+    <div class="card" id="oto-yedek-kart" style="border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.05)">
+      <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Otomatik Yedek Ayarları</div>
+      <div id="oto-yedek-yukleniyor" style="color:var(--text3);font-size:13px">Yükleniyor...</div>
+    </div>`; 
+
+  // Oto yedek ayarlarını yükle
+  yukleOtoYedekAyar();
+}
+
+async function yukleOtoYedekAyar() {
+  const wrap = document.getElementById('oto-yedek-yukleniyor');
+  if (!wrap) return;
+  try {
+    const ayar = await api('GET', '/admin/otomatik-yedek-ayar');
+    const aktif = ayar.aktif !== false;
+    const dakika = ayar.dakika || 10;
+    wrap.outerHTML = `
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Otomatik Yedek</div>
+            <div style="font-size:12px;color:var(--text3)">Program çalışırken arka planda otomatik yedek alır</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <span style="font-size:13px;color:var(--text2)">${aktif ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>'}</span>
+            <div style="position:relative;width:44px;height:24px">
+              <input type="checkbox" id="oto-yedek-toggle" ${aktif ? 'checked' : ''} 
+                style="opacity:0;width:0;height:0;position:absolute" onchange="otoYedekToggle()"/>
+              <div id="oto-yedek-slider" style="
+                position:absolute;inset:0;border-radius:24px;cursor:pointer;transition:.3s;
+                background:${aktif ? 'var(--accent)' : 'var(--border2)'};
+              ">
+                <div style="
+                  position:absolute;top:3px;left:${aktif ? '23px' : '3px'};
+                  width:18px;height:18px;border-radius:50%;background:#fff;
+                  transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.3);
+                " id="oto-yedek-knob"></div>
+              </div>
+            </div>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <label style="font-size:13px;color:var(--text2);white-space:nowrap">Her</label>
+          <select id="oto-yedek-dakika" style="
+            background:var(--bg4);border:1px solid var(--border2);border-radius:8px;
+            color:var(--text);padding:8px 12px;font-size:13px;min-width:120px;
+          ">
+            <option value="5"  ${dakika==5?'selected':''}>5 dakika</option>
+            <option value="10" ${dakika==10?'selected':''}>10 dakika</option>
+            <option value="15" ${dakika==15?'selected':''}>15 dakika</option>
+            <option value="30" ${dakika==30?'selected':''}>30 dakika</option>
+            <option value="60" ${dakika==60?'selected':''}>1 saat</option>
+            <option value="120" ${dakika==120?'selected':''}>2 saat</option>
+          </select>
+          <label style="font-size:13px;color:var(--text2)">bir otomatik yedek al</label>
+          <button class="btn btn-primary btn-sm" onclick="kaydetOtoYedekAyar()">
+            <i class="fa-solid fa-floppy-disk"></i> Kaydet
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--text3);background:var(--bg4);border-radius:8px;padding:10px 14px;line-height:1.7">
+          <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+          Yedekler <strong>userData/otomatik-yedek</strong> klasörüne kaydedilir. Son 20 yedek tutulur, eskiler silinir.
+          Ayar değişikliği programı yeniden başlatınca aktif olur.
+        </div>
+      </div>`;
+  } catch(e) {
+    if (wrap) wrap.innerHTML = '<span style="color:var(--text3);font-size:13px">Ayar yüklenemedi (admin girişi gerekebilir)</span>';
+  }
+}
+
+function otoYedekToggle() {
+  const cb = document.getElementById('oto-yedek-toggle');
+  const slider = document.getElementById('oto-yedek-slider');
+  const knob = document.getElementById('oto-yedek-knob');
+  const label = cb.previousElementSibling;
+  if (cb.checked) {
+    slider.style.background = 'var(--accent)';
+    knob.style.left = '23px';
+    label.innerHTML = '<span style="color:var(--green);font-weight:600">Açık</span>';
+  } else {
+    slider.style.background = 'var(--border2)';
+    knob.style.left = '3px';
+    label.innerHTML = '<span style="color:var(--text3)">Kapalı</span>';
+  }
+}
+
+async function kaydetOtoYedekAyar() {
+  const aktif  = document.getElementById('oto-yedek-toggle')?.checked ?? true;
+  const dakika = parseInt(document.getElementById('oto-yedek-dakika')?.value || '10');
+  try {
+    await api('POST', '/admin/otomatik-yedek-ayar', { aktif, dakika });
+    toast(`Oto yedek ayarı kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika. Değişiklik programı yeniden başlatınca aktif olur.`);
+  } catch(e) {
+    toast('Kayıt başarısız: ' + e.message, 'error');
+  }
 }
 
 async function tamYedekAl() {

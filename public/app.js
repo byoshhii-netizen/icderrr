@@ -668,7 +668,7 @@ async function kaydetKurban() {
   try {
     const r = await api('POST',`/organizasyonlar/${S.orgId}/kurbanlar`,{tur,kurban_turu,kupe_no,alis_fiyati,kesen_kisi,aciklama});
     closeModal(); toast(`Kurban #${r.kurban_no} olusturuldu (${r.toplam_hisse} hisse)`);
-    await loadDashStats(); await loadKurbanlar();
+    await loadKurbanlar();
   } catch(e) { toast(e.message,'error'); }
 }
 
@@ -724,13 +724,13 @@ async function guncKurban(id) {
   const aciklama=document.getElementById('fk-not').value.trim();
   try {
     await api('PUT',`/kurbanlar/${id}`,{kurban_turu,kupe_no,alis_fiyati,kesildi,kesim_tarihi,kesen_kisi,aciklama});
-    closeModal(); toast('Guncellendi'); await loadDashStats(); await loadKurbanlar();
+    closeModal(); toast('Guncellendi'); await loadKurbanlar();
   } catch(e) { toast(e.message,'error'); }
 }
 
 async function silKurban(id) {
   if (!confirm('Bu kurbani silmek istediginizden emin misiniz?')) return;
-  try { await api('DELETE',`/kurbanlar/${id}`); toast('Silindi'); await loadDashStats(); await loadKurbanlar(); }
+  try { await api('DELETE',`/kurbanlar/${id}`); toast('Silindi'); await loadKurbanlar(); }
   catch(e) { toast(e.message,'error'); }
 }
 
@@ -841,7 +841,7 @@ async function kaydetBagisci(hisseId, kurbanId) {
   try {
     await api('PUT',`/hisseler/${hisseId}`,{bagisci_adi,bagisci_telefon,kimin_adina,kimin_adina_telefon,odeme_durumu,video_ister,aciklama});
     closeModal(); toast('Bagisci kaydedildi');
-    await loadDashStats(); await loadKurbanlar();
+    await loadKurbanlar();
   } catch(e) { toast(e.message,'error'); }
 }
 
@@ -850,7 +850,7 @@ async function temizleHisse(hisseId, kurbanId) {
   try {
     await api('DELETE',`/hisseler/${hisseId}/temizle`);
     closeModal(); toast('Hisse temizlendi');
-    await loadDashStats(); await loadKurbanlar();
+    await loadKurbanlar();
   } catch(e) { toast(e.message,'error'); }
 }
 
@@ -1082,7 +1082,6 @@ async function kaydetYeniBagisci() {
     });
     closeModal();
     toast(`Kurban #${r.kurban_no} olusturuldu — ${doluSayi} bagisci kaydedildi`);
-    await loadDashStats();
     await loadKurbanlar();
     tumBagiscilariGoster();
   } catch(e) { toast(e.message, 'error'); }

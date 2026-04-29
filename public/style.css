@@ -185,7 +185,6 @@ body.theme-olive .modal {
 
 html {
   height: 100%;
-  overflow: hidden;
 }
 
 body {
@@ -195,7 +194,7 @@ body {
   height: 100vh;
   display:flex;
   flex-direction:column;
-  overflow:hidden;
+  overflow: hidden;
 }
 
 /* ── TOPBAR ── */
@@ -376,7 +375,7 @@ body {
 /* ── MAIN ── */
 .main {
   flex:1; 
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x:auto;
   padding:28px 32px;
   display:flex; flex-direction:column; gap:24px;

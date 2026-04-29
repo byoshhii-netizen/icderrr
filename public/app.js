@@ -500,7 +500,6 @@ async function renderKurbanlar() {
         <button class="btn btn-primary" onclick="modalYeniKurban()"><i class="fa-solid fa-plus"></i> Kurban Ekle</button>
       </div>
     </div>
-    <div class="stats-grid" id="dash-stats"></div>
     <div class="card">
       <div class="filter-bar" style="margin-bottom:16px">
         <input id="k-ara" placeholder="Kurban no ara..." oninput="filterKurbanlar()"/>
@@ -533,28 +532,7 @@ async function renderKurbanlar() {
         </table>
       </div>
     </div>`;
-  await loadDashStats();
   await loadKurbanlar();
-}
-
-async function loadDashStats() {
-  try {
-    const d = await api('GET',`/organizasyonlar/${S.orgId}/dashboard`);
-    document.getElementById('dash-stats').innerHTML = `
-      <div class="stat-card blue"><div class="stat-icon"><i class="fa-solid fa-heart"></i></div><div class="stat-value">${d.toplam_bagis || 0} ₺</div><div class="stat-label">Toplam Bağış</div></div>
-      <div class="stat-card yellow"><div class="stat-icon"><i class="fa-solid fa-gift"></i></div><div class="stat-value">${d.kumbara_tahsilat || 0} ₺</div><div class="stat-label">Kumbara Tahsilat</div></div>
-      <div class="stat-card purple"><div class="stat-icon"><i class="fa-solid fa-receipt"></i></div><div class="stat-value">${d.kumbara_adet || 0} Adet</div><div class="stat-label">Kumbara</div></div>
-      <div class="stat-card green"><div class="stat-icon"><i class="fa-solid fa-seedling"></i></div><div class="stat-value">${d.sponsor_tahsilat || 0} ₺</div><div class="stat-label">Sponsor Tahsilat</div></div>
-      
-      <div class="stat-card blue"><div class="stat-icon"><i class="fa-solid fa-file-alt"></i></div><div class="stat-value">${d.toplam_personel || 1} Adet</div><div class="stat-label">Toplam Personel</div></div>
-      <div class="stat-card red"><div class="stat-icon"><i class="fa-solid fa-users"></i></div><div class="stat-value">${d.bagisci || 59} Adet</div><div class="stat-label">Bağışçı</div></div>
-      <div class="stat-card blue"><div class="stat-icon"><i class="fa-solid fa-building"></i></div><div class="stat-value">${d.faydalanıcı || 1} Adet</div><div class="stat-label">Faydalanıcı</div></div>
-      <div class="stat-card green"><div class="stat-icon"><i class="fa-solid fa-user-friends"></i></div><div class="stat-value">${d.sponsor || 1} Adet</div><div class="stat-label">Sponsor</div></div>
-      
-      <div class="stat-card blue"><div class="stat-icon"><i class="fa-solid fa-list"></i></div><div class="stat-value">${d.bekleyen_kurban_hisse || 0} Adet</div><div class="stat-label">Bekleyen Kurban Hisse</div></div>
-      <div class="stat-card red"><div class="stat-icon"><i class="fa-solid fa-align-justify"></i></div><div class="stat-value">${d.bekleyen_su_kuyusu || 1} Adet</div><div class="stat-label">Bekleyen Su Kuyusu</div></div>
-      <div class="stat-card blue"><div class="stat-icon"><i class="fa-solid fa-cog"></i></div><div class="stat-value">${d.bekleyen_diger_org || 0} Adet</div><div class="stat-label">Bekleyen Diğer Org.</div></div>`;
-  } catch(e) {}
 }
 
 async function loadKurbanlar() {

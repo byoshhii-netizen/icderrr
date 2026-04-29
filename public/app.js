@@ -322,6 +322,19 @@ function togglePartnerMenu() {
 function setSidebarOrg(ad, yil) {
   document.getElementById('sidebar-org-name').textContent = ad || 'Organizasyon Seçilmedi';
   document.getElementById('sidebar-org-sub').textContent  = yil ? `${yil} Yılı` : 'Bir organizasyon seçin';
+  // Topbar göstergesi
+  const display = document.getElementById('selected-org-display');
+  const nameEl  = document.getElementById('selected-org-name');
+  const yearEl  = document.getElementById('selected-org-year');
+  if (display) display.style.display = ad ? 'flex' : 'none';
+  if (nameEl)  nameEl.textContent = ad || '';
+  if (yearEl)  yearEl.textContent = yil ? `${yil} Yılı` : '';
+}
+
+function cikOrganizasyondan() {
+  S.orgId = null; S.orgAd = ''; S.orgYil = '';
+  setSidebarOrg('', '');
+  showPage('organizasyonlar');
 }
 
 // ─── YARDIMCI ────────────────────────────────────────────────────────────────

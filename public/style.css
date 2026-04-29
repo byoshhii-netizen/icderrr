@@ -219,6 +219,7 @@ body {
   border:2px solid var(--accent);
   border-radius:50%;
   display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
   box-shadow: 0 0 16px var(--glow), 0 4px 12px rgba(0,0,0,0.3);
   transition: all 0.3s ease;
 }

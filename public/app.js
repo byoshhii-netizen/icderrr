@@ -680,7 +680,7 @@ function modalYeniKurban() {
     <div class="form-grid">
       <div class="form-group">
         <label>Hayvan Turu *</label>
-        <select id="fk-tur">
+        <select id="fk-tur" onchange="otoKupeNo()">
           <option value="buyukbas">Buyukbas (7 Hisse)</option>
           <option value="kucukbas">Kucukbas (1 Hisse)</option>
         </select>
@@ -690,8 +690,8 @@ function modalYeniKurban() {
         <select id="fk-kurban-turu">${kurbanTuruOptions('Udhiye')}</select>
       </div>
       <div class="form-group">
-        <label>Kupe No</label>
-        <input id="fk-kupe" placeholder="Opsiyonel"/>
+        <label>Küpe No <span style="font-size:11px;color:var(--text3);font-weight:400">(otomatik)</span></label>
+        <input id="fk-kupe" placeholder="Otomatik atanır"/>
       </div>
       <div class="form-group">
         <label>Alis Fiyati (TL)</label>
@@ -710,6 +710,23 @@ function modalYeniKurban() {
       <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
       <button class="btn btn-primary" onclick="kaydetKurban()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
     </div>`, false, 'cow');
+  // Modal açılınca otomatik küpe no ata
+  setTimeout(otoKupeNo, 100);
+}
+
+function otoKupeNo() {
+  // Hem "Yeni Kurban" (fk-*) hem "Bağışçı Ekle" (fb-*) modallarını destekler
+  const turEl = document.getElementById('fk-tur') || document.getElementById('fb-tur');
+  const kupeInput = document.getElementById('fk-kupe') || document.getElementById('fb-kupe');
+  if (!turEl || !kupeInput) return;
+  const tur = turEl.value || 'buyukbas';
+  // Bu türün mevcut kurbanlarındaki en büyük sayısal küpe nosunu bul
+  const mevcutlar = _kurbanlar.filter(k => k.tur === tur && k.kupe_no);
+  const maxNo = mevcutlar.reduce((max, k) => {
+    const n = parseInt(k.kupe_no);
+    return !isNaN(n) && n > max ? n : max;
+  }, 0);
+  kupeInput.value = String(maxNo + 1);
 }
 
 async function kaydetKurban() {
@@ -1016,7 +1033,7 @@ async function modalYeniBagisci() {
       <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
         <div class="form-group">
           <label>Hayvan Turu *</label>
-          <select id="fb-tur" onchange="bagisciTurSecildi()">
+          <select id="fb-tur" onchange="bagisciTurSecildi(); otoKupeNo()">
             <option value="buyukbas">Buyukbas (7 Hisse)</option>
             <option value="kucukbas">Kucukbas (1 Hisse)</option>
           </select>
@@ -1050,8 +1067,9 @@ async function modalYeniBagisci() {
     </div>
   `, true, 'user-plus');
 
-  // Sayfa açılınca hemen büyükbaş için 7 hisse formunu göster
+  // Sayfa açılınca hemen büyükbaş için 7 hisse formunu göster ve küpe no ata
   bagisciTurSecildi();
+  setTimeout(otoKupeNo, 100);
 }
 
 function bagisciTurSecildi() {
@@ -1350,8 +1368,8 @@ function yazdirilabilirHTML(tip) {
     '</div>' +
     (icerik ? icerik.innerHTML : '') +
     '<div class="footer">' +
-    '<div class="footer-left">İÇDER Kurban Programı &nbsp;|&nbsp; İsmail DEMİRCAN</div>' +
-    '<div class="footer-right">' + new Date().toLocaleDateString('tr-TR') + '</div>' +
+    '<div class="footer-left">İÇDER</div>' +
+    '<div class="footer-right">icder.org.tr &nbsp;|&nbsp; ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
     '</div>' +
     '</body></html>';
 }
@@ -1428,12 +1446,12 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '<table>' +
     '<thead><tr>' +
     '<th style="width:60px;text-align:center">No</th>' +
-    '<th>İsim Soyisim</th>' +
+    '<th>Ad Soyad</th>' +
     '<th style="width:140px;text-align:center">Kurban Türü</th>' +
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +
-    '<div class="footer">İÇDER Kurban Programı &nbsp;|&nbsp; İsmail DEMİRCAN</div>' +
+    '<div class="footer"><div style="float:left">İÇDER</div><div style="float:right">icder.org.tr</div></div>' +
     '</body></html>';
 }
 
@@ -1481,6 +1499,7 @@ async function renderDenetim() {
           <tr><td style="color:var(--text3);padding:7px 0">İşbirliği</td><td style="color:var(--accent);font-weight:600">İÇDER & Defterdar</td></tr>
           <tr><td style="color:var(--text3);padding:7px 0">Modul</td><td>Kurban Organizasyonu</td></tr>
           <tr><td style="color:var(--text3);padding:7px 0">Lisans</td><td>İÇDER &copy; 2025</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Site</td><td><a href="https://icder.org.tr" target="_blank" style="color:var(--accent)">icder.org.tr</a></td></tr>
         </table>
       </div>
       <div class="card">

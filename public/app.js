@@ -4070,15 +4070,15 @@ function renderProfilBilgilerim() {
           <div class="form-grid">
             <div class="form-group">
               <label>Mevcut Şifre</label>
-              <input id="profil-eski-sifre" type="password" placeholder="Mevcut şifre"/>
+              <input id="profil-eski-sifre" type="password" placeholder="Mevcut şifre" autocomplete="new-password"/>
             </div>
             <div class="form-group">
               <label>Yeni Şifre</label>
-              <input id="profil-yeni-sifre" type="password" placeholder="Yeni şifre"/>
+              <input id="profil-yeni-sifre" type="password" placeholder="Yeni şifre" autocomplete="new-password"/>
             </div>
             <div class="form-group">
               <label>Yeni Şifre Tekrar</label>
-              <input id="profil-yeni-sifre-tekrar" type="password" placeholder="Yeni şifre tekrar"/>
+              <input id="profil-yeni-sifre-tekrar" type="password" placeholder="Yeni şifre tekrar" autocomplete="new-password"/>
             </div>
           </div>
           

@@ -6,6 +6,16 @@ let _kullaniciAdi = 'İÇDER';
 // Direkt başlat
 (async function init() {
   await yukleKullaniciAyarlar();
+  // Bakım modu periyodik kontrolü (her 30 saniyede bir)
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/admin/sistem-modu');
+      const d = await res.json();
+      if (d.mod === 'bakim' || d.mod === 'kapali') {
+        window.location.href = '/icder-giris';
+      }
+    } catch(e) {}
+  }, 30000);
 })();
 
 async function yukleKullaniciAyarlar() {

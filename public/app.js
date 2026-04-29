@@ -4220,19 +4220,19 @@ async function renderDestekHatti() {
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
           <i class="fa-solid fa-phone" style="color:var(--green);font-size:18px"></i>
-          <div><div style="font-size:11px;color:var(--text3)">Telefon</div><div style="font-weight:600">0 (850) 123 45 67</div></div>
+          <div><div style="font-size:11px;color:var(--text3)">Telefon</div><div style="font-weight:600">0 (536) 835 10 08</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
           <i class="fa-solid fa-envelope" style="color:var(--accent);font-size:18px"></i>
-          <div><div style="font-size:11px;color:var(--text3)">E-posta</div><div style="font-weight:600">destek@icder.org</div></div>
+          <div><div style="font-size:11px;color:var(--text3)">E-posta</div><div style="font-weight:600">icderkurban@hotmail.com</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
           <i class="fa-brands fa-whatsapp" style="color:var(--green);font-size:18px"></i>
-          <div><div style="font-size:11px;color:var(--text3)">WhatsApp</div><div style="font-weight:600">0 (555) 123 45 67</div></div>
+          <div><div style="font-size:11px;color:var(--text3)">WhatsApp</div><div style="font-weight:600">0 (540) 305 18 55</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
           <i class="fa-solid fa-clock" style="color:var(--yellow);font-size:18px"></i>
-          <div><div style="font-size:11px;color:var(--text3)">Çalışma Saatleri</div><div style="font-weight:600">Hafta İçi 09:00 - 18:00</div></div>
+          <div><div style="font-size:11px;color:var(--text3)">Çalışma Saatleri</div><div style="font-weight:600">7/24</div></div>
         </div>
       </div>
     </div>

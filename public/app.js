@@ -526,11 +526,25 @@ async function renderKurbanlar() {
     <div class="card">
       <div class="filter-bar" style="margin-bottom:16px">
         <input id="k-ara" placeholder="Kurban no ara..." oninput="filterKurbanlar()"/>
-        <select id="k-durum" onchange="loadKurbanlar()">
-          <option value="">Tum Durumlar</option>
-          <option value="bos">Bos Hisseli</option>
-          <option value="doldu">Hisseleri Dolu</option>
-          <option value="kesildi">Kesildi</option>
+        <select id="k-durum" onchange="filterKurbanlar()">
+          <option value="">Tüm Durumlar</option>
+          <optgroup label="── Hisse Durumu">
+            <option value="bos">Boş Hisseli</option>
+            <option value="doldu">Hisseleri Dolu</option>
+            <option value="kesildi">Kesildi</option>
+          </optgroup>
+          <optgroup label="── Ödeme">
+            <option value="odendi">Tümü Ödendi</option>
+            <option value="bekliyor">Ödeme Bekleyen Var</option>
+          </optgroup>
+          <optgroup label="── Video">
+            <option value="video-var">Video İsteyenler</option>
+            <option value="video-yok">Video İstemeyenler</option>
+          </optgroup>
+          <optgroup label="── Hisse Sayısı">
+            <option value="7hisse">7 Hisseli (Büyükbaş)</option>
+            <option value="1hisse">1 Hisseli (Küçükbaş)</option>
+          </optgroup>
         </select>
       </div>
       <!-- Büyükbaş -->
@@ -593,7 +607,24 @@ async function loadKurbanlar() {
 
 function filterKurbanlar() {
   const ara = (document.getElementById('k-ara')?.value||'').toLowerCase();
-  let list = _kurbanlar.filter(k => !ara || String(k.kurban_no).includes(ara) || (k.kupe_no||'').toLowerCase().includes(ara));
+  const durum = document.getElementById('k-durum')?.value||'';
+
+  let list = _kurbanlar.filter(k => {
+    // Arama filtresi
+    if (ara && !String(k.kurban_no).includes(ara) && !(k.kupe_no||'').toLowerCase().includes(ara)) return false;
+
+    // Durum filtresi
+    if (durum === 'bos') return !k.kesildi && k.dolu_hisse < k.toplam_hisse;
+    if (durum === 'doldu') return !k.kesildi && k.dolu_hisse >= k.toplam_hisse;
+    if (durum === 'kesildi') return !!k.kesildi;
+    if (durum === 'odendi') return k.dolu_hisse > 0 && k._odendi_sayi === k.dolu_hisse; // aşağıda hesaplanacak
+    if (durum === 'bekliyor') return k._bekliyor_sayi > 0;
+    if (durum === 'video-var') return k._video_sayi > 0;
+    if (durum === 'video-yok') return k.dolu_hisse > 0 && k._video_sayi === 0;
+    if (durum === '7hisse') return k.toplam_hisse === 7;
+    if (durum === '1hisse') return k.toplam_hisse === 1;
+    return true;
+  });
 
   const buyukbaslar = list.filter(k => k.tur === 'buyukbas').sort((a,b) => a.kurban_no - b.kurban_no);
   const kucukbaslar = list.filter(k => k.tur === 'kucukbas').sort((a,b) => a.kurban_no - b.kurban_no);
@@ -1295,8 +1326,8 @@ function yazdirilabilirHTML(tip) {
     '.header-left small{display:block;font-size:11px;color:#666;font-weight:normal}' +
     'h2{font-size:14px;color:#333;margin:16px 0 8px}' +
     'table{width:100%;border-collapse:collapse;margin-bottom:20px}' +
-    'th{background:#1a2a50;color:#fff;padding:8px;text-align:left;font-size:11px}' +
-    'td{padding:7px 8px;border-bottom:1px solid #ddd;font-size:11px}' +
+    'th{background:#1a2a50;color:#fff;padding:10px;text-align:left;font-size:13px;font-weight:bold}' +
+    'td{padding:9px 10px;border-bottom:1px solid #ddd;font-size:13px}' +
     'tr:nth-child(even){background:#f5f5f5}' +
     '.stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}' +
     '.stat{background:#f0f4ff;border:1px solid #c0d0ff;border-radius:6px;padding:10px 16px;min-width:100px}' +
@@ -1319,7 +1350,8 @@ function yazdirilabilirHTML(tip) {
     '</div>' +
     (icerik ? icerik.innerHTML : '') +
     '<div class="footer">' +
-    '<div class="footer-left">İÇDER</div>' +
+    '<div class="footer-left">İÇDER Kurban Programı &nbsp;|&nbsp; İsmail DEMİRCAN</div>' +
+    '<div class="footer-right">' + new Date().toLocaleDateString('tr-TR') + '</div>' +
     '</div>' +
     '</body></html>';
 }
@@ -1333,9 +1365,9 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   for (let i = 0; i < minSatir; i++) {
     const h = hisseler[i];
     rows += '<tr style="height:42px">';
-    rows += '<td style="text-align:center;font-weight:bold;border:1.5px solid #000;padding:8px 6px;font-size:16px;width:60px">' + (i + 1) + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 14px;font-size:16px">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 14px;font-size:16px;width:140px;text-align:center">' + kurbanTuru + '</td>';
+    rows += '<td style="text-align:center;font-weight:bold;border:1.5px solid #000;padding:10px 6px;font-size:20px;width:60px">' + (i + 1) + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:10px 14px;font-size:20px;font-weight:600">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:10px 14px;font-size:20px;width:160px;text-align:center">' + kurbanTuru + '</td>';
     rows += '</tr>';
   }
 
@@ -1363,9 +1395,9 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
     .kurban-title { font-size: 36px; font-weight: bold; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 16px; font-weight: bold; background: #fff; }
-    td { border: 1.5px solid #000; padding: 8px 14px; font-size: 16px; }
-    .footer { position: fixed; bottom: 8mm; left: 0; right: 0; text-align: center; font-size: 14px; font-weight: bold; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
+    th { border: 1.5px solid #000; padding: 10px 14px; text-align: left; font-size: 18px; font-weight: bold; background: #fff; }
+    td { border: 1.5px solid #000; padding: 10px 14px; font-size: 18px; font-weight: 500; }
+    .footer { position: fixed; bottom: 8mm; left: 0; right: 0; text-align: center; font-size: 16px; font-weight: bold; color: #333; border-top: 1px solid #ddd; padding-top: 6px; }
     @media print {
       html, body { margin: 0; padding: 0; }
     }
@@ -1401,7 +1433,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +
-    '<div class="footer">İÇDER</div>' +
+    '<div class="footer">İÇDER Kurban Programı &nbsp;|&nbsp; İsmail DEMİRCAN</div>' +
     '</body></html>';
 }
 

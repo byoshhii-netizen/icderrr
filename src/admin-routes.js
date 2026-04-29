@@ -99,8 +99,8 @@ router.post('/sistem-modu', adminKontrol, async (req, res) => {
   }
 
   const db = await getDb();
-  db.prepare("UPDATE sistem_ayarlari SET deger=? WHERE anahtar='sistem_modu'").run(mod);
-  db.prepare("UPDATE sistem_ayarlari SET deger=? WHERE anahtar='sistem_notu'").run(not || '');
+  db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_modu', ?)").run(mod);
+  db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('sistem_notu', ?)").run(not || '');
 
   res.json({ ok: true });
 });
@@ -115,7 +115,7 @@ router.post('/sifre-degistir', adminKontrol, async (req, res) => {
   const db = await getDb();
 
   if (tur === 'admin') {
-    db.prepare("UPDATE sistem_ayarlari SET deger=? WHERE anahtar='admin_sifre'").run(yeni_sifre);
+    db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('admin_sifre', ?)").run(yeni_sifre);
   } else if (tur === 'icder') {
     db.prepare("UPDATE ayarlar SET icder_sifre=? WHERE kullanici_id=1").run(yeni_sifre);
   } else {

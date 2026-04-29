@@ -70,7 +70,10 @@ router.get('/organizasyonlar/:orgId/kurbanlar', async (req, res) => {
   const orgId = req.params.orgId;
 
   let allKurbanlar = db.prepare(`SELECT k.*,
-    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.bagisci_adi IS NOT NULL) as dolu_hisse
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.bagisci_adi IS NOT NULL) as dolu_hisse,
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.odeme_durumu='odendi') as _odendi_sayi,
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.bagisci_adi IS NOT NULL AND h.odeme_durumu='bekliyor') as _bekliyor_sayi,
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.video_ister=1) as _video_sayi
     FROM kurbanlar k WHERE k.organizasyon_id=? ORDER BY k.kurban_no ASC`).all(orgId);
 
   if (tur) allKurbanlar = allKurbanlar.filter(k => k.tur === tur);

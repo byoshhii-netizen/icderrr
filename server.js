@@ -77,23 +77,25 @@ async function icderGirisKontrol(req, res, next) {
       return res.send(`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>${modText} — İÇDER Kurban</title>
+        <link rel="stylesheet" href="/fa/css/all.min.css"/>
         <style>
           *{box-sizing:border-box;margin:0;padding:0}
           body{font-family:'Segoe UI',sans-serif;background:#0a1410;color:#e8f5ee;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
-          .wrap{max-width:480px}
-          .icon{font-size:72px;margin-bottom:24px}
+          .wrap{max-width:480px;width:100%}
+          .icon{font-size:72px;margin-bottom:24px;color:${renk}}
           h1{font-size:28px;font-weight:800;color:${renk};margin-bottom:12px}
           p{font-size:15px;color:#a8c9b8;line-height:1.7;margin-bottom:24px}
           .note{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;font-size:14px;color:#e8f5ee;margin-bottom:24px}
-          a{color:${renk};text-decoration:none;font-size:13px}
+          a{color:${renk};text-decoration:none;font-size:14px;padding:10px 20px;border:1px solid ${renk};border-radius:8px;display:inline-block;margin-top:8px}
+          a:hover{background:${renk};color:#fff}
         </style>
       </head><body>
         <div class="wrap">
-          <div class="icon">${mod === 'bakim' ? '🔧' : '🔒'}</div>
+          <div class="icon"><i class="fa-solid ${mod === 'bakim' ? 'fa-wrench' : 'fa-lock'}"></i></div>
           <h1>${modText}</h1>
           <p>${mod === 'bakim' ? 'Sistem şu anda bakım modunda. Kısa süre içinde tekrar erişilebilir olacak.' : 'Sistem şu anda kapalı. Lütfen daha sonra tekrar deneyin.'}</p>
-          ${not ? `<div class="note"><strong>Yönetici Notu:</strong><br>${not}</div>` : ''}
-          <a href="/admin-giris">→ Yönetici Girişi</a>
+          ${not ? `<div class="note"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i><strong>Yönetici Notu:</strong><br><br>${not}</div>` : ''}
+          <a href="/admin-giris"><i class="fa-solid fa-shield-halved" style="margin-right:6px"></i>Yönetici Girişi</a>
         </div>
       </body></html>`);
     }

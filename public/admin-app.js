@@ -917,3 +917,7 @@ async function adminOtomatikYedekKaydet() {
   // Artık kullanılmıyor - otomatik yedek her 10 dk'da bir çalışıyor
   toast('Otomatik yedek her 10 dakikada bir otomatik alınıyor', 'info');
 }
+  const silSonuc = await window.electronAPI.deleteAutoBackup(filename);
+  if (silSonuc.ok) { toast('Silindi'); adminOtoYedekListeYenile(); }
+  else toast(silSonuc.error || 'Silinemedi', 'error');
+}

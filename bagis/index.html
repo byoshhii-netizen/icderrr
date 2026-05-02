@@ -56,7 +56,13 @@
         <a href="/haberler" class="nav-item">HABERLER</a>
         <a href="/iletisim" class="nav-item">İLETİŞİM</a>
       </nav>
-      <a href="/bagis" class="btn-donate">BAĞIŞ YAP</a>
+      <div class="navbar-actions">
+        <button class="btn-sepet" id="navSepetBtn" onclick="window.sepet && window.sepet.openSepet()" title="Sepetim">
+          <i class="fa fa-cart-shopping"></i>
+          <span class="btn-sepet-count" id="navSepetCount" style="display:none;">0</span>
+        </button>
+        <a href="/bagis" class="btn-donate">BAĞIŞ YAP</a>
+      </div>
       <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
     </div>
   </header>

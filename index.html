@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>İÇDER – İslam Çınarı Derneği</title>
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/sepet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
@@ -55,7 +56,13 @@
         <a href="/haberler" class="nav-item">HABERLER</a>
         <a href="/iletisim" class="nav-item">İLETİŞİM</a>
       </nav>
-      <a href="/bagis" class="btn-donate">BAĞIŞ YAP</a>
+      <div class="navbar-actions">
+        <button class="btn-sepet" id="navSepetBtn" onclick="window.sepet && window.sepet.openSepet()" title="Sepetim">
+          <i class="fa fa-cart-shopping"></i>
+          <span class="btn-sepet-count" id="navSepetCount" style="display:none;">0</span>
+        </button>
+        <a href="/bagis" class="btn-donate">BAĞIŞ YAP</a>
+      </div>
       <button class="hamburger" id="hamburger" aria-label="Menü">
         <span></span><span></span><span></span>
       </button>
@@ -464,6 +471,7 @@
   </div>
 
   <script src="js/main.js"></script>
+  <script src="js/sepet.js"></script>
   <script>
     // GitHub Pages SPA routing: redirect /?/path back to /path
     (function() {

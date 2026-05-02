@@ -101,9 +101,17 @@ class Sepet {
 
   updateBadge() {
     const count = document.getElementById('sepetCount');
-    if (!count) return;
-    count.textContent = this.items.length;
-    count.classList.toggle('visible', this.items.length > 0);
+    const navCount = document.getElementById('navSepetCount');
+    const n = this.items.length;
+
+    if (count) {
+      count.textContent = n;
+      count.classList.toggle('visible', n > 0);
+    }
+    if (navCount) {
+      navCount.textContent = n;
+      navCount.style.display = n > 0 ? 'flex' : 'none';
+    }
   }
 
   openSepet() {

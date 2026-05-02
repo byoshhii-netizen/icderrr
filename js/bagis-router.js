@@ -131,22 +131,27 @@ class BagisRouter {
         this.render(cat);
       });
     });
-
     // Handle browser back/forward
     window.addEventListener('popstate', (e) => {
-      const cat = this.getCatFromPath();
-      this.render(cat);
+      const route = this.getCatFromPath();
+      if (route.isDetay) this.renderDetay(route.cat, route.itemId);
+      else this.render(route.cat);
     });
 
     // Initial render
-    const cat = this.getCatFromPath();
-    this.render(cat);
+    const route = this.getCatFromPath();
+    if (route.isDetay) this.renderDetay(route.cat, route.itemId);
+    else this.render(route.cat);
   }
 
   getCatFromPath() {
     const path = window.location.pathname;
-    const match = path.match(/\/bagis\/([^/]+)/);
-    return match ? match[1] : 'kurban';
+    // /bagis/kurban/k1 → detay
+    const detayMatch = path.match(/\/bagis\/([^/]+)\/([^/]+)/);
+    if (detayMatch) return { cat: detayMatch[1], itemId: detayMatch[2], isDetay: true };
+    // /bagis/kurban → kategori
+    const catMatch = path.match(/\/bagis\/([^/]+)/);
+    return catMatch ? { cat: catMatch[1], isDetay: false } : { cat: 'kurban', isDetay: false };
   }
 
   setActiveTab(cat) {
@@ -162,6 +167,7 @@ class BagisRouter {
       return;
     }
 
+    this.currentCat = cat;
     this.setActiveTab(cat);
     this.selectedItem = data.items[0];
     this.selectedAmount = data.defaultAmount;
@@ -222,8 +228,8 @@ class BagisRouter {
 
   renderCard(item) {
     return `
-      <div class="bagis-card" data-id="${item.id}">
-        <div class="bagis-card-img ${item.bg}">
+      <div class="bagis-card" data-id="${item.id}" style="cursor:pointer;">
+        <div class="bagis-card-img ${item.bg}" onclick="window.bagisRouter.openDetay('${this.currentCat}','${item.id}')">
           <span class="bagis-card-badge ${item.badge === 'Acil' ? 'acil' : ''}">${item.badge}</span>
           <div class="bagis-card-title-overlay">${item.title}</div>
         </div>
@@ -240,11 +246,36 @@ class BagisRouter {
           </div>
           <div class="bagis-card-footer">
             <span class="bagis-card-price">${item.price.toLocaleString('tr-TR')} ₺</span>
-            <span class="bagis-card-btn">Seç</span>
+            <button class="bagis-card-btn" onclick="event.stopPropagation(); window.bagisRouter.secVeSepeteEkle('${this.currentCat}','${item.id}')">
+              Seç <i class="fa fa-basket-shopping"></i>
+            </button>
           </div>
         </div>
       </div>
     `;
+  }
+
+  secVeSepeteEkle(cat, itemId) {
+    const data = BAGIS_DATA[cat];
+    if (!data) return;
+    const item = data.items.find(i => i.id === itemId);
+    if (!item || !window.sepet) return;
+
+    const amount = parseInt(document.getElementById('widgetAmount')?.value) || item.price;
+    window.sepet.add({
+      id: item.id,
+      title: item.title,
+      price: item.price,
+      amount: amount,
+      cat: data.title,
+      icon: data.icon
+    });
+  }
+
+  openDetay(cat, itemId) {
+    const url = `/bagis/${cat}/${itemId}`;
+    history.pushState({ cat, itemId }, '', url);
+    this.renderDetay(cat, itemId);
   }
 
   renderWidget(data) {
@@ -307,9 +338,139 @@ class BagisRouter {
       btn.classList.toggle('active', parseInt(btn.dataset.amount) === amount);
     });
   }
+
+  renderDetay(cat, itemId) {
+    const data = BAGIS_DATA[cat];
+    if (!data) { this.render('kurban'); return; }
+    const item = data.items.find(i => i.id === itemId);
+    if (!item) { this.render(cat); return; }
+
+    this.currentCat = cat;
+    this.setActiveTab(cat);
+    document.title = `${item.title} – İÇDER`;
+
+    const iconMap = {
+      'kurban-bg': '🐄', 'su-bg': '💧', 'acil-bg': '🚑',
+      'egitim-bg': '📚', 'saglik-bg': '❤️', 'genel-bg': '🤲', 'proje-bg': '🏗️'
+    };
+
+    this.content.innerHTML = `
+      <!-- DETAY HERO -->
+      <div class="detay-hero">
+        <div class="detay-hero-inner">
+          <div class="detay-hero-text">
+            <div class="breadcrumb" style="margin-bottom:14px; justify-content:flex-start;">
+              <a href="/bagis" style="color:rgba(255,255,255,.7);" onclick="event.preventDefault(); history.back();">← Geri Dön</a>
+              <span style="color:rgba(255,255,255,.5);">/</span>
+              <a href="/bagis/${cat}" style="color:rgba(255,255,255,.7);" onclick="event.preventDefault(); history.pushState({},'',' /bagis/${cat}'); window.bagisRouter.render('${cat}');">${data.title}</a>
+              <span style="color:rgba(255,255,255,.5);">/</span>
+              <span style="color:#fff;">${item.title}</span>
+            </div>
+            <span class="badge">${item.badge}</span>
+            <h1>${item.title}</h1>
+            <p>${item.desc}</p>
+          </div>
+          <div class="detay-hero-img">${iconMap[item.bg] || '🤲'}</div>
+        </div>
+      </div>
+
+      <!-- DETAY BODY -->
+      <div class="detay-body">
+        <div class="detay-inner">
+          <!-- SOL: İçerik -->
+          <div>
+            <div class="detay-progress">
+              <h4>Proje İlerlemesi</h4>
+              <div class="progress-bar-wrap" style="margin-bottom:8px;">
+                <div class="progress-bar" style="width:${item.progress}%"></div>
+              </div>
+              <div class="progress-info">
+                <span>%${item.progress} tamamlandı</span>
+                <span>Hedef: ${item.target}</span>
+              </div>
+              <div class="detay-stat-grid">
+                <div class="detay-stat">
+                  <div class="val">%${item.progress}</div>
+                  <div class="lbl">Tamamlandı</div>
+                </div>
+                <div class="detay-stat">
+                  <div class="val">${item.price.toLocaleString('tr-TR')} ₺</div>
+                  <div class="lbl">Bağış Tutarı</div>
+                </div>
+                <div class="detay-stat">
+                  <div class="val">${item.target}</div>
+                  <div class="lbl">Hedef</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detay-content">
+              <h2>${item.title} Hakkında</h2>
+              <p>${item.desc} İÇDER ekipleri tarafından titizlikle yürütülen bu proje kapsamında bağışlarınız doğrudan ihtiyaç sahiplerine ulaştırılmaktadır.</p>
+              <p>Tüm bağış süreçleri şeffaf biçimde yönetilmekte, fotoğraf ve video kayıtları arşivlenmektedir. Bağışçılarımıza düzenli olarak proje güncellemeleri iletilmektedir.</p>
+              <p>Derneğimiz yardım faaliyetlerini başta Türkiye olmak üzere Afrika, Asya ve Ortadoğu'da yardıma muhtaç bütün kriz ve afet bölgelerinde yürütmektedir.</p>
+            </div>
+          </div>
+
+          <!-- SAĞ: Widget -->
+          <div class="detay-widget-sticky">
+            <div class="bagis-widget">
+              <h3>Bağış Yap</h3>
+              <p class="widget-sub">Güvenli ödeme altyapısı</p>
+
+              <div class="widget-selected-item">
+                <div class="item-name">Seçilen Proje</div>
+                <div class="item-title">${item.title}</div>
+                <div style="font-size:20px; font-weight:800; color:#2e7d32; margin-top:4px;" id="detayPrice">${item.price.toLocaleString('tr-TR')} ₺</div>
+              </div>
+
+              <div class="widget-amounts">
+                ${data.amounts.map(a => `
+                  <button class="widget-amount-btn ${a === item.price ? 'active' : ''}"
+                    data-amount="${a}"
+                    onclick="document.getElementById('detayAmountInput').value=${a}; document.getElementById('detayPrice').textContent='${a.toLocaleString('tr-TR')} ₺'; document.querySelectorAll('.widget-amount-btn').forEach(b=>b.classList.remove('active')); this.classList.add('active');">
+                    ${a.toLocaleString('tr-TR')} ₺
+                  </button>
+                `).join('')}
+                <button class="widget-amount-btn" style="grid-column:span 2;" onclick="document.getElementById('detayAmountInput').focus()">Diğer Tutar</button>
+              </div>
+
+              <div class="widget-input-wrap">
+                <span class="currency">₺</span>
+                <input type="number" id="detayAmountInput" value="${item.price}" placeholder="Tutar girin"
+                  oninput="document.getElementById('detayPrice').textContent=parseInt(this.value||0).toLocaleString('tr-TR')+' ₺'" />
+              </div>
+
+              <div class="widget-form-group">
+                <input type="text" placeholder="Ad Soyad" />
+              </div>
+              <div class="widget-form-group">
+                <input type="tel" placeholder="Telefon: 05XX XXX XX XX" />
+              </div>
+
+              <button class="widget-submit" onclick="
+                const amt = parseInt(document.getElementById('detayAmountInput').value) || ${item.price};
+                window.sepet && window.sepet.add({
+                  id: '${item.id}',
+                  title: '${item.title}',
+                  price: ${item.price},
+                  amount: amt,
+                  cat: '${data.title}',
+                  icon: '${data.icon}'
+                });
+              ">
+                <i class="fa fa-basket-shopping"></i> Sepete Ekle
+              </button>
+              <p class="widget-note"><i class="fa fa-lock"></i> 256-bit SSL şifreli güvenli ödeme</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 }
 
 // ---- INIT ----
 document.addEventListener('DOMContentLoaded', () => {
-  new BagisRouter();
+  window.bagisRouter = new BagisRouter();
 });

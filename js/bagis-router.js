@@ -14,12 +14,12 @@ const BAGIS_DATA = {
     amounts: [1000, 2500, 5000, 10000],
     defaultAmount: 2500,
     items: [
-      { id: 'k1', title: 'Büyükbaş Kurban', desc: 'Tam büyükbaş kurban – Afrika / Ortadoğu', price: 5000, progress: 72, target: '500 kurban', badge: 'Aktif', bg: 'kurban-bg' },
-      { id: 'k2', title: 'Küçükbaş Kurban', desc: 'Tam küçükbaş kurban – Afrika / Ortadoğu', price: 2500, progress: 60, target: '300 kurban', badge: 'Aktif', bg: 'kurban-bg' },
-      { id: 'k3', title: 'Büyükbaş Hisse (1/7)', desc: 'Büyükbaş kurban hissesi', price: 1000, progress: 85, target: '1000 hisse', badge: 'Aktif', bg: 'kurban-bg' },
-      { id: 'k4', title: 'Adak / Şükür Kurbanı', desc: 'Adak ve şükür kurbanı', price: 750, progress: 40, target: '200 kurban', badge: 'Aktif', bg: 'kurban-bg' },
-      { id: 'k5', title: 'Akika Kurbanı', desc: 'Yeni doğan için akika kurbanı', price: 2500, progress: 30, target: '100 kurban', badge: 'Aktif', bg: 'kurban-bg' },
-      { id: 'k6', title: 'Gazze Kurban', desc: 'Gazze\'deki kardeşlerimiz için kurban', price: 2500, progress: 90, target: '200 kurban', badge: 'Acil', bg: 'acil-bg' },
+      { id: 'k1', title: 'Büyükbaş Kurban', desc: 'Tam büyükbaş kurban – Afrika / Ortadoğu', price: 5000, progress: 72, target: '500 kurban', badge: 'Aktif', bg: 'kurban-bg', img: '../kurban1.png' },
+      { id: 'k2', title: 'Küçükbaş Kurban', desc: 'Tam küçükbaş kurban – Afrika / Ortadoğu', price: 2500, progress: 60, target: '300 kurban', badge: 'Aktif', bg: 'kurban-bg', img: '../kurban1.png' },
+      { id: 'k3', title: 'Büyükbaş Hisse (1/7)', desc: 'Büyükbaş kurban hissesi', price: 1000, progress: 85, target: '1000 hisse', badge: 'Aktif', bg: 'kurban-bg', img: '../kurban1.png' },
+      { id: 'k4', title: 'Adak / Şükür Kurbanı', desc: 'Adak ve şükür kurbanı', price: 750, progress: 40, target: '200 kurban', badge: 'Aktif', bg: 'kurban-bg', img: '../kurban1.png' },
+      { id: 'k5', title: 'Akika Kurbanı', desc: 'Yeni doğan için akika kurbanı', price: 2500, progress: 30, target: '100 kurban', badge: 'Aktif', bg: 'kurban-bg', img: '../kurban1.png' },
+      { id: 'k6', title: 'Gazze Kurban', desc: 'Gazze\'deki kardeşlerimiz için kurban', price: 2500, progress: 90, target: '200 kurban', badge: 'Acil', bg: 'acil-bg', img: '../filistin1.png' },
     ]
   },
   genel: {
@@ -57,7 +57,7 @@ const BAGIS_DATA = {
     amounts: [100, 250, 500, 1000],
     defaultAmount: 250,
     items: [
-      { id: 'a1', title: 'Gazze Acil Yardım', desc: 'Gazze\'deki kardeşlerimize gıda ve ilaç', price: 250, progress: 88, target: 'Süregelen', badge: 'Acil', bg: 'acil-bg' },
+      { id: 'a1', title: 'Gazze Acil Yardım', desc: 'Gazze\'deki kardeşlerimize gıda ve ilaç', price: 250, progress: 88, target: 'Süregelen', badge: 'Acil', bg: 'acil-bg', img: '../filistin1.png' },
       { id: 'a2', title: 'Suriye Yardımı', desc: 'Suriye\'deki mülteci ailelere destek', price: 200, progress: 65, target: 'Süregelen', badge: 'Acil', bg: 'acil-bg' },
       { id: 'a3', title: 'Yemen Yardımı', desc: 'Yemen\'deki insani kriz için destek', price: 200, progress: 50, target: 'Süregelen', badge: 'Acil', bg: 'acil-bg' },
       { id: 'a4', title: 'Afet Yardımı', desc: 'Deprem ve sel bölgelerine acil destek', price: 300, progress: 40, target: 'Süregelen', badge: 'Acil', bg: 'acil-bg' },
@@ -72,10 +72,10 @@ const BAGIS_DATA = {
     amounts: [250, 500, 1000, 5000],
     defaultAmount: 500,
     items: [
-      { id: 'p1', title: 'Çocuklar Gülsün', desc: 'Afrika Çad\'da 500 yetim çocuğa destek', price: 150, progress: 55, target: '500 çocuk', badge: 'Aktif', bg: 'proje-bg' },
-      { id: 'p2', title: 'Yetim Sponsorluğu', desc: 'Bir yetim çocuğa aylık sponsor ol', price: 500, progress: 68, target: '200 yetim', badge: 'Aktif', bg: 'proje-bg' },
-      { id: 'p3', title: 'Okul İnşaatı', desc: 'Afrika\'da okul inşaatına destek', price: 1000, progress: 35, target: '5 okul', badge: 'Aktif', bg: 'proje-bg' },
-      { id: 'p4', title: 'Cami İnşaatı', desc: 'İhtiyaç bölgelerine cami inşaatı', price: 2000, progress: 25, target: '3 cami', badge: 'Aktif', bg: 'proje-bg' },
+      { id: 'p1', title: 'Yetim Sponsorluğu', desc: 'Afrika\'daki yetim çocuklara aylık sponsor olun. 500 TL ile bir yetimin hayatına dokunun.', price: 500, progress: 55, target: '200 yetim', badge: 'Aktif', bg: 'proje-bg', img: '../yetimprojesi.png' },
+      { id: 'p2', title: 'Okul İnşaatı', desc: 'Afrika\'da okul inşaatına destek', price: 1000, progress: 35, target: '5 okul', badge: 'Aktif', bg: 'proje-bg' },
+      { id: 'p3', title: 'Cami İnşaatı', desc: 'İhtiyaç bölgelerine cami inşaatı', price: 2000, progress: 25, target: '3 cami', badge: 'Aktif', bg: 'proje-bg' },
+      { id: 'p4', title: 'Su Kuyusu Projesi', desc: 'Afrika köylerine temiz su kuyusu açılması', price: 5000, progress: 40, target: '10 kuyu', badge: 'Aktif', bg: 'su-bg' },
     ]
   },
   saglik: {
@@ -227,9 +227,13 @@ class BagisRouter {
   }
 
   renderCard(item) {
+    const bgStyle = item.img
+      ? `background:url('${item.img}') center/cover no-repeat;`
+      : '';
+    const bgClass = item.img ? '' : item.bg;
     return `
       <div class="bagis-card" data-id="${item.id}" style="cursor:pointer;">
-        <div class="bagis-card-img ${item.bg}" onclick="window.bagisRouter.openDetay('${this.currentCat}','${item.id}')">
+        <div class="bagis-card-img ${bgClass}" style="${bgStyle}" onclick="window.bagisRouter.openDetay('${this.currentCat}','${item.id}')">
           <span class="bagis-card-badge ${item.badge === 'Acil' ? 'acil' : ''}">${item.badge}</span>
           <div class="bagis-card-title-overlay">${item.title}</div>
         </div>

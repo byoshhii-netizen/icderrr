@@ -54,8 +54,17 @@ function openVideo() {
   const modal = document.getElementById('videoModal');
   const frame = document.getElementById('videoFrame');
   if (modal && frame) {
-    // İÇDER YouTube kanalı tanıtım videosu
-    frame.src = 'https://www.youtube.com/embed/?listType=user_uploads&list=icderorg&autoplay=1';
+    // Yerel MP4 dosyasını oynat
+    frame.src = '';
+    // iframe yerine video elementi kullan
+    const box = document.querySelector('.modal-box');
+    box.innerHTML = `
+      <button class="modal-close" onclick="closeVideo()"><i class="fa fa-times"></i></button>
+      <video id="tanitimVideo" controls autoplay style="width:100%;display:block;border-radius:0 0 12px 12px;">
+        <source src="tanitimvideo.mp4" type="video/mp4">
+        Tarayıcınız video oynatmayı desteklemiyor.
+      </video>
+    `;
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
@@ -63,11 +72,20 @@ function openVideo() {
 
 function closeVideo() {
   const modal = document.getElementById('videoModal');
-  const frame = document.getElementById('videoFrame');
-  if (modal && frame) {
+  if (modal) {
+    // Video varsa durdur
+    const vid = document.getElementById('tanitimVideo');
+    if (vid) vid.pause();
     modal.classList.remove('active');
-    frame.src = '';
     document.body.style.overflow = '';
+    // Modal box'ı sıfırla
+    const box = document.querySelector('.modal-box');
+    if (box) {
+      box.innerHTML = `
+        <button class="modal-close" onclick="closeVideo()"><i class="fa fa-times"></i></button>
+        <iframe id="videoFrame" src="" allowfullscreen></iframe>
+      `;
+    }
   }
 }
 

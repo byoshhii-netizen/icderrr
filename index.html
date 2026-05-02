@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>İÇDER – İslam Çınarı Derneği</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <a href="tel:+908503051855"><i class="fa fa-phone"></i> 0850 305 18 55</a>
+        <a href="mailto:bilgi@icder.org"><i class="fa fa-envelope"></i> bilgi@icder.org</a>
+      </div>
+      <div class="topbar-right">
+        <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+        <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        <a href="https://wa.me/905403051855" target="_blank"><i class="fab fa-whatsapp"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="logo">
+        <img src="icderyazi.png" alt="İÇDER Logo" />
+      </a>
+      <nav class="nav-links">
+        <div class="nav-item dropdown">
+          <a href="kurumsal.html">KURUMSAL <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="hakkimizda.html">Hakkımızda</a>
+            <a href="misyon.html">Misyonumuz</a>
+            <a href="vizyon.html">Vizyonumuz</a>
+            <a href="yonetim.html">Yönetim Kurulu</a>
+            <a href="hesap-numaralari.html">Hesap Numaraları</a>
+          </div>
+        </div>
+        <div class="nav-item dropdown">
+          <a href="projeler.html">PROJELER <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="kurban.html">Kurban Bayramı</a>
+            <a href="gazze.html">Gazze Yardım</a>
+            <a href="cocuklar-gulsun.html">Çocuklar Gülsün</a>
+          </div>
+        </div>
+        <a href="faaliyetler.html" class="nav-item">FAALİYETLER</a>
+        <a href="haberler.html" class="nav-item">HABERLER</a>
+        <a href="iletisim.html" class="nav-item">İLETİŞİM</a>
+      </nav>
+      <a href="bagis.html" class="btn-donate">BAĞIŞ YAP</a>
+      <button class="hamburger" id="hamburger" aria-label="Menü">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="kurumsal.html">Kurumsal</a>
+    <a href="projeler.html">Projeler</a>
+    <a href="faaliyetler.html">Faaliyetler</a>
+    <a href="haberler.html">Haberler</a>
+    <a href="iletisim.html">İletişim</a>
+    <a href="bagis.html" class="btn-donate-mobile">Bağış Yap</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <div class="hero-text">
+        <span class="hero-tag">İyilik Hareketi</span>
+        <h1>Bir Çınar Gibi<br/>Kök Sal, Gölge Ver</h1>
+        <p>İÇDER olarak Türkiye, Afrika, Asya ve Ortadoğu'da ihtiyaç sahiplerine ulaşıyor, kalıcı iyilik projeleri üretiyoruz.</p>
+        <div class="hero-buttons">
+          <a href="bagis.html" class="btn-primary">Hemen Bağış Yap</a>
+          <a href="projeler.html" class="btn-outline">Projelerimiz</a>
+        </div>
+      </div>
+      <!-- DONATION WIDGET -->
+      <div class="donate-widget">
+        <h3>Hızlı Bağış</h3>
+        <div class="donate-tabs">
+          <button class="tab-btn active" data-tab="sadaka">Sadaka</button>
+          <button class="tab-btn" data-tab="zekat">Zekat</button>
+          <button class="tab-btn" data-tab="kurban">Kurban</button>
+          <button class="tab-btn" data-tab="genel">Genel</button>
+        </div>
+        <div class="donate-amounts">
+          <button class="amount-btn" data-amount="100">100 ₺</button>
+          <button class="amount-btn" data-amount="250">250 ₺</button>
+          <button class="amount-btn active" data-amount="500">500 ₺</button>
+          <button class="amount-btn" data-amount="1000">1.000 ₺</button>
+        </div>
+        <div class="donate-input-wrap">
+          <span class="currency">₺</span>
+          <input type="number" id="donateAmount" placeholder="Diğer tutar" value="500" />
+        </div>
+        <a href="bagis.html" class="btn-donate-widget">BAĞIŞ YAP <i class="fa fa-arrow-right"></i></a>
+        <p class="donate-note"><i class="fa fa-lock"></i> Güvenli ödeme altyapısı</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats">
+    <div class="container stats-grid">
+      <div class="stat-item">
+        <i class="fa fa-globe"></i>
+        <h3>20+</h3>
+        <p>Ülke</p>
+      </div>
+      <div class="stat-item">
+        <i class="fa fa-hands-helping"></i>
+        <h3>50.000+</h3>
+        <p>Yardım Ulaştırılan Kişi</p>
+      </div>
+      <div class="stat-item">
+        <i class="fa fa-project-diagram"></i>
+        <h3>100+</h3>
+        <p>Tamamlanan Proje</p>
+      </div>
+      <div class="stat-item">
+        <i class="fa fa-users"></i>
+        <h3>5.000+</h3>
+        <p>Bağışçı</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DONATION CATEGORIES -->
+  <section class="categories">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Bağış Kategorileri</span>
+        <h2>Neye Destek Olmak İstersiniz?</h2>
+      </div>
+      <div class="categories-grid">
+        <a href="bagis.html#kurban" class="cat-card">
+          <div class="cat-icon" style="background:#e8f5e9">
+            <i class="fa fa-moon" style="color:#2e7d32"></i>
+          </div>
+          <h4>Kurban</h4>
+          <p>Kurban Bayramı'nda ihtiyaç sahiplerine ulaşın</p>
+        </a>
+        <a href="bagis.html#zekat-sadaka" class="cat-card">
+          <div class="cat-icon" style="background:#e8f5e9">
+            <i class="fa fa-hand-holding-heart" style="color:#2e7d32"></i>
+          </div>
+          <h4>Zekat & Sadaka</h4>
+          <p>Zekat ve sadakalarınızı doğru ellere ulaştırın</p>
+        </a>
+        <a href="bagis.html#yurtdisi" class="cat-card">
+          <div class="cat-icon" style="background:#e8f5e9">
+            <i class="fa fa-earth-africa" style="color:#2e7d32"></i>
+          </div>
+          <h4>Yurtdışı Yardımlar</h4>
+          <p>Afrika, Asya ve Ortadoğu'daki kardeşlerimize</p>
+        </a>
+        <a href="bagis.html#egitim" class="cat-card">
+          <div class="cat-icon" style="background:#e8f5e9">
+            <i class="fa fa-book-open" style="color:#2e7d32"></i>
+          </div>
+          <h4>Eğitim</h4>
+          <p>Çocukların eğitimine destek olun</p>
+        </a>
+        <a href="bagis.html#yurtici-yardimlar" class="cat-card">
+          <div class="cat-icon" style="background:#e8f5e9">
+            <i class="fa fa-house-chimney-heart" style="color:#2e7d32"></i>
+          </div>
+          <h4>Yurtiçi Yardımlar</h4>
+          <p>Türkiye'deki ihtiyaç sahiplerine destek</p>
+        </a>
+        <a href="bagis.html#genel-bagis" class="cat-card">
+          <div class="cat-icon" style="background:#e8f5e9">
+            <i class="fa fa-circle-plus" style="color:#2e7d32"></i>
+          </div>
+          <h4>Genel Bağış</h4>
+          <p>En çok ihtiyaç duyulan alanlara aktarılır</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section class="projects">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Aktif Projeler</span>
+        <h2>Devam Eden Projelerimiz</h2>
+      </div>
+      <div class="projects-grid">
+        <div class="project-card">
+          <div class="project-img project-img-1">
+            <span class="project-badge">Aktif</span>
+          </div>
+          <div class="project-body">
+            <h4>Kurban Bayramı 2025</h4>
+            <p>Afrika – Çad'da kurban kesimlerini gerçekleştiriyoruz. Kurbanınızı ihtiyaç sahiplerine ulaştırın.</p>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" style="width:72%"></div>
+            </div>
+            <div class="progress-info">
+              <span>%72 tamamlandı</span>
+              <span>Hedef: 500 kurban</span>
+            </div>
+            <a href="kurban.html" class="btn-project">Destek Ol</a>
+          </div>
+        </div>
+        <div class="project-card">
+          <div class="project-img project-img-2">
+            <span class="project-badge">Acil</span>
+          </div>
+          <div class="project-body">
+            <h4>Gazze Yardım</h4>
+            <p>Gazze'deki kardeşlerimize gıda, ilaç ve temel ihtiyaç malzemeleri ulaştırıyoruz.</p>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" style="width:88%"></div>
+            </div>
+            <div class="progress-info">
+              <span>%88 tamamlandı</span>
+              <span>Süregelen yardım</span>
+            </div>
+            <a href="gazze.html" class="btn-project">Destek Ol</a>
+          </div>
+        </div>
+        <div class="project-card">
+          <div class="project-img project-img-3">
+            <span class="project-badge">Devam Ediyor</span>
+          </div>
+          <div class="project-body">
+            <h4>Çocuklar Gülsün</h4>
+            <p>Afrika Çad'da 500 yetim çocuğa umut oluyoruz. Sadece 150 TL ile bir yetimin karnını doyurabilirsiniz.</p>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" style="width:55%"></div>
+            </div>
+            <div class="progress-info">
+              <span>%55 tamamlandı</span>
+              <span>500 çocuk hedefi</span>
+            </div>
+            <a href="cocuklar-gulsun.html" class="btn-project">Destek Ol</a>
+          </div>
+        </div>
+      </div>
+      <div class="text-center">
+        <a href="projeler.html" class="btn-all-projects">Tüm Projeleri Gör <i class="fa fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT STRIP -->
+  <section class="about-strip">
+    <div class="container about-strip-inner">
+      <div class="about-strip-text">
+        <span class="section-tag">Hakkımızda</span>
+        <h2>İslam Çınarı Derneği</h2>
+        <p>Bir tohum düşünün… Yıllar içinde büyüyüp kök salan, gölgesiyle her canlıya huzur veren bir çınar ağacı gibi... İÇDER, işte böyle bir inançla filizlendi.</p>
+        <p>İÇDER; iyiliği toplumun temeline yerleştirmek, yetimlere ve mazlumlara kol kanat germek, eğitimle toplumun bilincini güçlendirmek ve kardeşlik ruhunu pekiştirmek amacıyla kurulmuştur.</p>
+        <ul class="about-list">
+          <li><i class="fa fa-check-circle"></i> Türkiye, Afrika, Arakan, Afganistan'da aktif</li>
+          <li><i class="fa fa-check-circle"></i> Gazze, Somali, Suriye, Yemen'de yardım faaliyetleri</li>
+          <li><i class="fa fa-check-circle"></i> Şeffaf ve denetlenebilir bağış yönetimi</li>
+          <li><i class="fa fa-check-circle"></i> Yerinde uygulama ve fotoğraf/video arşivi</li>
+        </ul>
+        <a href="hakkimizda.html" class="btn-primary">Daha Fazla Bilgi</a>
+      </div>
+      <div class="about-strip-video">
+        <div class="video-thumb">
+          <div class="play-btn" onclick="openVideo()">
+            <i class="fa fa-play"></i>
+          </div>
+          <p>İÇDER Tanıtım Videosu 2024</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWS -->
+  <section class="news">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Haberler & Faaliyetler</span>
+        <h2>Son Gelişmeler</h2>
+      </div>
+      <div class="news-grid">
+        <article class="news-card">
+          <div class="news-img news-img-1"></div>
+          <div class="news-body">
+            <span class="news-date"><i class="fa fa-calendar"></i> 01 Temmuz 2025</span>
+            <h4>2025 Kurbanların Kesimini Gerçekleştirdik</h4>
+            <p>Afrika – Çad'da 2025 Kurban kesimlerini gerçekleştirdik. Bağışçılarımıza teşekkür ederiz.</p>
+            <a href="faaliyetler.html" class="news-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </article>
+        <article class="news-card">
+          <div class="news-img news-img-2"></div>
+          <div class="news-body">
+            <span class="news-date"><i class="fa fa-calendar"></i> 27 Mayıs 2025</span>
+            <h4>Sadece 150 TL ile Bir Yetimin Karnını Doyurabilirsiniz</h4>
+            <p>Afrika Çad'da 500 yetim çocuğa umut olduk, sofralarına misafir olduk.</p>
+            <a href="faaliyetler.html" class="news-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </article>
+        <article class="news-card">
+          <div class="news-img news-img-3"></div>
+          <div class="news-body">
+            <span class="news-date"><i class="fa fa-calendar"></i> 15 Mart 2025</span>
+            <h4>Gazze'de Ramazan Boyunca İftar Dağıtımı</h4>
+            <p>Ramazan ayı boyunca Gazze'deki kardeşlerimize günlük iftar yemeği ulaştırdık.</p>
+            <a href="faaliyetler.html" class="news-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </article>
+      </div>
+      <div class="text-center">
+        <a href="haberler.html" class="btn-all-projects">Tüm Haberleri Gör <i class="fa fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq">
+    <div class="container faq-inner">
+      <div class="section-header">
+        <span class="section-tag">SSS</span>
+        <h2>Sıkça Sorulan Sorular</h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Derneğiniz ne tür faaliyetlerde bulunmaktadır?</span>
+            <i class="fa fa-plus"></i>
+          </button>
+          <div class="faq-answer">
+            <p>İyiliği toplumun temeline yerleştirmek, yetimlere ve mazlumlara kol kanat germek, eğitimle toplumun bilincini güçlendirmek, kardeşlik ruhunu pekiştirmek, sürdürülebilir iyilik projeleri üretmek ve toplumun manevi dinamiklerini güçlendirmek temel faaliyetlerimizdir.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Yapılan bağışlar nasıl gerçekleşiyor?</span>
+            <i class="fa fa-plus"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Derneğimizin yurt dışında gerçekleştirilen projeleri İÇDER ekipleri tarafından titizlikle yürütülmektedir. Ekiplerimiz gelen bağışları ihtiyacı olan bölgelere giderek projeleri yerinde gerçekleştirir; görsel fotoğraf ve video kayıtlarını arşivlerimize iletir.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Derneğinize nasıl bağış yapabilirim?</span>
+            <i class="fa fa-plus"></i>
+          </button>
+          <div class="faq-answer">
+            <p>"Bağış Yap" alanına girerek zekat, sadaka, kurban vb. bağışlarla hızlı ve kolay bir şekilde bağış yapabilirsiniz. Ayrıca hesap numaralarımız üzerinden EFT/havale ile de bağış yapabilirsiniz.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Aktif olan hangi projelere destek verebilirim?</span>
+            <i class="fa fa-plus"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Mevcut projeler sayfamızda Çocuklar Gülümsesin, Ramazan Ayı ve Gazze Yardım Projelerine destek olabilirsiniz.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Bağışlar nerelerde kullanılıyor?</span>
+            <i class="fa fa-plus"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Derneğimiz yardım faaliyetlerini başta Türkiye olmak üzere Afrika, Asya ve Ortadoğu'da yardıma muhtaç bütün kriz ve afet bölgelerinde yürütmektedir. Türkiye, Afrika, Arakan, Afganistan, Gazze, Somali, Suriye, Yemen gibi bölgelerde aktif çalışmalar devam etmektedir.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Yurt dışında şubeniz var mı?</span>
+            <i class="fa fa-plus"></i>
+          </button>
+          <div class="faq-answer">
+            <p>İÇDER Derneği'nin yardım faaliyetleri yurt içi ve yurt dışında yürütülmektedir. Derneğimizin yurt dışında temsilciliği ve şubesi bulunmamaktadır.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section class="cta-banner">
+    <div class="container cta-inner">
+      <div class="cta-text">
+        <h2>Bir Adım At, Hayat Değiştir</h2>
+        <p>Bağışlarınız doğrudan ihtiyaç sahiplerine ulaşıyor. Şimdi destek olun.</p>
+      </div>
+      <div class="cta-buttons">
+        <a href="bagis.html" class="btn-primary">Bağış Yap</a>
+        <a href="hesap-numaralari.html" class="btn-outline-white">Hesap Numaraları</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-brand">
+        <img src="icderyazi.png" alt="İÇDER Logo" class="footer-logo" />
+        <p>İÇDER, köklü bir çınar gibi sağlam durarak Allah'ın rızasını kazanacak işler yapan, ihtiyaç sahiplerine destek olan ve topluma faydalı projeler üreten bir kuruluştur.</p>
+        <div class="footer-social">
+          <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>KURUMSAL</h5>
+        <ul>
+          <li><a href="hakkimizda.html">Hakkımızda</a></li>
+          <li><a href="misyon.html">Misyonumuz</a></li>
+          <li><a href="vizyon.html">Vizyonumuz</a></li>
+          <li><a href="yonetim.html">Yönetim Kurulu</a></li>
+          <li><a href="kvkk.html">KVKK Politikası</a></li>
+          <li><a href="hesap-numaralari.html">Hesap Numaraları</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>PROJELER</h5>
+        <ul>
+          <li><a href="kurban.html">Kurban Bayramı</a></li>
+          <li><a href="gazze.html">Gazze Yardım</a></li>
+          <li><a href="cocuklar-gulsun.html">Çocuklar Gülsün</a></li>
+          <li><a href="projeler.html">Tüm Projeler</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>İLETİŞİM</h5>
+        <ul class="footer-contact">
+          <li><i class="fa fa-location-dot"></i> Hasköy Mah. Bozkır Sokak No:49 Canik / Samsun</li>
+          <li><i class="fa fa-phone"></i> <a href="tel:+908503051855">0850 305 18 55</a></li>
+          <li><i class="fa fa-envelope"></i> <a href="mailto:bilgi@icder.org">bilgi@icder.org</a></li>
+          <li><i class="fab fa-whatsapp"></i> <a href="https://wa.me/905403051855">WhatsApp</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© 2026 Tüm Hakları Saklıdır | İslam Çınarı Derneği</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- VIDEO MODAL -->
+  <div class="modal-overlay" id="videoModal" onclick="closeVideo()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeVideo()"><i class="fa fa-times"></i></button>
+      <iframe id="videoFrame" src="" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

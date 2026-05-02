@@ -84,11 +84,17 @@ class Sepet {
     this.renderSepet();
   }
 
-  clear() {
+  // Ödeme tamamlandıktan sonra sepeti temizle (sadece başarılı ödemede)
+  clearAfterPayment() {
     this.items = [];
     this.save();
     this.updateBadge();
     this.renderSepet();
+  }
+
+  clear() {
+    // Sepet kalıcıdır — sadece ödeme tamamlandığında clearAfterPayment() çağrılır
+    // Manuel temizleme butonu kaldırıldı
   }
 
   total() {
@@ -172,9 +178,6 @@ class Sepet {
     footer.innerHTML = `
       <button class="btn-odeme" onclick="window.sepet.startOdeme()">
         <i class="fa fa-lock"></i> Ödemeye Geç
-      </button>
-      <button class="btn-odeme-outline" onclick="window.sepet.clear()">
-        Sepeti Temizle
       </button>
     `;
   }
@@ -361,7 +364,7 @@ class Sepet {
               <span>${this.total().toLocaleString('tr-TR')} ₺</span>
             </div>
           </div>
-          <button class="btn-ileri" onclick="window.sepet.closeOdeme(); window.sepet.clear();">
+          <button class="btn-ileri" onclick="window.sepet.closeOdeme(); window.sepet.clearAfterPayment();">
             Tamam
           </button>
         </div>

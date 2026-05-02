@@ -94,7 +94,16 @@ button { cursor: pointer; border: none; background: none; }
 .btn-donate-mobile { background: #2e7d32 !important; color: #fff !important; text-align: center; border-radius: 25px; margin-top: 8px; }
 
 /* ============ HERO ============ */
-.hero { position: relative; min-height: 600px; background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 40%, #388e3c 70%, #43a047 100%); display: flex; align-items: center; overflow: hidden; }
+.hero {
+  position: relative;
+  min-height: 600px;
+  background:
+    linear-gradient(135deg, rgba(27,94,32,.82) 0%, rgba(46,125,50,.78) 40%, rgba(56,142,60,.72) 70%, rgba(67,160,71,.68) 100%),
+    url('../cocukafrika.jpg') center center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
 .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
 .hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.15); }
 .hero-content { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 40px; padding: 80px 20px; flex-wrap: wrap; }

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bağış Yap – İÇDER</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/bagis.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <a href="tel:+908503051855"><i class="fa fa-phone"></i> 0850 305 18 55</a>
+        <a href="mailto:bilgi@icder.org"><i class="fa fa-envelope"></i> bilgi@icder.org</a>
+      </div>
+      <div class="topbar-right">
+        <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+        <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        <a href="https://wa.me/905403051855" target="_blank"><i class="fab fa-whatsapp"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="/" class="logo"><img src="../icderyazi.png" alt="İÇDER Logo" /></a>
+      <nav class="nav-links">
+        <div class="nav-item dropdown">
+          <a href="/kurumsal">KURUMSAL <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="/hakkimizda">Hakkımızda</a>
+            <a href="/misyon">Misyonumuz</a>
+            <a href="/vizyon">Vizyonumuz</a>
+            <a href="/yonetim">Yönetim Kurulu</a>
+            <a href="/hesaplar">Hesap Numaraları</a>
+          </div>
+        </div>
+        <div class="nav-item dropdown">
+          <a href="/projeler">PROJELER <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="/bagis/kurban">Kurban</a>
+            <a href="/bagis/su-kuyusu">Su Kuyusu</a>
+            <a href="/bagis/gazze">Gazze Yardım</a>
+            <a href="/bagis/cocuklar-gulsun">Çocuklar Gülsün</a>
+          </div>
+        </div>
+        <a href="/faaliyetler" class="nav-item">FAALİYETLER</a>
+        <a href="/haberler" class="nav-item">HABERLER</a>
+        <a href="/iletisim" class="nav-item">İLETİŞİM</a>
+      </nav>
+      <a href="/bagis" class="btn-donate">BAĞIŞ YAP</a>
+      <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="/kurumsal">Kurumsal</a>
+    <a href="/projeler">Projeler</a>
+    <a href="/faaliyetler">Faaliyetler</a>
+    <a href="/haberler">Haberler</a>
+    <a href="/iletisim">İletişim</a>
+    <a href="/bagis" class="btn-donate-mobile">Bağış Yap</a>
+  </div>
+
+  <!-- PAGE HERO -->
+  <section class="page-hero">
+    <div class="container">
+      <h1>Bağış Yap</h1>
+      <p>Her bağışınız bir hayatı değiştiriyor</p>
+      <div class="breadcrumb">
+        <a href="/">Ana Sayfa</a><span>/</span><span>Bağış Yap</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORY TAB BAR -->
+  <div class="bagis-tabbar-wrap">
+    <div class="container">
+      <nav class="bagis-tabbar" id="bagisTabbar">
+        <a href="/bagis/kurban" class="bagis-tab" data-cat="kurban">
+          <i class="fa fa-moon"></i> KURBAN
+        </a>
+        <a href="/bagis/genel" class="bagis-tab" data-cat="genel">
+          <i class="fa fa-hand-holding-heart"></i> GENEL BAĞIŞ
+        </a>
+        <a href="/bagis/su-kuyusu" class="bagis-tab" data-cat="su-kuyusu">
+          <i class="fa fa-droplet"></i> SU KUYUSU
+        </a>
+        <a href="/bagis/acil-yardim" class="bagis-tab" data-cat="acil-yardim">
+          <i class="fa fa-kit-medical"></i> ACİL YARDIM
+        </a>
+        <a href="/bagis/projeler" class="bagis-tab" data-cat="projeler">
+          <i class="fa fa-building-columns"></i> PROJELER
+        </a>
+        <a href="/bagis/saglik" class="bagis-tab" data-cat="saglik">
+          <i class="fa fa-heart-pulse"></i> SAĞLIK
+        </a>
+        <a href="/bagis/egitim" class="bagis-tab" data-cat="egitim">
+          <i class="fa fa-book-open"></i> EĞİTİM
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- CONTENT AREA (SPA Router ile doldurulur) -->
+  <main class="bagis-content" id="bagisContent">
+    <!-- JS tarafından render edilir -->
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-brand">
+        <img src="../icderyazi.png" alt="İÇDER Logo" class="footer-logo" />
+        <p>İÇDER, köklü bir çınar gibi sağlam durarak Allah'ın rızasını kazanacak işler yapan bir kuruluştur.</p>
+        <div class="footer-social">
+          <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>KURUMSAL</h5>
+        <ul>
+          <li><a href="/hakkimizda">Hakkımızda</a></li>
+          <li><a href="/misyon">Misyonumuz</a></li>
+          <li><a href="/vizyon">Vizyonumuz</a></li>
+          <li><a href="/yonetim">Yönetim Kurulu</a></li>
+          <li><a href="/hesaplar">Hesap Numaraları</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>BAĞIŞ KATEGORİLERİ</h5>
+        <ul>
+          <li><a href="/bagis/kurban">Kurban</a></li>
+          <li><a href="/bagis/su-kuyusu">Su Kuyusu</a></li>
+          <li><a href="/bagis/acil-yardim">Acil Yardım</a></li>
+          <li><a href="/bagis/egitim">Eğitim</a></li>
+          <li><a href="/bagis/saglik">Sağlık</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>İLETİŞİM</h5>
+        <ul class="footer-contact">
+          <li><i class="fa fa-location-dot"></i> Hasköy Mah. Bozkır Sokak No:49 Canik / Samsun</li>
+          <li><i class="fa fa-phone"></i> <a href="tel:+908503051855">0850 305 18 55</a></li>
+          <li><i class="fa fa-envelope"></i> <a href="mailto:bilgi@icder.org">bilgi@icder.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© 2026 Tüm Hakları Saklıdır | İslam Çınarı Derneği</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/bagis-router.js"></script>
+</body>
+</html>

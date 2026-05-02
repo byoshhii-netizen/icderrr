@@ -72,7 +72,7 @@ const BAGIS_DATA = {
     amounts: [250, 500, 1000, 5000],
     defaultAmount: 500,
     items: [
-      { id: 'p1', title: 'Yetim Sponsorluğu', desc: 'Afrika\'daki yetim çocuklara aylık sponsor olun. 500 TL ile bir yetimin hayatına dokunun.', price: 500, progress: 55, target: '200 yetim', badge: 'Aktif', bg: 'proje-bg', img: '../yetimprojesi.png' },
+      { id: 'p1', title: 'Yetim Sponsorluğu', desc: 'Afrika\'daki yetim çocuklara aylık sponsor olun. 500 TL ile bir yetimin hayatına dokunun.', price: 500, progress: 55, target: '200 yetim', badge: 'Aktif', bg: 'proje-bg', img: '../siyahcocuk.jpg' },
       { id: 'p2', title: 'Okul İnşaatı', desc: 'Afrika\'da okul inşaatına destek', price: 1000, progress: 35, target: '5 okul', badge: 'Aktif', bg: 'proje-bg' },
       { id: 'p3', title: 'Cami İnşaatı', desc: 'İhtiyaç bölgelerine cami inşaatı', price: 2000, progress: 25, target: '3 cami', badge: 'Aktif', bg: 'proje-bg' },
       { id: 'p4', title: 'Su Kuyusu Projesi', desc: 'Afrika köylerine temiz su kuyusu açılması', price: 5000, progress: 40, target: '10 kuyu', badge: 'Aktif', bg: 'su-bg' },

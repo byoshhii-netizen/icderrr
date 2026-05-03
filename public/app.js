@@ -5219,6 +5219,25 @@ async function renderGelirGider() {
     orgOptions += `<option value="${org.id}" ${selected}>${esc(org.ad)} - ${org.yil}</option>`;
   }
 
+  // Eğer hiç organizasyon yoksa
+  if (orgs.length === 0) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="page-header">
+        <div class="page-title">
+          <div class="icon-wrap"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+          Gelir-Gider
+        </div>
+      </div>
+      <div class="card">
+        <div style="text-align:center;padding:40px;color:var(--text3)">
+          <i class="fa-solid fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5"></i>
+          <div style="font-size:16px">Henüz organizasyon eklenmemiş</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   document.getElementById('main-content').innerHTML = `
     <div class="page-header">
       <div class="page-title">
@@ -5234,7 +5253,8 @@ async function renderGelirGider() {
     <div id="gelir-gider-content"></div>
   `;
 
-  // İlk yükleme
+  // İlk yükleme - varsayılan olarak "Tüm Organizasyonlar" seç
+  document.getElementById('gelir-org-select').value = S.orgId || 'all';
   await gelirGiderHesapla();
 }
 
@@ -5317,7 +5337,8 @@ async function gelirGiderHesapla() {
       }
     }
   } catch (error) {
-    contentDiv.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--red)"><i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i><div>Hata: ${error.message}</div></div>`;
+    console.error('Gelir-Gider Hatası:', error);
+    contentDiv.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--red)"><i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i><div>Hata: ${error.message || error}</div><div style="font-size:12px;margin-top:8px;color:var(--text3)">Konsolu kontrol edin</div></div>`;
     return;
   }
 

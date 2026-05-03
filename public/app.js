@@ -5180,15 +5180,12 @@ async function renderOrganizasyonSec() {
         const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
         const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
         
-        // Toplam gelir hesapla
-        const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
+        // Toplam gelir hesapla - her kurbanın fiyatını kullan
         let toplamGelir = 0;
-        for (const h of hisseler) {
-          if (h.kurban_id) {
-            const kurban = kurbanlar.find(k => k.id === h.kurban_id);
-            const fiyat = kurban ? (kurban.fiyat || 0) : 0;
-            toplamGelir += fiyat;
-          }
+        for (const k of kurbanlar) {
+          // Kurbanın fiyatı varsa onu kullan, yoksa alış fiyatını kullan
+          const kurbanFiyat = k.fiyat || k.alis_fiyati || 0;
+          toplamGelir += kurbanFiyat;
         }
         
         const isSelected = S.orgId === org.id;

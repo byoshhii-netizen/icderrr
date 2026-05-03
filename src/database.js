@@ -186,6 +186,14 @@ async function getDb() {
   try { sqlDb.run("ALTER TABLE ayarlar ADD COLUMN icder_sifre TEXT DEFAULT '571571'"); } catch(e) {}
   // destek_talepleri tablosu
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS destek_talepleri (id INTEGER PRIMARY KEY AUTOINCREMENT, konu TEXT, mesaj TEXT, ad TEXT, email TEXT, admin_cevap TEXT, durum TEXT DEFAULT 'bekliyor', okundu INTEGER DEFAULT 0, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP, guncelleme DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  // bagisci_kategori kolonu ekle
+  try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN bagisci_kategori TEXT DEFAULT 'Genel Bağışçı'"); } catch(e) {}
+  // ozel_kategoriler tablosu - admin panelinden yönetilebilir kategoriler
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_kategoriler (id INTEGER PRIMARY KEY AUTOINCREMENT, kategori_adi TEXT UNIQUE NOT NULL, kategori_tipi TEXT DEFAULT 'bagisci', aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  // ozel_filtreler tablosu - admin panelinden yönetilebilir filtreler
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_filtreler (id INTEGER PRIMARY KEY AUTOINCREMENT, filtre_adi TEXT NOT NULL, filtre_tipi TEXT NOT NULL, filtre_degeri TEXT, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  // giris_logosu tablosu - giriş sayfası logo yönetimi
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS giris_logosu (id INTEGER PRIMARY KEY AUTOINCREMENT, logo_data TEXT, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   const data = sqlDb.export();
   fs.writeFileSync(DB_PATH, Buffer.from(data));
   _db = new DbWrapper(sqlDb);

@@ -55,6 +55,9 @@ function showAdminPage(page) {
   else if (page === 'medya') renderMedya();
   else if (page === 'talepler') renderTalepler();
   else if (page === 'sifreler') renderSifreler();
+  else if (page === 'kategoriler') renderKategoriler();
+  else if (page === 'filtreler') renderFiltreler();
+  else if (page === 'giris-logosu') renderGirisLogosu();
   else if (page === 'yazdirma-ayarlari') renderYazdirmaAyarlari();
   else if (page === 'yedek') renderYedek();
 }
@@ -920,4 +923,493 @@ async function adminOtomatikYedekKaydet() {
   const silSonuc = await window.electronAPI.deleteAutoBackup(filename);
   if (silSonuc.ok) { toast('Silindi'); adminOtoYedekListeYenile(); }
   else toast(silSonuc.error || 'Silinemedi', 'error');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KATEGORİ YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderKategoriler() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-tags"></i></div>
+        Kategori Yönetimi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniKategori()">
+        <i class="fa-solid fa-plus"></i> Yeni Kategori
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-list"></i> Özel Kategoriler</div>
+      <div class="table-wrap" id="kategori-table">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+      </div>
+    </div>`;
+  await yukleKategoriler();
+}
+
+async function yukleKategoriler() {
+  try {
+    const list = await adminApi('GET', '/kategoriler');
+    const el = document.getElementById('kategori-table');
+    if (!el) return;
+    
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-tags"></i><p>Henüz özel kategori yok. Varsayılan kategoriler kullanılıyor.</p></div>';
+      return;
+    }
+    
+    let html = '<table><thead><tr><th>ID</th><th>Kategori Adı</th><th>Tip</th><th>Durum</th><th>Oluşturma</th><th>İşlemler</th></tr></thead><tbody>';
+    list.forEach(k => {
+      html += `<tr>
+        <td>${k.id}</td>
+        <td><strong>${k.kategori_adi}</strong></td>
+        <td><span class="badge badge-blue">${k.kategori_tipi === 'bagisci' ? 'Bağışçı' : k.kategori_tipi}</span></td>
+        <td><span class="badge ${k.aktif ? 'badge-green' : 'badge-gray'}">${k.aktif ? 'Aktif' : 'Pasif'}</span></td>
+        <td>${new Date(k.olusturma).toLocaleDateString('tr-TR')}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="modalDuzenleKategori(${k.id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="silKategori(${k.id},'${k.kategori_adi.replace(/'/g,"\\'")}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) {
+    document.getElementById('kategori-table').innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Kategoriler yüklenemedi</p></div>';
+  }
+}
+
+function modalYeniKategori() {
+  openModal('Yeni Kategori Ekle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Kategori Adı *</label>
+        <input id="kat-ad" placeholder="Örn: Premium Bağışçı"/>
+      </div>
+      <div class="form-group">
+        <label>Kategori Tipi</label>
+        <select id="kat-tip">
+          <option value="bagisci">Bağışçı</option>
+          <option value="kurban">Kurban</option>
+          <option value="genel">Genel</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetKategori()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'tags');
+}
+
+async function kaydetKategori() {
+  const kategori_adi = document.getElementById('kat-ad').value.trim();
+  const kategori_tipi = document.getElementById('kat-tip').value;
+  
+  if (!kategori_adi) return toast('Kategori adı gerekli', 'error');
+  
+  try {
+    await adminApi('POST', '/kategori-ekle', { kategori_adi, kategori_tipi });
+    closeModal();
+    toast('Kategori eklendi');
+    yukleKategoriler();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function modalDuzenleKategori(id) {
+  const list = await adminApi('GET', '/kategoriler');
+  const k = list.find(x => x.id === id);
+  if (!k) return;
+  
+  openModal('Kategori Düzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Kategori Adı *</label>
+        <input id="kat-ad" value="${k.kategori_adi}"/>
+      </div>
+      <div class="form-group">
+        <label>Kategori Tipi</label>
+        <select id="kat-tip">
+          <option value="bagisci" ${k.kategori_tipi === 'bagisci' ? 'selected' : ''}>Bağışçı</option>
+          <option value="kurban" ${k.kategori_tipi === 'kurban' ? 'selected' : ''}>Kurban</option>
+          <option value="genel" ${k.kategori_tipi === 'genel' ? 'selected' : ''}>Genel</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Durum</label>
+        <select id="kat-aktif">
+          <option value="1" ${k.aktif ? 'selected' : ''}>Aktif</option>
+          <option value="0" ${!k.aktif ? 'selected' : ''}>Pasif</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="guncelleKategori(${id})"><i class="fa-solid fa-floppy-disk"></i> Güncelle</button>
+    </div>`, false, 'pen');
+}
+
+async function guncelleKategori(id) {
+  const kategori_adi = document.getElementById('kat-ad').value.trim();
+  const kategori_tipi = document.getElementById('kat-tip').value;
+  const aktif = parseInt(document.getElementById('kat-aktif').value);
+  
+  if (!kategori_adi) return toast('Kategori adı gerekli', 'error');
+  
+  try {
+    await adminApi('PUT', '/kategori-guncelle/' + id, { kategori_adi, kategori_tipi, aktif });
+    closeModal();
+    toast('Kategori güncellendi');
+    yukleKategoriler();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function silKategori(id, ad) {
+  if (!confirm(`"${ad}" kategorisini silmek istediğinizden emin misiniz?`)) return;
+  
+  try {
+    await adminApi('DELETE', '/kategori-sil/' + id);
+    toast('Kategori silindi');
+    yukleKategoriler();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FİLTRE YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderFiltreler() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-filter"></i></div>
+        Filtre Yönetimi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniFiltre()">
+        <i class="fa-solid fa-plus"></i> Yeni Filtre
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-sliders"></i> Özel Filtreler</div>
+      <div class="table-wrap" id="filtre-table">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+      </div>
+    </div>`;
+  await yukleFiltreler();
+}
+
+async function yukleFiltreler() {
+  try {
+    const list = await adminApi('GET', '/filtreler');
+    const el = document.getElementById('filtre-table');
+    if (!el) return;
+    
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-filter"></i><p>Henüz özel filtre yok. Varsayılan filtreler kullanılıyor.</p></div>';
+      return;
+    }
+    
+    let html = '<table><thead><tr><th>ID</th><th>Filtre Adı</th><th>Tip</th><th>Değer</th><th>Durum</th><th>Oluşturma</th><th>İşlemler</th></tr></thead><tbody>';
+    list.forEach(f => {
+      html += `<tr>
+        <td>${f.id}</td>
+        <td><strong>${f.filtre_adi}</strong></td>
+        <td><span class="badge badge-purple">${f.filtre_tipi}</span></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${f.filtre_degeri || '-'}</td>
+        <td><span class="badge ${f.aktif ? 'badge-green' : 'badge-gray'}">${f.aktif ? 'Aktif' : 'Pasif'}</span></td>
+        <td>${new Date(f.olusturma).toLocaleDateString('tr-TR')}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="modalDuzenleFiltre(${f.id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="silFiltre(${f.id},'${f.filtre_adi.replace(/'/g,"\\'")}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) {
+    document.getElementById('filtre-table').innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Filtreler yüklenemedi</p></div>';
+  }
+}
+
+function modalYeniFiltre() {
+  openModal('Yeni Filtre Ekle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Filtre Adı *</label>
+        <input id="fil-ad" placeholder="Örn: Yüksek Bağış"/>
+      </div>
+      <div class="form-group">
+        <label>Filtre Tipi *</label>
+        <select id="fil-tip">
+          <option value="bagisci">Bağışçı</option>
+          <option value="kurban">Kurban</option>
+          <option value="odeme">Ödeme</option>
+          <option value="video">Video</option>
+          <option value="genel">Genel</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Filtre Değeri (Opsiyonel)</label>
+        <input id="fil-deger" placeholder="Filtre için özel değer"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetFiltre()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'filter');
+}
+
+async function kaydetFiltre() {
+  const filtre_adi = document.getElementById('fil-ad').value.trim();
+  const filtre_tipi = document.getElementById('fil-tip').value;
+  const filtre_degeri = document.getElementById('fil-deger').value.trim();
+  
+  if (!filtre_adi || !filtre_tipi) return toast('Filtre adı ve tipi gerekli', 'error');
+  
+  try {
+    await adminApi('POST', '/filtre-ekle', { filtre_adi, filtre_tipi, filtre_degeri });
+    closeModal();
+    toast('Filtre eklendi');
+    yukleFiltreler();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function modalDuzenleFiltre(id) {
+  const list = await adminApi('GET', '/filtreler');
+  const f = list.find(x => x.id === id);
+  if (!f) return;
+  
+  openModal('Filtre Düzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Filtre Adı *</label>
+        <input id="fil-ad" value="${f.filtre_adi}"/>
+      </div>
+      <div class="form-group">
+        <label>Filtre Tipi *</label>
+        <select id="fil-tip">
+          <option value="bagisci" ${f.filtre_tipi === 'bagisci' ? 'selected' : ''}>Bağışçı</option>
+          <option value="kurban" ${f.filtre_tipi === 'kurban' ? 'selected' : ''}>Kurban</option>
+          <option value="odeme" ${f.filtre_tipi === 'odeme' ? 'selected' : ''}>Ödeme</option>
+          <option value="video" ${f.filtre_tipi === 'video' ? 'selected' : ''}>Video</option>
+          <option value="genel" ${f.filtre_tipi === 'genel' ? 'selected' : ''}>Genel</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Durum</label>
+        <select id="fil-aktif">
+          <option value="1" ${f.aktif ? 'selected' : ''}>Aktif</option>
+          <option value="0" ${!f.aktif ? 'selected' : ''}>Pasif</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Filtre Değeri</label>
+        <input id="fil-deger" value="${f.filtre_degeri || ''}"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="guncelleFiltre(${id})"><i class="fa-solid fa-floppy-disk"></i> Güncelle</button>
+    </div>`, false, 'pen');
+}
+
+async function guncelleFiltre(id) {
+  const filtre_adi = document.getElementById('fil-ad').value.trim();
+  const filtre_tipi = document.getElementById('fil-tip').value;
+  const filtre_degeri = document.getElementById('fil-deger').value.trim();
+  const aktif = parseInt(document.getElementById('fil-aktif').value);
+  
+  if (!filtre_adi || !filtre_tipi) return toast('Filtre adı ve tipi gerekli', 'error');
+  
+  try {
+    await adminApi('PUT', '/filtre-guncelle/' + id, { filtre_adi, filtre_tipi, filtre_degeri, aktif });
+    closeModal();
+    toast('Filtre güncellendi');
+    yukleFiltreler();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function silFiltre(id, ad) {
+  if (!confirm(`"${ad}" filtresini silmek istediğinizden emin misiniz?`)) return;
+  
+  try {
+    await adminApi('DELETE', '/filtre-sil/' + id);
+    toast('Filtre silindi');
+    yukleFiltreler();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GİRİŞ LOGOSU YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+let _girisLogoData = null;
+
+async function renderGirisLogosu() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-image"></i></div>
+        Giriş Logosu Yönetimi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniGirisLogosu()">
+        <i class="fa-solid fa-plus"></i> Yeni Logo Ekle
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-image"></i> Aktif Logo</div>
+      <div id="aktif-logo-icerik">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-images"></i> Tüm Logolar</div>
+      <div id="tum-logolar-icerik">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+      </div>
+    </div>`;
+  await yukleGirisLogolari();
+}
+
+async function yukleGirisLogolari() {
+  try {
+    // Aktif logoyu göster
+    const aktifLogo = await adminApi('GET', '/giris-logosu');
+    const aktifEl = document.getElementById('aktif-logo-icerik');
+    if (aktifEl) {
+      if (aktifLogo && aktifLogo.logo_data) {
+        aktifEl.innerHTML = `
+          <div style="text-align:center;padding:20px">
+            <img src="${aktifLogo.logo_data}" style="max-height:200px;max-width:100%;object-fit:contain;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)"/>
+            <div style="margin-top:12px;color:var(--text3);font-size:13px">Giriş sayfasında gösterilen logo</div>
+          </div>`;
+      } else {
+        aktifEl.innerHTML = '<div class="empty-state"><i class="fa-solid fa-image"></i><p>Aktif logo yok. Varsayılan logo kullanılıyor.</p></div>';
+      }
+    }
+    
+    // Tüm logoları listele
+    const list = await adminApi('GET', '/giris-logolari');
+    const tumEl = document.getElementById('tum-logolar-icerik');
+    if (!tumEl) return;
+    
+    if (!list.length) {
+      tumEl.innerHTML = '<div class="empty-state"><i class="fa-solid fa-images"></i><p>Henüz logo yüklenmemiş.</p></div>';
+      return;
+    }
+    
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px">';
+    list.forEach(logo => {
+      html += `
+        <div class="card" style="margin:0;${logo.aktif ? 'border:2px solid var(--accent)' : ''}">
+          <div style="text-align:center;padding:12px;background:var(--bg4);border-radius:8px 8px 0 0">
+            <img src="${logo.logo_data}" style="max-height:120px;max-width:100%;object-fit:contain"/>
+          </div>
+          <div style="padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span class="badge ${logo.aktif ? 'badge-green' : 'badge-gray'}">${logo.aktif ? 'Aktif' : 'Pasif'}</span>
+              <span style="font-size:11px;color:var(--text3)">ID: ${logo.id}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px">
+              ${new Date(logo.olusturma).toLocaleDateString('tr-TR')}
+            </div>
+            <div style="display:flex;gap:6px">
+              ${!logo.aktif ? `<button class="btn btn-success btn-sm" onclick="aktifYapGirisLogosu(${logo.id})" style="flex:1"><i class="fa-solid fa-check"></i> Aktif Yap</button>` : ''}
+              <button class="btn btn-danger btn-sm" onclick="silGirisLogosu(${logo.id})" style="flex:1"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+    tumEl.innerHTML = html;
+  } catch (e) {
+    document.getElementById('tum-logolar-icerik').innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Logolar yüklenemedi</p></div>';
+  }
+}
+
+function modalYeniGirisLogosu() {
+  _girisLogoData = null;
+  openModal('Yeni Giriş Logosu Ekle', `
+    <div class="form-group">
+      <label>Logo Görseli *</label>
+      <div class="upload-zone" style="padding:40px;text-align:center;cursor:pointer;min-height:150px;display:flex;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:8px" onclick="document.getElementById('giris-logo-input').click()">
+        <div id="giris-logo-preview">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:32px;color:var(--text3)"></i>
+          <div style="color:var(--text3);font-size:14px;margin-top:8px">Logo yüklemek için tıklayın</div>
+          <div style="color:var(--text3);font-size:11px;margin-top:4px">PNG, JPG, SVG (Max 2MB)</div>
+        </div>
+      </div>
+      <input type="file" id="giris-logo-input" accept="image/*" style="display:none" onchange="onGirisLogoChange(this)"/>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetGirisLogosu()"><i class="fa-solid fa-floppy-disk"></i> Kaydet ve Aktif Yap</button>
+    </div>`, false, 'image');
+}
+
+function onGirisLogoChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  if (file.size > 2 * 1024 * 1024) {
+    toast('Logo boyutu 2MB\'dan küçük olmalı', 'error');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    _girisLogoData = e.target.result;
+    document.getElementById('giris-logo-preview').innerHTML = 
+      '<img src="' + _girisLogoData + '" style="max-height:140px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function kaydetGirisLogosu() {
+  if (!_girisLogoData) return toast('Lütfen logo yükleyin', 'error');
+  
+  try {
+    await adminApi('POST', '/giris-logosu-ekle', { logo_data: _girisLogoData });
+    closeModal();
+    toast('Logo eklendi ve aktif yapıldı');
+    yukleGirisLogolari();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function aktifYapGirisLogosu(id) {
+  try {
+    await adminApi('PUT', '/giris-logosu-guncelle/' + id, { aktif: true });
+    toast('Logo aktif yapıldı');
+    yukleGirisLogolari();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function silGirisLogosu(id) {
+  if (!confirm('Bu logoyu silmek istediğinizden emin misiniz?')) return;
+  
+  try {
+    await adminApi('DELETE', '/giris-logosu-sil/' + id);
+    toast('Logo silindi');
+    yukleGirisLogolari();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
 }

@@ -542,4 +542,165 @@ router.post('/otomatik-yedek-ayar', adminKontrol, async (req, res) => {
   } catch (e) { res.status(500).json({ hata: e.message }); }
 });
 
+// ─── KATEGORİ YÖNETİMİ ──────────────────────────────────────────────────────
+// Tüm kategorileri listele
+router.get('/kategoriler', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    const list = db.prepare('SELECT * FROM ozel_kategoriler ORDER BY olusturma DESC').all();
+    res.json(list);
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Yeni kategori ekle
+router.post('/kategori-ekle', adminKontrol, async (req, res) => {
+  const { kategori_adi, kategori_tipi } = req.body;
+  if (!kategori_adi) return res.status(400).json({ hata: 'Kategori adı gerekli' });
+  
+  const db = await getDb();
+  try {
+    const r = db.prepare('INSERT INTO ozel_kategoriler (kategori_adi, kategori_tipi, aktif) VALUES (?, ?, 1)')
+      .run(kategori_adi, kategori_tipi || 'bagisci');
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) { 
+    if (e.message.includes('UNIQUE')) {
+      res.status(400).json({ hata: 'Bu kategori zaten mevcut' });
+    } else {
+      res.status(500).json({ hata: e.message }); 
+    }
+  }
+});
+
+// Kategori güncelle
+router.put('/kategori-guncelle/:id', adminKontrol, async (req, res) => {
+  const { kategori_adi, kategori_tipi, aktif } = req.body;
+  if (!kategori_adi) return res.status(400).json({ hata: 'Kategori adı gerekli' });
+  
+  const db = await getDb();
+  try {
+    db.prepare('UPDATE ozel_kategoriler SET kategori_adi=?, kategori_tipi=?, aktif=? WHERE id=?')
+      .run(kategori_adi, kategori_tipi || 'bagisci', aktif ? 1 : 0, req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Kategori sil
+router.delete('/kategori-sil/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    db.prepare('DELETE FROM ozel_kategoriler WHERE id=?').run(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// ─── FİLTRE YÖNETİMİ ────────────────────────────────────────────────────────
+// Tüm filtreleri listele
+router.get('/filtreler', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    const list = db.prepare('SELECT * FROM ozel_filtreler ORDER BY olusturma DESC').all();
+    res.json(list);
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Yeni filtre ekle
+router.post('/filtre-ekle', adminKontrol, async (req, res) => {
+  const { filtre_adi, filtre_tipi, filtre_degeri } = req.body;
+  if (!filtre_adi || !filtre_tipi) return res.status(400).json({ hata: 'Filtre adı ve tipi gerekli' });
+  
+  const db = await getDb();
+  try {
+    const r = db.prepare('INSERT INTO ozel_filtreler (filtre_adi, filtre_tipi, filtre_degeri, aktif) VALUES (?, ?, ?, 1)')
+      .run(filtre_adi, filtre_tipi, filtre_degeri || '');
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Filtre güncelle
+router.put('/filtre-guncelle/:id', adminKontrol, async (req, res) => {
+  const { filtre_adi, filtre_tipi, filtre_degeri, aktif } = req.body;
+  if (!filtre_adi || !filtre_tipi) return res.status(400).json({ hata: 'Filtre adı ve tipi gerekli' });
+  
+  const db = await getDb();
+  try {
+    db.prepare('UPDATE ozel_filtreler SET filtre_adi=?, filtre_tipi=?, filtre_degeri=?, aktif=? WHERE id=?')
+      .run(filtre_adi, filtre_tipi, filtre_degeri || '', aktif ? 1 : 0, req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Filtre sil
+router.delete('/filtre-sil/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    db.prepare('DELETE FROM ozel_filtreler WHERE id=?').run(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// ─── GİRİŞ LOGOSU YÖNETİMİ ──────────────────────────────────────────────────
+// Aktif logoyu getir
+router.get('/giris-logosu', async (req, res) => {
+  const db = await getDb();
+  try {
+    const logo = db.prepare('SELECT * FROM giris_logosu WHERE aktif=1 ORDER BY olusturma DESC LIMIT 1').get();
+    res.json(logo || { logo_data: null });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Tüm logoları listele (admin)
+router.get('/giris-logolari', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    const list = db.prepare('SELECT * FROM giris_logosu ORDER BY olusturma DESC').all();
+    res.json(list);
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Yeni logo ekle
+router.post('/giris-logosu-ekle', adminKontrol, async (req, res) => {
+  const { logo_data } = req.body;
+  if (!logo_data) return res.status(400).json({ hata: 'Logo verisi gerekli' });
+  
+  const db = await getDb();
+  try {
+    // Önce tüm logoları pasif yap
+    db.prepare('UPDATE giris_logosu SET aktif=0').run();
+    // Yeni logoyu ekle ve aktif yap
+    const r = db.prepare('INSERT INTO giris_logosu (logo_data, aktif) VALUES (?, 1)').run(logo_data);
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Logo güncelle
+router.put('/giris-logosu-guncelle/:id', adminKontrol, async (req, res) => {
+  const { logo_data, aktif } = req.body;
+  
+  const db = await getDb();
+  try {
+    if (aktif) {
+      // Eğer bu logo aktif yapılıyorsa, diğerlerini pasif yap
+      db.prepare('UPDATE giris_logosu SET aktif=0').run();
+    }
+    
+    if (logo_data) {
+      db.prepare('UPDATE giris_logosu SET logo_data=?, aktif=? WHERE id=?')
+        .run(logo_data, aktif ? 1 : 0, req.params.id);
+    } else {
+      db.prepare('UPDATE giris_logosu SET aktif=? WHERE id=?')
+        .run(aktif ? 1 : 0, req.params.id);
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// Logo sil
+router.delete('/giris-logosu-sil/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    db.prepare('DELETE FROM giris_logosu WHERE id=?').run(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
 module.exports = router;

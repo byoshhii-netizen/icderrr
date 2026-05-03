@@ -4959,6 +4959,9 @@ async function renderTumOrganizasyonlar() {
       const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
       const hisseler = [];
       
+      // Toplam gelir hesapla
+      let toplamGelir = 0;
+      
       // Tüm kurbanların hisselerini topla
       for (const k of kurbanlar) {
         const kHisseler = await api('GET', `/kurbanlar/${k.id}/hisseler`);
@@ -4968,8 +4971,11 @@ async function renderTumOrganizasyonlar() {
               ...h,
               kurban_no: k.kurban_no,
               tur: k.tur,
-              kurban_turu: k.kurban_turu
+              kurban_turu: k.kurban_turu,
+              kurban_fiyat: k.fiyat || 0
             });
+            // Gelir hesapla
+            toplamGelir += (k.fiyat || 0);
           }
         });
       }
@@ -5009,9 +5015,9 @@ async function renderTumOrganizasyonlar() {
               <div class="stat-label">Toplam Bağışçı</div>
             </div>
             <div class="stat-card purple">
-              <div class="stat-icon"><i class="fa-solid fa-money-bill"></i></div>
-              <div class="stat-value" style="font-size:16px">${para(org.buyukbas_hisse_fiyati)}</div>
-              <div class="stat-label">Büyükbaş Fiyat</div>
+              <div class="stat-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+              <div class="stat-value" style="font-size:16px">${formatMoney(toplamGelir)}</div>
+              <div class="stat-label">Toplam Gelir</div>
             </div>
           </div>
 
@@ -5023,13 +5029,14 @@ async function renderTumOrganizasyonlar() {
             <div class="table-wrap" style="margin-top:12px">
               <table>
                 <thead><tr>
-                  <th>No</th><th>Tür</th><th>Küpe No</th><th>Hisse</th><th>Durum</th>
+                  <th>No</th><th>Tür</th><th>Fiyat</th><th>Küpe No</th><th>Hisse</th><th>Durum</th>
                 </tr></thead>
                 <tbody>
                   ${kurbanlar.map(k => `
                     <tr>
                       <td><span class="kurban-no-badge">${k.kurban_no}</span></td>
                       <td>${k.tur==='buyukbas'?'<span class="badge badge-blue">Büyükbaş</span>':'<span class="badge badge-gray">Küçükbaş</span>'}</td>
+                      <td><strong style="color:var(--green)">${para(k.fiyat||0)}</strong></td>
                       <td>${k.kupe_no||'-'}</td>
                       <td>${k.dolu_hisse}/${k.toplam_hisse}</td>
                       <td>${k.kesildi?'<span class="badge badge-red">Kesildi</span>':k.dolu_hisse>=k.toplam_hisse?'<span class="badge badge-yellow">Doldu</span>':'<span class="badge badge-green">Boş</span>'}</td>
@@ -5048,7 +5055,7 @@ async function renderTumOrganizasyonlar() {
             <div class="table-wrap" style="margin-top:12px">
               <table>
                 <thead><tr>
-                  <th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kurban No</th><th>Hisse</th><th>Ödeme</th>
+                  <th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kurban No</th><th>Hisse</th><th>Fiyat</th><th>Ödeme</th>
                 </tr></thead>
                 <tbody>
                   ${hisseler.map(h => `
@@ -5058,6 +5065,7 @@ async function renderTumOrganizasyonlar() {
                       <td>${h.bagisci_kategori?`<span class="badge badge-purple">${esc(h.bagisci_kategori)}</span>`:'-'}</td>
                       <td><span class="kurban-no-badge">${h.kurban_no}</span></td>
                       <td><span class="badge badge-blue">${h.hisse_no}</span></td>
+                      <td><strong style="color:var(--green)">${para(h.kurban_fiyat)}</strong></td>
                       <td><span class="badge ${h.odeme_durumu==='odendi'?'badge-green':h.odeme_durumu==='iptal'?'badge-red':'badge-gray'}">${h.odeme_durumu==='odendi'?'Ödendi':h.odeme_durumu==='iptal'?'İptal':'Bekliyor'}</span></td>
                     </tr>
                   `).join('')}
@@ -5072,6 +5080,7 @@ async function renderTumOrganizasyonlar() {
     document.getElementById('tum-org-icerik').innerHTML = html;
     
   } catch(e) {
+    console.error('Tüm Organizasyonlar Hatası:', e);
     document.getElementById('tum-org-icerik').innerHTML = 
       `<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Hata: ${e.message}</p></div>`;
   }

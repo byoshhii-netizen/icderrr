@@ -5130,60 +5130,7 @@ async function filterBagiscilar() {
 // ORGANİZASYON SEÇ SAYFASI
 // ═══════════════════════════════════════════════════════════════════════════
 async function renderOrganizasyonSec() {
-  const orgs = await api('GET', '/organizasyonlar');
-  
-  let cards = '';
-  for (const org of orgs) {
-    const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
-    const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
-    
-    // Toplam gelir hesapla
-    const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
-    let toplamGelir = 0;
-    for (const h of hisseler) {
-      if (h.kurban_id) {
-        const kurban = kurbanlar.find(k => k.id === h.kurban_id);
-        const fiyat = kurban ? (kurban.fiyat || 0) : 0;
-        toplamGelir += fiyat;
-      }
-    }
-    
-    const isSelected = S.orgId === org.id;
-    
-    cards += `
-      <div class="card" style="cursor:pointer;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'};background:${isSelected ? 'rgba(59,130,246,0.05)' : 'var(--card-bg)'}" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
-        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-          <div>
-            <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
-              ${isSelected ? '<i class="fa-solid fa-check-circle" style="color:var(--accent);margin-right:6px"></i>' : ''}
-              ${esc(org.ad)}
-            </div>
-            <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
-          </div>
-          ${isSelected ? '<span class="badge badge-blue">Seçili</span>' : ''}
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px">
-          <div style="background:var(--glow2);padding:12px;border-radius:8px">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Büyükbaş</div>
-            <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.buyukbas || 0}</div>
-          </div>
-          <div style="background:var(--glow2);padding:12px;border-radius:8px">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Küçükbaş</div>
-            <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.kucukbas || 0}</div>
-          </div>
-          <div style="background:var(--glow2);padding:12px;border-radius:8px">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Bağışçı</div>
-            <div style="font-size:20px;font-weight:700;color:var(--green)">${stats.toplamBagisci || 0}</div>
-          </div>
-          <div style="background:var(--glow2);padding:12px;border-radius:8px">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Gelir</div>
-            <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(toplamGelir)}</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
+  // Loading göster
   document.getElementById('main-content').innerHTML = `
     <div class="page-header">
       <div class="page-title">
@@ -5191,10 +5138,128 @@ async function renderOrganizasyonSec() {
         Organizasyon Seç
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
-      ${cards || '<div class="card">Henüz organizasyon eklenmemiş</div>'}
+    <div class="card" style="text-align:center;padding:40px">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size:32px;color:var(--accent)"></i>
+      <div style="margin-top:12px;color:var(--text3)">Yükleniyor...</div>
     </div>
   `;
+
+  try {
+    const orgs = await api('GET', '/organizasyonlar');
+    
+    if (!orgs || orgs.length === 0) {
+      document.getElementById('main-content').innerHTML = `
+        <div class="page-header">
+          <div class="page-title">
+            <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+            Organizasyon Seç
+          </div>
+        </div>
+        <div class="card">
+          <div style="text-align:center;padding:40px;color:var(--text3)">
+            <i class="fa-solid fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5"></i>
+            <div style="font-size:16px">Henüz organizasyon eklenmemiş</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    let cards = '';
+    for (const org of orgs) {
+      try {
+        const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
+        const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
+        
+        // Toplam gelir hesapla
+        const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
+        let toplamGelir = 0;
+        for (const h of hisseler) {
+          if (h.kurban_id) {
+            const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+            const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+            toplamGelir += fiyat;
+          }
+        }
+        
+        const isSelected = S.orgId === org.id;
+        
+        cards += `
+          <div class="card" style="cursor:pointer;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'};background:${isSelected ? 'rgba(59,130,246,0.05)' : 'var(--card-bg)'}" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+              <div>
+                <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
+                  ${isSelected ? '<i class="fa-solid fa-check-circle" style="color:var(--accent);margin-right:6px"></i>' : ''}
+                  ${esc(org.ad)}
+                </div>
+                <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
+              </div>
+              ${isSelected ? '<span class="badge badge-blue">Seçili</span>' : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px">
+              <div style="background:var(--glow2);padding:12px;border-radius:8px">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Büyükbaş</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.buyukbas || 0}</div>
+              </div>
+              <div style="background:var(--glow2);padding:12px;border-radius:8px">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Küçükbaş</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.kucukbas || 0}</div>
+              </div>
+              <div style="background:var(--glow2);padding:12px;border-radius:8px">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Bağışçı</div>
+                <div style="font-size:20px;font-weight:700;color:var(--green)">${stats.toplamBagisci || 0}</div>
+              </div>
+              <div style="background:var(--glow2);padding:12px;border-radius:8px">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Gelir</div>
+                <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(toplamGelir)}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        console.error(`Organizasyon ${org.id} yüklenemedi:`, err);
+        // Hata olsa bile devam et
+        cards += `
+          <div class="card" style="cursor:pointer;border:2px solid var(--border);opacity:0.6" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
+            <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
+              ${esc(org.ad)}
+            </div>
+            <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
+            <div style="margin-top:12px;color:var(--red);font-size:12px">
+              <i class="fa-solid fa-exclamation-triangle"></i> Veriler yüklenemedi
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    document.getElementById('main-content').innerHTML = `
+      <div class="page-header">
+        <div class="page-title">
+          <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+          Organizasyon Seç
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+        ${cards}
+      </div>
+    `;
+  } catch (error) {
+    console.error('Organizasyon Seç Hatası:', error);
+    document.getElementById('main-content').innerHTML = `
+      <div class="page-header">
+        <div class="page-title">
+          <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+          Organizasyon Seç
+        </div>
+      </div>
+      <div class="card" style="text-align:center;padding:40px;color:var(--red)">
+        <i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i>
+        <div>Hata: ${error.message || error}</div>
+        <div style="font-size:12px;margin-top:8px;color:var(--text3)">Konsolu kontrol edin</div>
+      </div>
+    `;
+  }
 }
 
 function selectOrganizasyon(id, ad, yil) {

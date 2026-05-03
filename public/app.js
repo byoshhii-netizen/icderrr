@@ -5135,6 +5135,19 @@ async function renderOrganizasyonSec() {
   let cards = '';
   for (const org of orgs) {
     const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
+    const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
+    
+    // Toplam gelir hesapla
+    const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
+    let toplamGelir = 0;
+    for (const h of hisseler) {
+      if (h.kurban_id) {
+        const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+        const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+        toplamGelir += fiyat;
+      }
+    }
+    
     const isSelected = S.orgId === org.id;
     
     cards += `
@@ -5164,7 +5177,7 @@ async function renderOrganizasyonSec() {
           </div>
           <div style="background:var(--glow2);padding:12px;border-radius:8px">
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Gelir</div>
-            <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(stats.toplamGelir || 0)}</div>
+            <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(toplamGelir)}</div>
           </div>
         </div>
       </div>
@@ -5197,48 +5210,14 @@ function selectOrganizasyon(id, ad, yil) {
 // GELİR-GİDER SAYFASI
 // ═══════════════════════════════════════════════════════════════════════════
 async function renderGelirGider() {
-  if (!S.orgId) {
-    document.getElementById('main-content').innerHTML = `
-      <div class="page-header">
-        <div class="page-title">
-          <div class="icon-wrap"><i class="fa-solid fa-money-bill-trend-up"></i></div>
-          Gelir-Gider
-        </div>
-      </div>
-      <div class="card">
-        <div style="text-align:center;padding:40px;color:var(--text3)">
-          <i class="fa-solid fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5"></i>
-          <div style="font-size:16px">Lütfen önce bir organizasyon seçin</div>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  const stats = await api('GET', `/organizasyonlar/${S.orgId}/istatistik`);
-  const hisseler = await api('GET', `/organizasyonlar/${S.orgId}/hisseler`);
+  const orgs = await api('GET', '/organizasyonlar');
   
-  // Gelir hesaplama - her bağışçının kurban fiyatını al
-  let toplamGelir = 0;
-  let odenenGelir = 0;
-  let bekleyenGelir = 0;
-  
-  for (const h of hisseler) {
-    if (h.kurban_id) {
-      // Kurban bilgisini al
-      const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
-      const fiyat = kurban ? (kurban.fiyat || 0) : 0;
-      
-      toplamGelir += fiyat;
-      if (h.odeme_durumu === 'odendi') {
-        odenenGelir += fiyat;
-      } else if (h.odeme_durumu === 'bekliyor') {
-        bekleyenGelir += fiyat;
-      }
-    }
+  // Dropdown için organizasyon listesi
+  let orgOptions = '<option value="all">Tüm Organizasyonlar</option>';
+  for (const org of orgs) {
+    const selected = S.orgId === org.id ? 'selected' : '';
+    orgOptions += `<option value="${org.id}" ${selected}>${esc(org.ad)} - ${org.yil}</option>`;
   }
-
-  const iptalGelir = toplamGelir - odenenGelir - bekleyenGelir;
 
   document.getElementById('main-content').innerHTML = `
     <div class="page-header">
@@ -5246,11 +5225,95 @@ async function renderGelirGider() {
         <div class="icon-wrap"><i class="fa-solid fa-money-bill-trend-up"></i></div>
         Gelir-Gider
       </div>
-      <div style="font-size:13px;color:var(--text3);margin-top:4px">
-        ${esc(S.orgAd)} - ${S.orgYil}
+      <div style="margin-top:12px">
+        <select id="gelir-org-select" onchange="gelirGiderOrgDegisti()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text1);font-size:14px;min-width:250px">
+          ${orgOptions}
+        </select>
       </div>
     </div>
+    <div id="gelir-gider-content"></div>
+  `;
 
+  // İlk yükleme
+  await gelirGiderHesapla();
+}
+
+async function gelirGiderOrgDegisti() {
+  await gelirGiderHesapla();
+}
+
+async function gelirGiderHesapla() {
+  const seciliOrg = document.getElementById('gelir-org-select')?.value;
+  const contentDiv = document.getElementById('gelir-gider-content');
+  
+  if (!seciliOrg) return;
+
+  let toplamGelir = 0;
+  let odenenGelir = 0;
+  let bekleyenGelir = 0;
+  let iptalGelir = 0;
+  let toplamBagisci = 0;
+  let buyukbas = 0;
+  let kucukbas = 0;
+
+  if (seciliOrg === 'all') {
+    // Tüm organizasyonlar
+    const orgs = await api('GET', '/organizasyonlar');
+    
+    for (const org of orgs) {
+      const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
+      const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
+      const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
+      
+      toplamBagisci += stats.toplamBagisci || 0;
+      buyukbas += stats.buyukbas || 0;
+      kucukbas += stats.kucukbas || 0;
+      
+      for (const h of hisseler) {
+        if (h.kurban_id) {
+          const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+          const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+          
+          toplamGelir += fiyat;
+          if (h.odeme_durumu === 'odendi') {
+            odenenGelir += fiyat;
+          } else if (h.odeme_durumu === 'bekliyor') {
+            bekleyenGelir += fiyat;
+          } else if (h.odeme_durumu === 'iptal') {
+            iptalGelir += fiyat;
+          }
+        }
+      }
+    }
+  } else {
+    // Tek organizasyon
+    const orgId = parseInt(seciliOrg);
+    const stats = await api('GET', `/organizasyonlar/${orgId}/istatistik`);
+    const hisseler = await api('GET', `/organizasyonlar/${orgId}/hisseler`);
+    const kurbanlar = await api('GET', `/organizasyonlar/${orgId}/kurbanlar`);
+    
+    toplamBagisci = stats.toplamBagisci || 0;
+    buyukbas = stats.buyukbas || 0;
+    kucukbas = stats.kucukbas || 0;
+    
+    for (const h of hisseler) {
+      if (h.kurban_id) {
+        const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+        const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+        
+        toplamGelir += fiyat;
+        if (h.odeme_durumu === 'odendi') {
+          odenenGelir += fiyat;
+        } else if (h.odeme_durumu === 'bekliyor') {
+          bekleyenGelir += fiyat;
+        } else if (h.odeme_durumu === 'iptal') {
+          iptalGelir += fiyat;
+        }
+      }
+    }
+  }
+
+  contentDiv.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
       <div class="card" style="background:linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05));border-color:rgba(16,185,129,0.3)">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
@@ -5317,15 +5380,15 @@ async function renderGelirGider() {
       <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Ödeme Dağılımı</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:16px">
         <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
-          <div style="font-size:32px;font-weight:700;color:var(--green)">${stats.toplamBagisci || 0}</div>
+          <div style="font-size:32px;font-weight:700;color:var(--green)">${toplamBagisci}</div>
           <div style="font-size:13px;color:var(--text3);margin-top:4px">Toplam Bağışçı</div>
         </div>
         <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
-          <div style="font-size:32px;font-weight:700;color:var(--accent)">${stats.buyukbas || 0}</div>
+          <div style="font-size:32px;font-weight:700;color:var(--accent)">${buyukbas}</div>
           <div style="font-size:13px;color:var(--text3);margin-top:4px">Büyükbaş</div>
         </div>
         <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
-          <div style="font-size:32px;font-weight:700;color:var(--accent)">${stats.kucukbas || 0}</div>
+          <div style="font-size:32px;font-weight:700;color:var(--accent)">${kucukbas}</div>
           <div style="font-size:13px;color:var(--text3);margin-top:4px">Küçükbaş</div>
         </div>
         <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">

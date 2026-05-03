@@ -208,7 +208,9 @@ function showPage(page) {
   document.querySelectorAll('.sidebar-item').forEach(el =>
     el.classList.toggle('active', el.dataset.page === page));
   document.getElementById('main-content').innerHTML = '';
-  if (page==='tum-organizasyonlar') renderTumOrganizasyonlar();
+  if (page==='organizasyon-sec') renderOrganizasyonSec();
+  else if (page==='tum-organizasyonlar') renderTumOrganizasyonlar();
+  else if (page==='gelir-gider') renderGelirGider();
   else if (page==='organizasyonlar' || page==='kurban-organizasyonu') renderOrganizasyonlar();
   else if (page==='kurbanlar')   renderKurbanlar();
   else if (page==='bagiscilar')  renderBagiscilar();
@@ -996,7 +998,7 @@ async function renderBagiscilar() {
         '<table>' +
           '<thead><tr>' +
             '<th>#</th><th>Bagisci Adi</th><th>Telefon</th><th>Kategori</th><th>Kimin Adina</th>' +
-            '<th>Kurban No</th><th>Hisse</th><th>Tur</th><th>Odeme</th><th>Video</th><th>Islem</th>' +
+            '<th>Kurban No</th><th>Hisse</th><th>Tur</th><th>Fiyat</th><th>Odeme</th><th>Video</th><th>Islem</th>' +
           '</tr></thead>' +
           '<tbody id="bagisci-tbody">' +
             '<tr><td colspan="11"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></td></tr>' +
@@ -1031,12 +1033,17 @@ async function aramaBagisci() {
 function renderBagisciTablosu(list) {
   const tbody = document.getElementById('bagisci-tbody');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sonuc bulunamadi.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sonuc bulunamadi.</p></div></td></tr>`;
     return;
   }
   const oRenk  = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
   const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
-  tbody.innerHTML = list.map((h,i)=>`
+  tbody.innerHTML = list.map((h,i)=>{
+    // Kurban fiyatını bul
+    const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
+    const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+    
+    return `
     <tr>
       <td style="color:var(--text3);font-size:12px">${i+1}</td>
       <td><strong>${esc(h.bagisci_adi)}</strong></td>
@@ -1046,10 +1053,12 @@ function renderBagisciTablosu(list) {
       <td><span class="kurban-no-badge">${h.kurban_no}</span></td>
       <td><span class="badge badge-blue">${h.hisse_no}</span></td>
       <td>${h.tur==='buyukbas'?'<span class="badge badge-blue">Buyukbas</span>':'<span class="badge badge-gray">Kucukbas</span>'}</td>
+      <td><strong style="color:var(--green)">${fiyat.toLocaleString('tr-TR')} ₺</strong></td>
       <td><span class="badge ${oRenk[h.odeme_durumu]||'badge-gray'}">${oLabel[h.odeme_durumu]||h.odeme_durumu}</span></td>
       <td>${h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-'}</td>
       <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 async function modalYeniBagisci() {
@@ -1416,10 +1425,10 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   let rows = '';
   for (let i = 0; i < minSatir; i++) {
     const h = hisseler[i];
-    rows += '<tr style="height:50px">';
-    rows += '<td style="text-align:center;font-weight:900;border:2px solid #000;padding:12px 8px;font-size:24px;width:70px">' + (i + 1) + '</td>';
-    rows += '<td style="border:2px solid #000;padding:12px 16px;font-size:24px;font-weight:700">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
-    rows += '<td style="border:2px solid #000;padding:12px 16px;font-size:24px;font-weight:700;width:180px;text-align:center">' + kurbanTuru + '</td>';
+    rows += '<tr style="height:42px">';
+    rows += '<td style="text-align:center;font-weight:700;border:1.5px solid #000;padding:8px 6px;font-size:18px;width:60px">' + (i + 1) + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:18px;font-weight:600">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
+    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:18px;font-weight:600;width:160px;text-align:center">' + kurbanTuru + '</td>';
     rows += '</tr>';
   }
 
@@ -1445,10 +1454,10 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     .header-center img { height: ${logoHeight}; max-width: ${logoMaxWidth}; object-fit: contain; }
     .header-right { width: ${bayrakWidth}; display: flex; align-items: center; justify-content: flex-end; }
     .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
-    .kurban-title { font-size: 42px; font-weight: 900; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; border: 2px solid #000; }
-    th { border: 2px solid #000; padding: 12px 16px; text-align: left; font-size: 22px; font-weight: 900; background: #fff; }
-    td { border: 2px solid #000; padding: 12px 16px; font-size: 22px; font-weight: 700; }
+    .kurban-title { font-size: 36px; font-weight: 700; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; border: 1.5px solid #000; }
+    th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 18px; font-weight: 700; background: #fff; }
+    td { border: 1.5px solid #000; padding: 8px 12px; font-size: 18px; font-weight: 600; }
     .footer { display: none; }
     @media print {
       html, body { margin: 0; padding: 0; }
@@ -1885,8 +1894,8 @@ function yazdirBagiscilar() {
     .header-info .sub { font-size: 15px; color: #333; margin-top: 3px; font-weight: 600; }
     .header-right { text-align: right; font-size: 15px; color: #333; font-weight: 600; }
     table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
-    th { background: #1a2a50; color: #fff; padding: 12px 10px; text-align: left; font-size: 16px; font-weight: 900; border: 1px solid #000; }
-    td { padding: 11px 10px; border: 1px solid #999; font-size: 15px; line-height: 1.6; font-weight: 600; }
+    th { background: #1a2a50; color: #fff; padding: 10px 8px; text-align: left; font-size: 13px; font-weight: 700; border: 1px solid #000; }
+    td { padding: 9px 8px; border: 1px solid #999; font-size: 13px; line-height: 1.5; font-weight: 500; }
     tr:nth-child(even) { background: #f5f5f5; }
     .footer { display: none; }
     @media print { body { margin: 0; } }
@@ -5114,4 +5123,220 @@ async function filterBagiscilar() {
   });
 
   renderBagisciTablosu(filtered);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORGANİZASYON SEÇ SAYFASI
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderOrganizasyonSec() {
+  const orgs = await api('GET', '/organizasyonlar');
+  
+  let cards = '';
+  for (const org of orgs) {
+    const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
+    const isSelected = S.orgId === org.id;
+    
+    cards += `
+      <div class="card" style="cursor:pointer;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'};background:${isSelected ? 'rgba(59,130,246,0.05)' : 'var(--card-bg)'}" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
+              ${isSelected ? '<i class="fa-solid fa-check-circle" style="color:var(--accent);margin-right:6px"></i>' : ''}
+              ${esc(org.ad)}
+            </div>
+            <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
+          </div>
+          ${isSelected ? '<span class="badge badge-blue">Seçili</span>' : ''}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px">
+          <div style="background:var(--glow2);padding:12px;border-radius:8px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Büyükbaş</div>
+            <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.buyukbas || 0}</div>
+          </div>
+          <div style="background:var(--glow2);padding:12px;border-radius:8px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Küçükbaş</div>
+            <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.kucukbas || 0}</div>
+          </div>
+          <div style="background:var(--glow2);padding:12px;border-radius:8px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Bağışçı</div>
+            <div style="font-size:20px;font-weight:700;color:var(--green)">${stats.toplamBagisci || 0}</div>
+          </div>
+          <div style="background:var(--glow2);padding:12px;border-radius:8px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Gelir</div>
+            <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(stats.toplamGelir || 0)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+        Organizasyon Seç
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+      ${cards || '<div class="card">Henüz organizasyon eklenmemiş</div>'}
+    </div>
+  `;
+}
+
+function selectOrganizasyon(id, ad, yil) {
+  S.orgId = id;
+  S.orgAd = ad;
+  S.orgYil = yil;
+  localStorage.setItem('selectedOrg', JSON.stringify({id, ad, yil}));
+  toast('Organizasyon seçildi: ' + ad);
+  showPage('kurbanlar');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GELİR-GİDER SAYFASI
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderGelirGider() {
+  if (!S.orgId) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="page-header">
+        <div class="page-title">
+          <div class="icon-wrap"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+          Gelir-Gider
+        </div>
+      </div>
+      <div class="card">
+        <div style="text-align:center;padding:40px;color:var(--text3)">
+          <i class="fa-solid fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5"></i>
+          <div style="font-size:16px">Lütfen önce bir organizasyon seçin</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const stats = await api('GET', `/organizasyonlar/${S.orgId}/istatistik`);
+  const hisseler = await api('GET', `/organizasyonlar/${S.orgId}/hisseler`);
+  
+  // Gelir hesaplama - her bağışçının kurban fiyatını al
+  let toplamGelir = 0;
+  let odenenGelir = 0;
+  let bekleyenGelir = 0;
+  
+  for (const h of hisseler) {
+    if (h.kurban_id) {
+      // Kurban bilgisini al
+      const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
+      const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+      
+      toplamGelir += fiyat;
+      if (h.odeme_durumu === 'odendi') {
+        odenenGelir += fiyat;
+      } else if (h.odeme_durumu === 'bekliyor') {
+        bekleyenGelir += fiyat;
+      }
+    }
+  }
+
+  const iptalGelir = toplamGelir - odenenGelir - bekleyenGelir;
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+        Gelir-Gider
+      </div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px">
+        ${esc(S.orgAd)} - ${S.orgYil}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
+      <div class="card" style="background:linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05));border-color:rgba(16,185,129,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-money-bill-wave" style="font-size:24px;color:var(--green)"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Toplam Gelir</div>
+            <div style="font-size:28px;font-weight:700;color:var(--green)">${formatMoney(toplamGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,0.2)">
+          Tüm bağışçılardan beklenen toplam gelir
+        </div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05));border-color:rgba(59,130,246,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-check-circle" style="font-size:24px;color:var(--accent)"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Ödenen</div>
+            <div style="font-size:28px;font-weight:700;color:var(--accent)">${formatMoney(odenenGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(59,130,246,0.2)">
+          Tahsil edilen ödemeler
+        </div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg, rgba(251,191,36,0.1), rgba(245,158,11,0.05));border-color:rgba(251,191,36,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(251,191,36,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-clock" style="font-size:24px;color:#f59e0b"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Bekleyen</div>
+            <div style="font-size:28px;font-weight:700;color:#f59e0b">${formatMoney(bekleyenGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(251,191,36,0.2)">
+          Henüz ödenmemiş tutarlar
+        </div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg, rgba(239,68,68,0.1), rgba(220,38,38,0.05));border-color:rgba(239,68,68,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-times-circle" style="font-size:24px;color:var(--red)"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">İptal</div>
+            <div style="font-size:28px;font-weight:700;color:var(--red)">${formatMoney(iptalGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(239,68,68,0.2)">
+          İptal edilen ödemeler
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Ödeme Dağılımı</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:16px">
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--green)">${stats.toplamBagisci || 0}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Toplam Bağışçı</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--accent)">${stats.buyukbas || 0}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Büyükbaş</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--accent)">${stats.kucukbas || 0}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Küçükbaş</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--green)">${Math.round((odenenGelir / toplamGelir) * 100) || 0}%</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Tahsilat Oranı</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function formatMoney(amount) {
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
 }

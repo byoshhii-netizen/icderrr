@@ -156,7 +156,7 @@ async function modalAyarlar() {
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const S = { page:'organizasyonlar', orgId:null, orgAd:'', orgYil:'' };
 
-const KURBAN_TURLERI = ['Udhiye','Adak','Akika','Vacip','Hedy','Sukur','Kiran','Temmettu','Ceza','Ihsar','Sadaka','Nafile','Olu','Kefaret','Sifa','Hacet','Fidye','Zekat','Nesike','Vesile','Atire'];
+const KURBAN_TURLERI = ['Udhiye','Adak','Akika','Vacip','Hedy','Sukur','Kiran','Temmettu','Ceza','Ihsar','Sadaka','Nafile','Olu','Kefaret','Sifa','Hacet','Fidye','Zekat','Nesike','Vesile','Atire','Hayır'];
 
 const BAGISCI_KATEGORILERI = ['Genel Bağışçı','VIP Bağışçı','Kurumsal','Sponsor','Düzenli Bağışçı','Yeni Bağışçı','Eski Bağışçı','Özel Kategori'];
 
@@ -5248,6 +5248,9 @@ async function gelirGiderHesapla() {
   
   if (!seciliOrg) return;
 
+  // Loading göster
+  contentDiv.innerHTML = '<div class="card" style="text-align:center;padding:40px"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;color:var(--accent)"></i><div style="margin-top:12px;color:var(--text3)">Hesaplanıyor...</div></div>';
+
   let toplamGelir = 0;
   let odenenGelir = 0;
   let bekleyenGelir = 0;
@@ -5256,18 +5259,46 @@ async function gelirGiderHesapla() {
   let buyukbas = 0;
   let kucukbas = 0;
 
-  if (seciliOrg === 'all') {
-    // Tüm organizasyonlar
-    const orgs = await api('GET', '/organizasyonlar');
-    
-    for (const org of orgs) {
-      const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
-      const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
-      const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
+  try {
+    if (seciliOrg === 'all') {
+      // Tüm organizasyonlar
+      const orgs = await api('GET', '/organizasyonlar');
       
-      toplamBagisci += stats.toplamBagisci || 0;
-      buyukbas += stats.buyukbas || 0;
-      kucukbas += stats.kucukbas || 0;
+      for (const org of orgs) {
+        const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
+        const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
+        const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
+        
+        toplamBagisci += stats.toplamBagisci || 0;
+        buyukbas += stats.buyukbas || 0;
+        kucukbas += stats.kucukbas || 0;
+        
+        for (const h of hisseler) {
+          if (h.kurban_id) {
+            const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+            const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+            
+            toplamGelir += fiyat;
+            if (h.odeme_durumu === 'odendi') {
+              odenenGelir += fiyat;
+            } else if (h.odeme_durumu === 'bekliyor') {
+              bekleyenGelir += fiyat;
+            } else if (h.odeme_durumu === 'iptal') {
+              iptalGelir += fiyat;
+            }
+          }
+        }
+      }
+    } else {
+      // Tek organizasyon
+      const orgId = parseInt(seciliOrg);
+      const stats = await api('GET', `/organizasyonlar/${orgId}/istatistik`);
+      const hisseler = await api('GET', `/organizasyonlar/${orgId}/hisseler`);
+      const kurbanlar = await api('GET', `/organizasyonlar/${orgId}/kurbanlar`);
+      
+      toplamBagisci = stats.toplamBagisci || 0;
+      buyukbas = stats.buyukbas || 0;
+      kucukbas = stats.kucukbas || 0;
       
       for (const h of hisseler) {
         if (h.kurban_id) {
@@ -5285,32 +5316,9 @@ async function gelirGiderHesapla() {
         }
       }
     }
-  } else {
-    // Tek organizasyon
-    const orgId = parseInt(seciliOrg);
-    const stats = await api('GET', `/organizasyonlar/${orgId}/istatistik`);
-    const hisseler = await api('GET', `/organizasyonlar/${orgId}/hisseler`);
-    const kurbanlar = await api('GET', `/organizasyonlar/${orgId}/kurbanlar`);
-    
-    toplamBagisci = stats.toplamBagisci || 0;
-    buyukbas = stats.buyukbas || 0;
-    kucukbas = stats.kucukbas || 0;
-    
-    for (const h of hisseler) {
-      if (h.kurban_id) {
-        const kurban = kurbanlar.find(k => k.id === h.kurban_id);
-        const fiyat = kurban ? (kurban.fiyat || 0) : 0;
-        
-        toplamGelir += fiyat;
-        if (h.odeme_durumu === 'odendi') {
-          odenenGelir += fiyat;
-        } else if (h.odeme_durumu === 'bekliyor') {
-          bekleyenGelir += fiyat;
-        } else if (h.odeme_durumu === 'iptal') {
-          iptalGelir += fiyat;
-        }
-      }
-    }
+  } catch (error) {
+    contentDiv.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--red)"><i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i><div>Hata: ${error.message}</div></div>`;
+    return;
   }
 
   contentDiv.innerHTML = `

@@ -188,6 +188,10 @@ async function getDb() {
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS destek_talepleri (id INTEGER PRIMARY KEY AUTOINCREMENT, konu TEXT, mesaj TEXT, ad TEXT, email TEXT, admin_cevap TEXT, durum TEXT DEFAULT 'bekliyor', okundu INTEGER DEFAULT 0, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP, guncelleme DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   // bagisci_kategori kolonu ekle
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN bagisci_kategori TEXT DEFAULT 'Genel Bağışçı'"); } catch(e) {}
+  // kurbanlar tablosuna fiyat kolonu ekle (alis_fiyati ile aynı, ama frontend fiyat kullanıyor)
+  try { sqlDb.run("ALTER TABLE kurbanlar ADD COLUMN fiyat REAL DEFAULT 0"); } catch(e) {}
+  // fiyat kolonunu alis_fiyati ile senkronize et (fiyat boşsa alis_fiyati kullan)
+  try { sqlDb.run("UPDATE kurbanlar SET fiyat = alis_fiyati WHERE fiyat IS NULL OR fiyat = 0"); } catch(e) {}
   // ozel_kategoriler tablosu - admin panelinden yönetilebilir kategoriler
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_kategoriler (id INTEGER PRIMARY KEY AUTOINCREMENT, kategori_adi TEXT UNIQUE NOT NULL, kategori_tipi TEXT DEFAULT 'bagisci', aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   // ozel_filtreler tablosu - admin panelinden yönetilebilir filtreler

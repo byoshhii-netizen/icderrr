@@ -101,8 +101,8 @@ router.post('/organizasyonlar/:orgId/kurbanlar', async (req, res) => {
   const kurban_no = (maxNoTur?.m || 0) + 1;
   const toplam_hisse = tur === 'buyukbas' ? 7 : 1;
 
-  const r = db.prepare(`INSERT INTO kurbanlar (organizasyon_id,kurban_no,tur,kupe_no,alis_fiyati,toplam_hisse,aciklama,kurban_turu,kesen_kisi,kucukbas_sayi)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`).run(orgId, kurban_no, tur, kupe_no || null, alis_fiyati || 0, toplam_hisse, aciklama || null, kurban_turu || 'Udhiye', kesen_kisi || null, kucukbas_sayi || 1);
+  const r = db.prepare(`INSERT INTO kurbanlar (organizasyon_id,kurban_no,tur,kupe_no,alis_fiyati,fiyat,toplam_hisse,aciklama,kurban_turu,kesen_kisi,kucukbas_sayi)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(orgId, kurban_no, tur, kupe_no || null, alis_fiyati || 0, alis_fiyati || 0, toplam_hisse, aciklama || null, kurban_turu || 'Udhiye', kesen_kisi || null, kucukbas_sayi || 1);
 
   const kurbanId = r.lastInsertRowid;
   for (let i = 1; i <= toplam_hisse; i++) {
@@ -115,8 +115,8 @@ router.post('/organizasyonlar/:orgId/kurbanlar', async (req, res) => {
 router.put('/kurbanlar/:id', async (req, res) => {
   const db = await getDb();
   const { kupe_no, alis_fiyati, kesildi, kesim_tarihi, aciklama, kurban_turu, kesen_kisi, kucukbas_sayi } = req.body;
-  db.prepare(`UPDATE kurbanlar SET kupe_no=?,alis_fiyati=?,kesildi=?,kesim_tarihi=?,aciklama=?,kurban_turu=?,kesen_kisi=?,kucukbas_sayi=? WHERE id=?`)
-    .run(kupe_no || null, alis_fiyati || 0, kesildi ? 1 : 0, kesim_tarihi || null, aciklama || null,
+  db.prepare(`UPDATE kurbanlar SET kupe_no=?,alis_fiyati=?,fiyat=?,kesildi=?,kesim_tarihi=?,aciklama=?,kurban_turu=?,kesen_kisi=?,kucukbas_sayi=? WHERE id=?`)
+    .run(kupe_no || null, alis_fiyati || 0, alis_fiyati || 0, kesildi ? 1 : 0, kesim_tarihi || null, aciklama || null,
       kurban_turu || 'Udhiye', kesen_kisi || null, kucukbas_sayi || 1, req.params.id);
   res.json({ ok: true });
 });
@@ -171,18 +171,16 @@ router.get('/bagiscilar/ara', async (req, res) => {
   const { q, orgId, tumunu } = req.query;
   let list;
   if (tumunu === '1' && orgId) {
-    // Tüm bağışçıları getir (organizasyona göre)
-    list = db.prepare(`SELECT h.*, k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id FROM hisseler h
+    // Tüm bağışçıları getir (organizasyona göre) - fiyat da dahil
+    list = db.prepare(`SELECT h.*, k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id, COALESCE(k.fiyat, k.alis_fiyati, 0) as kurban_fiyat FROM hisseler h
       JOIN kurbanlar k ON h.kurban_id=k.id
       WHERE h.bagisci_adi IS NOT NULL AND k.organizasyon_id=?
       ORDER BY k.kurban_no ASC, h.hisse_no ASC LIMIT 500`).all(orgId);
   } else {
     if (!q) return res.json([]);
-    // Büyük/küçük harf duyarsız arama — LOWER() ile
     const like = `%${q.toLowerCase()}%`;
-    // Telefon araması: kullanıcı + koymadan yazabilir, hem ham hem +90 olmadan ara
     const telLike = `%${q.replace(/^\+/, '')}%`;
-    list = db.prepare(`SELECT h.*, k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id FROM hisseler h
+    list = db.prepare(`SELECT h.*, k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id, COALESCE(k.fiyat, k.alis_fiyati, 0) as kurban_fiyat FROM hisseler h
       JOIN kurbanlar k ON h.kurban_id=k.id
       WHERE h.bagisci_adi IS NOT NULL AND (
         LOWER(h.bagisci_adi) LIKE ?
@@ -250,6 +248,78 @@ router.get('/organizasyonlar/:orgId/dashboard', async (req, res) => {
   const bos_kurban = kurbanlar.filter(k => !k.kesildi && k.dolu_hisse < k.toplam_hisse).length;
 
   res.json({ toplam_kurban, kesildi, toplam_hisse, dolu_hisse, bos_hisse, doldu_kurban, bos_kurban });
+});
+
+// ─── İSTATİSTİK (Gelir-Gider ve Organizasyon Seç için) ─────────────────────
+router.get('/organizasyonlar/:orgId/istatistik', async (req, res) => {
+  const db = await getDb();
+  const orgId = req.params.orgId;
+  const kurbanlar = db.prepare('SELECT * FROM kurbanlar WHERE organizasyon_id=?').all(orgId);
+  const hisseler = db.prepare(`SELECT h.* FROM hisseler h JOIN kurbanlar k ON h.kurban_id=k.id WHERE k.organizasyon_id=? AND h.bagisci_adi IS NOT NULL`).all(orgId);
+  const buyukbas = kurbanlar.filter(k => k.tur === 'buyukbas').length;
+  const kucukbas = kurbanlar.filter(k => k.tur === 'kucukbas').length;
+  const toplamBagisci = hisseler.length;
+  res.json({ buyukbas, kucukbas, toplamBagisci });
+});
+
+// ─── TÜM HİSSELER (organizasyon bazlı) ─────────────────────────────────────
+router.get('/organizasyonlar/:orgId/hisseler', async (req, res) => {
+  const db = await getDb();
+  const orgId = req.params.orgId;
+  const hisseler = db.prepare(`
+    SELECT h.*, k.id as kurban_id, k.tur, k.kurban_no, k.alis_fiyati, k.fiyat
+    FROM hisseler h
+    JOIN kurbanlar k ON h.kurban_id = k.id
+    WHERE k.organizasyon_id = ?
+    ORDER BY k.kurban_no, h.hisse_no
+  `).all(orgId);
+  res.json(hisseler);
+});
+
+// ─── TOPLU VERİ (Gelir-Gider ve Tüm Org için tek seferde) ──────────────────
+router.get('/tum-organizasyonlar-ozet', async (req, res) => {
+  const db = await getDb();
+  const orgs = db.prepare('SELECT * FROM organizasyonlar WHERE kullanici_id=? ORDER BY olusturma DESC').all(req.session.userId);
+  
+  const result = orgs.map(org => {
+    const kurbanlar = db.prepare('SELECT * FROM kurbanlar WHERE organizasyon_id=?').all(org.id);
+    const hisseler = db.prepare(`
+      SELECT h.*, k.tur, k.kurban_no, k.alis_fiyati, k.fiyat as kurban_fiyat
+      FROM hisseler h
+      JOIN kurbanlar k ON h.kurban_id = k.id
+      WHERE k.organizasyon_id = ? AND h.bagisci_adi IS NOT NULL
+    `).all(org.id);
+    
+    const buyukbas = kurbanlar.filter(k => k.tur === 'buyukbas').length;
+    const kucukbas = kurbanlar.filter(k => k.tur === 'kucukbas').length;
+    const toplamBagisci = hisseler.length;
+    
+    // Gelir hesapla - kurban fiyatı veya alış fiyatı
+    let toplamGelir = 0, odenenGelir = 0, bekleyenGelir = 0, iptalGelir = 0;
+    for (const k of kurbanlar) {
+      const fiyat = k.fiyat || k.alis_fiyati || 0;
+      toplamGelir += fiyat;
+    }
+    for (const h of hisseler) {
+      const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+      const fiyat = kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
+      if (h.odeme_durumu === 'odendi') odenenGelir += fiyat;
+      else if (h.odeme_durumu === 'bekliyor') bekleyenGelir += fiyat;
+      else if (h.odeme_durumu === 'iptal') iptalGelir += fiyat;
+    }
+    
+    return {
+      org,
+      kurbanlar: kurbanlar.map(k => ({
+        ...k,
+        dolu_hisse: hisseler.filter(h => h.kurban_id === k.id).length
+      })),
+      hisseler,
+      stats: { buyukbas, kucukbas, toplamBagisci, toplamGelir, odenenGelir, bekleyenGelir, iptalGelir }
+    };
+  });
+  
+  res.json(result);
 });
 
 module.exports = router;

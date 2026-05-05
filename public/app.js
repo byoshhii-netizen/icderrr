@@ -1039,9 +1039,11 @@ function renderBagisciTablosu(list) {
   const oRenk  = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
   const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
   tbody.innerHTML = list.map((h,i)=>{
-    // Kurban fiyatını bul
-    const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
-    const fiyat = kurban ? (kurban.fiyat || 0) : 0;
+    // Kurban fiyatını API'den gelen kurban_fiyat alanından al, yoksa _kurbanlar'dan bul
+    const fiyat = h.kurban_fiyat || (() => {
+      const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
+      return kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
+    })();
     
     return `
     <tr>
@@ -4944,9 +4946,9 @@ async function renderTumOrganizasyonlar() {
     <div id="tum-org-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div></div>`;
   
   try {
-    const organizasyonlar = await api('GET', '/organizasyonlar');
+    const data = await api('GET', '/tum-organizasyonlar-ozet');
     
-    if (!organizasyonlar.length) {
+    if (!data.length) {
       document.getElementById('tum-org-icerik').innerHTML = 
         '<div class="empty-state"><i class="fa-solid fa-layer-group"></i><p>Henüz organizasyon yok.</p></div>';
       return;
@@ -4954,36 +4956,9 @@ async function renderTumOrganizasyonlar() {
 
     let html = '';
     
-    // Her organizasyon için ayrı kart
-    for (const org of organizasyonlar) {
-      const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
-      const hisseler = [];
-      
-      // Toplam gelir hesapla
-      let toplamGelir = 0;
-      
-      // Tüm kurbanların hisselerini topla
-      for (const k of kurbanlar) {
-        const kHisseler = await api('GET', `/kurbanlar/${k.id}/hisseler`);
-        kHisseler.forEach(h => {
-          if (h.bagisci_adi) {
-            hisseler.push({
-              ...h,
-              kurban_no: k.kurban_no,
-              tur: k.tur,
-              kurban_turu: k.kurban_turu,
-              kurban_fiyat: k.fiyat || 0
-            });
-            // Gelir hesapla
-            toplamGelir += (k.fiyat || 0);
-          }
-        });
-      }
-
+    for (const item of data) {
+      const { org, kurbanlar, hisseler, stats } = item;
       const toplamKurban = kurbanlar.length;
-      const toplamBagisci = hisseler.length;
-      const buyukbas = kurbanlar.filter(k => k.tur === 'buyukbas').length;
-      const kucukbas = kurbanlar.filter(k => k.tur === 'kucukbas').length;
 
       html += `
         <div class="card" style="margin-bottom:20px">
@@ -4993,35 +4968,33 @@ async function renderTumOrganizasyonlar() {
             </div>
             <div style="display:flex;gap:8px">
               <span class="badge badge-blue">${toplamKurban} Kurban</span>
-              <span class="badge badge-purple">${toplamBagisci} Bağışçı</span>
+              <span class="badge badge-purple">${stats.toplamBagisci} Bağışçı</span>
             </div>
           </div>
           
-          <!-- İstatistikler -->
           <div class="stats-grid" style="margin-bottom:16px">
             <div class="stat-card blue">
               <div class="stat-icon"><i class="fa-solid fa-cow"></i></div>
-              <div class="stat-value">${buyukbas}</div>
+              <div class="stat-value">${stats.buyukbas}</div>
               <div class="stat-label">Büyükbaş</div>
             </div>
             <div class="stat-card yellow">
               <div class="stat-icon"><i class="fa-solid fa-hippo"></i></div>
-              <div class="stat-value">${kucukbas}</div>
+              <div class="stat-value">${stats.kucukbas}</div>
               <div class="stat-label">Küçükbaş</div>
             </div>
             <div class="stat-card green">
               <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
-              <div class="stat-value">${toplamBagisci}</div>
+              <div class="stat-value">${stats.toplamBagisci}</div>
               <div class="stat-label">Toplam Bağışçı</div>
             </div>
             <div class="stat-card purple">
               <div class="stat-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
-              <div class="stat-value" style="font-size:16px">${formatMoney(toplamGelir)}</div>
+              <div class="stat-value" style="font-size:16px">${formatMoney(stats.toplamGelir)}</div>
               <div class="stat-label">Toplam Gelir</div>
             </div>
           </div>
 
-          <!-- Kurbanlar Tablosu -->
           <details style="margin-bottom:16px">
             <summary style="cursor:pointer;padding:10px;background:var(--bg4);border-radius:8px;font-weight:600">
               <i class="fa-solid fa-cow"></i> Kurbanlar (${toplamKurban})
@@ -5036,7 +5009,7 @@ async function renderTumOrganizasyonlar() {
                     <tr>
                       <td><span class="kurban-no-badge">${k.kurban_no}</span></td>
                       <td>${k.tur==='buyukbas'?'<span class="badge badge-blue">Büyükbaş</span>':'<span class="badge badge-gray">Küçükbaş</span>'}</td>
-                      <td><strong style="color:var(--green)">${para(k.fiyat||0)}</strong></td>
+                      <td><strong style="color:var(--green)">${para(k.fiyat||k.alis_fiyati||0)}</strong></td>
                       <td>${k.kupe_no||'-'}</td>
                       <td>${k.dolu_hisse}/${k.toplam_hisse}</td>
                       <td>${k.kesildi?'<span class="badge badge-red">Kesildi</span>':k.dolu_hisse>=k.toplam_hisse?'<span class="badge badge-yellow">Doldu</span>':'<span class="badge badge-green">Boş</span>'}</td>
@@ -5047,10 +5020,9 @@ async function renderTumOrganizasyonlar() {
             </div>
           </details>
 
-          <!-- Bağışçılar Tablosu -->
           <details>
             <summary style="cursor:pointer;padding:10px;background:var(--bg4);border-radius:8px;font-weight:600">
-              <i class="fa-solid fa-users"></i> Bağışçılar (${toplamBagisci})
+              <i class="fa-solid fa-users"></i> Bağışçılar (${stats.toplamBagisci})
             </summary>
             <div class="table-wrap" style="margin-top:12px">
               <table>
@@ -5058,17 +5030,20 @@ async function renderTumOrganizasyonlar() {
                   <th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kurban No</th><th>Hisse</th><th>Fiyat</th><th>Ödeme</th>
                 </tr></thead>
                 <tbody>
-                  ${hisseler.map(h => `
+                  ${hisseler.map(h => {
+                    const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+                    const fiyat = kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
+                    return `
                     <tr>
                       <td><strong>${esc(h.bagisci_adi)}</strong></td>
                       <td>${h.bagisci_telefon||'-'}</td>
                       <td>${h.bagisci_kategori?`<span class="badge badge-purple">${esc(h.bagisci_kategori)}</span>`:'-'}</td>
                       <td><span class="kurban-no-badge">${h.kurban_no}</span></td>
                       <td><span class="badge badge-blue">${h.hisse_no}</span></td>
-                      <td><strong style="color:var(--green)">${para(h.kurban_fiyat)}</strong></td>
+                      <td><strong style="color:var(--green)">${para(fiyat)}</strong></td>
                       <td><span class="badge ${h.odeme_durumu==='odendi'?'badge-green':h.odeme_durumu==='iptal'?'badge-red':'badge-gray'}">${h.odeme_durumu==='odendi'?'Ödendi':h.odeme_durumu==='iptal'?'İptal':'Bekliyor'}</span></td>
-                    </tr>
-                  `).join('')}
+                    </tr>`;
+                  }).join('')}
                 </tbody>
               </table>
             </div>
@@ -5139,7 +5114,6 @@ async function filterBagiscilar() {
 // ORGANİZASYON SEÇ SAYFASI
 // ═══════════════════════════════════════════════════════════════════════════
 async function renderOrganizasyonSec() {
-  // Loading göster
   document.getElementById('main-content').innerHTML = `
     <div class="page-header">
       <div class="page-title">
@@ -5154,9 +5128,9 @@ async function renderOrganizasyonSec() {
   `;
 
   try {
-    const orgs = await api('GET', '/organizasyonlar');
+    const data = await api('GET', '/tum-organizasyonlar-ozet');
     
-    if (!orgs || orgs.length === 0) {
+    if (!data || data.length === 0) {
       document.getElementById('main-content').innerHTML = `
         <div class="page-header">
           <div class="page-title">
@@ -5174,70 +5148,42 @@ async function renderOrganizasyonSec() {
       return;
     }
     
-    let cards = '';
-    for (const org of orgs) {
-      try {
-        const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
-        const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
-        
-        // Toplam gelir hesapla - her kurbanın fiyatını kullan
-        let toplamGelir = 0;
-        for (const k of kurbanlar) {
-          // Kurbanın fiyatı varsa onu kullan, yoksa alış fiyatını kullan
-          const kurbanFiyat = k.fiyat || k.alis_fiyati || 0;
-          toplamGelir += kurbanFiyat;
-        }
-        
-        const isSelected = S.orgId === org.id;
-        
-        cards += `
-          <div class="card" style="cursor:pointer;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'};background:${isSelected ? 'rgba(59,130,246,0.05)' : 'var(--card-bg)'}" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
-            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-              <div>
-                <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
-                  ${isSelected ? '<i class="fa-solid fa-check-circle" style="color:var(--accent);margin-right:6px"></i>' : ''}
-                  ${esc(org.ad)}
-                </div>
-                <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
+    let cards = data.map(item => {
+      const { org, stats } = item;
+      const isSelected = S.orgId === org.id;
+      return `
+        <div class="card" style="cursor:pointer;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'};background:${isSelected ? 'rgba(59,130,246,0.05)' : 'var(--card-bg)'}" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+            <div>
+              <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
+                ${isSelected ? '<i class="fa-solid fa-check-circle" style="color:var(--accent);margin-right:6px"></i>' : ''}
+                ${esc(org.ad)}
               </div>
-              ${isSelected ? '<span class="badge badge-blue">Seçili</span>' : ''}
+              <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px">
-              <div style="background:var(--glow2);padding:12px;border-radius:8px">
-                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Büyükbaş</div>
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.buyukbas || 0}</div>
-              </div>
-              <div style="background:var(--glow2);padding:12px;border-radius:8px">
-                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Küçükbaş</div>
-                <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.kucukbas || 0}</div>
-              </div>
-              <div style="background:var(--glow2);padding:12px;border-radius:8px">
-                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Bağışçı</div>
-                <div style="font-size:20px;font-weight:700;color:var(--green)">${stats.toplamBagisci || 0}</div>
-              </div>
-              <div style="background:var(--glow2);padding:12px;border-radius:8px">
-                <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Gelir</div>
-                <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(toplamGelir)}</div>
-              </div>
+            ${isSelected ? '<span class="badge badge-blue">Seçili</span>' : ''}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px">
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Büyükbaş</div>
+              <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.buyukbas}</div>
+            </div>
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Küçükbaş</div>
+              <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.kucukbas}</div>
+            </div>
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Bağışçı</div>
+              <div style="font-size:20px;font-weight:700;color:var(--green)">${stats.toplamBagisci}</div>
+            </div>
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Gelir</div>
+              <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(stats.toplamGelir)}</div>
             </div>
           </div>
-        `;
-      } catch (err) {
-        console.error(`Organizasyon ${org.id} yüklenemedi:`, err);
-        // Hata olsa bile devam et
-        cards += `
-          <div class="card" style="cursor:pointer;border:2px solid var(--border);opacity:0.6" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
-            <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
-              ${esc(org.ad)}
-            </div>
-            <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
-            <div style="margin-top:12px;color:var(--red);font-size:12px">
-              <i class="fa-solid fa-exclamation-triangle"></i> Veriler yüklenemedi
-            </div>
-          </div>
-        `;
-      }
-    }
+        </div>
+      `;
+    }).join('');
 
     document.getElementById('main-content').innerHTML = `
       <div class="page-header">
@@ -5262,7 +5208,6 @@ async function renderOrganizasyonSec() {
       <div class="card" style="text-align:center;padding:40px;color:var(--red)">
         <i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i>
         <div>Hata: ${error.message || error}</div>
-        <div style="font-size:12px;margin-top:8px;color:var(--text3)">Konsolu kontrol edin</div>
       </div>
     `;
   }
@@ -5283,14 +5228,12 @@ function selectOrganizasyon(id, ad, yil) {
 async function renderGelirGider() {
   const orgs = await api('GET', '/organizasyonlar');
   
-  // Dropdown için organizasyon listesi
   let orgOptions = '<option value="all">Tüm Organizasyonlar</option>';
   for (const org of orgs) {
     const selected = S.orgId === org.id ? 'selected' : '';
     orgOptions += `<option value="${org.id}" ${selected}>${esc(org.ad)} - ${org.yil}</option>`;
   }
 
-  // Eğer hiç organizasyon yoksa
   if (orgs.length === 0) {
     document.getElementById('main-content').innerHTML = `
       <div class="page-header">
@@ -5324,7 +5267,6 @@ async function renderGelirGider() {
     <div id="gelir-gider-content"></div>
   `;
 
-  // İlk yükleme - varsayılan olarak "Tüm Organizasyonlar" seç
   document.getElementById('gelir-org-select').value = S.orgId || 'all';
   await gelirGiderHesapla();
 }
@@ -5336,80 +5278,31 @@ async function gelirGiderOrgDegisti() {
 async function gelirGiderHesapla() {
   const seciliOrg = document.getElementById('gelir-org-select')?.value;
   const contentDiv = document.getElementById('gelir-gider-content');
-  
   if (!seciliOrg) return;
 
-  // Loading göster
   contentDiv.innerHTML = '<div class="card" style="text-align:center;padding:40px"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;color:var(--accent)"></i><div style="margin-top:12px;color:var(--text3)">Hesaplanıyor...</div></div>';
 
-  let toplamGelir = 0;
-  let odenenGelir = 0;
-  let bekleyenGelir = 0;
-  let iptalGelir = 0;
-  let toplamBagisci = 0;
-  let buyukbas = 0;
-  let kucukbas = 0;
+  let toplamGelir = 0, odenenGelir = 0, bekleyenGelir = 0, iptalGelir = 0;
+  let toplamBagisci = 0, buyukbas = 0, kucukbas = 0;
 
   try {
-    if (seciliOrg === 'all') {
-      // Tüm organizasyonlar
-      const orgs = await api('GET', '/organizasyonlar');
-      
-      for (const org of orgs) {
-        const stats = await api('GET', `/organizasyonlar/${org.id}/istatistik`);
-        const hisseler = await api('GET', `/organizasyonlar/${org.id}/hisseler`);
-        const kurbanlar = await api('GET', `/organizasyonlar/${org.id}/kurbanlar`);
-        
-        toplamBagisci += stats.toplamBagisci || 0;
-        buyukbas += stats.buyukbas || 0;
-        kucukbas += stats.kucukbas || 0;
-        
-        for (const h of hisseler) {
-          if (h.kurban_id) {
-            const kurban = kurbanlar.find(k => k.id === h.kurban_id);
-            const fiyat = kurban ? (kurban.fiyat || 0) : 0;
-            
-            toplamGelir += fiyat;
-            if (h.odeme_durumu === 'odendi') {
-              odenenGelir += fiyat;
-            } else if (h.odeme_durumu === 'bekliyor') {
-              bekleyenGelir += fiyat;
-            } else if (h.odeme_durumu === 'iptal') {
-              iptalGelir += fiyat;
-            }
-          }
-        }
-      }
-    } else {
-      // Tek organizasyon
-      const orgId = parseInt(seciliOrg);
-      const stats = await api('GET', `/organizasyonlar/${orgId}/istatistik`);
-      const hisseler = await api('GET', `/organizasyonlar/${orgId}/hisseler`);
-      const kurbanlar = await api('GET', `/organizasyonlar/${orgId}/kurbanlar`);
-      
-      toplamBagisci = stats.toplamBagisci || 0;
-      buyukbas = stats.buyukbas || 0;
-      kucukbas = stats.kucukbas || 0;
-      
-      for (const h of hisseler) {
-        if (h.kurban_id) {
-          const kurban = kurbanlar.find(k => k.id === h.kurban_id);
-          const fiyat = kurban ? (kurban.fiyat || 0) : 0;
-          
-          toplamGelir += fiyat;
-          if (h.odeme_durumu === 'odendi') {
-            odenenGelir += fiyat;
-          } else if (h.odeme_durumu === 'bekliyor') {
-            bekleyenGelir += fiyat;
-          } else if (h.odeme_durumu === 'iptal') {
-            iptalGelir += fiyat;
-          }
-        }
-      }
+    // Tek API çağrısıyla tüm veriyi al
+    const data = await api('GET', '/tum-organizasyonlar-ozet');
+    
+    const filteredData = seciliOrg === 'all' ? data : data.filter(d => d.org.id === parseInt(seciliOrg));
+    
+    for (const item of filteredData) {
+      toplamBagisci += item.stats.toplamBagisci;
+      buyukbas += item.stats.buyukbas;
+      kucukbas += item.stats.kucukbas;
+      toplamGelir += item.stats.toplamGelir;
+      odenenGelir += item.stats.odenenGelir;
+      bekleyenGelir += item.stats.bekleyenGelir;
+      iptalGelir += item.stats.iptalGelir;
     }
   } catch (error) {
     console.error('Gelir-Gider Hatası:', error);
-    contentDiv.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--red)"><i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i><div>Hata: ${error.message || error}</div><div style="font-size:12px;margin-top:8px;color:var(--text3)">Konsolu kontrol edin</div></div>`;
+    contentDiv.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--red)"><i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i><div>Hata: ${error.message || error}</div></div>`;
     return;
   }
 
@@ -5425,9 +5318,7 @@ async function gelirGiderHesapla() {
             <div style="font-size:28px;font-weight:700;color:var(--green)">${formatMoney(toplamGelir)}</div>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,0.2)">
-          Tüm bağışçılardan beklenen toplam gelir
-        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,0.2)">Tüm bağışçılardan beklenen toplam gelir</div>
       </div>
 
       <div class="card" style="background:linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05));border-color:rgba(59,130,246,0.3)">
@@ -5440,9 +5331,7 @@ async function gelirGiderHesapla() {
             <div style="font-size:28px;font-weight:700;color:var(--accent)">${formatMoney(odenenGelir)}</div>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(59,130,246,0.2)">
-          Tahsil edilen ödemeler
-        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(59,130,246,0.2)">Tahsil edilen ödemeler</div>
       </div>
 
       <div class="card" style="background:linear-gradient(135deg, rgba(251,191,36,0.1), rgba(245,158,11,0.05));border-color:rgba(251,191,36,0.3)">
@@ -5455,9 +5344,7 @@ async function gelirGiderHesapla() {
             <div style="font-size:28px;font-weight:700;color:#f59e0b">${formatMoney(bekleyenGelir)}</div>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(251,191,36,0.2)">
-          Henüz ödenmemiş tutarlar
-        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(251,191,36,0.2)">Henüz ödenmemiş tutarlar</div>
       </div>
 
       <div class="card" style="background:linear-gradient(135deg, rgba(239,68,68,0.1), rgba(220,38,38,0.05));border-color:rgba(239,68,68,0.3)">
@@ -5470,9 +5357,7 @@ async function gelirGiderHesapla() {
             <div style="font-size:28px;font-weight:700;color:var(--red)">${formatMoney(iptalGelir)}</div>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(239,68,68,0.2)">
-          İptal edilen ödemeler
-        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(239,68,68,0.2)">İptal edilen ödemeler</div>
       </div>
     </div>
 
@@ -5492,7 +5377,7 @@ async function gelirGiderHesapla() {
           <div style="font-size:13px;color:var(--text3);margin-top:4px">Küçükbaş</div>
         </div>
         <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
-          <div style="font-size:32px;font-weight:700;color:var(--green)">${Math.round((odenenGelir / toplamGelir) * 100) || 0}%</div>
+          <div style="font-size:32px;font-weight:700;color:var(--green)">${Math.round((odenenGelir / (toplamGelir||1)) * 100)}%</div>
           <div style="font-size:13px;color:var(--text3);margin-top:4px">Tahsilat Oranı</div>
         </div>
       </div>

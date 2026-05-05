@@ -322,8 +322,6 @@ router.get('/tum-organizasyonlar-ozet', async (req, res) => {
   res.json(result);
 });
 
-module.exports = router;
-
 // ─── RAPOR ─────────────────────────────────────────────────────────────────
 
 router.get('/organizasyonlar/:orgId/rapor', async (req, res) => {

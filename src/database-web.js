@@ -227,6 +227,9 @@ async function getDb() {
   
   // bagisci_kategori kolonu ekle
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN bagisci_kategori TEXT DEFAULT 'Genel Bağışçı'"); } catch(e) {}
+  // kurbanlar tablosuna fiyat kolonu ekle
+  try { sqlDb.run("ALTER TABLE kurbanlar ADD COLUMN fiyat REAL DEFAULT 0"); } catch(e) {}
+  try { sqlDb.run("UPDATE kurbanlar SET fiyat = alis_fiyati WHERE fiyat IS NULL OR fiyat = 0"); } catch(e) {}
   // ozel_kategoriler tablosu - admin panelinden yönetilebilir kategoriler
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_kategoriler (id INTEGER PRIMARY KEY AUTOINCREMENT, kategori_adi TEXT UNIQUE NOT NULL, kategori_tipi TEXT DEFAULT 'bagisci', aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   // ozel_filtreler tablosu - admin panelinden yönetilebilir filtreler

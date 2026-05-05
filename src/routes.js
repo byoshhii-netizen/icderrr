@@ -171,24 +171,44 @@ router.get('/bagiscilar/ara', async (req, res) => {
   const { q, orgId, tumunu } = req.query;
   let list;
   if (tumunu === '1' && orgId) {
-    // Tüm bağışçıları getir (organizasyona göre) - fiyat da dahil
-    list = db.prepare(`SELECT h.*, k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id, COALESCE(k.fiyat, k.alis_fiyati, 0) as kurban_fiyat FROM hisseler h
-      JOIN kurbanlar k ON h.kurban_id=k.id
-      WHERE h.bagisci_adi IS NOT NULL AND k.organizasyon_id=?
-      ORDER BY h.olusturma DESC, h.id DESC LIMIT 500`).all(orgId);
+    // Tüm bağışçıları getir - organizasyon fiyatlarından otomatik hesapla
+    // Büyükbaş: buyukbas_hisse_fiyati (kişi başı hisse fiyatı)
+    // Küçükbaş: kucukbas_hisse_fiyati
+    list = db.prepare(`
+      SELECT h.*,
+        k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id,
+        CASE
+          WHEN k.tur = 'buyukbas' THEN COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), o.buyukbas_hisse_fiyati, 0)
+          ELSE COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), o.kucukbas_hisse_fiyati, 0)
+        END as kurban_fiyat
+      FROM hisseler h
+      JOIN kurbanlar k ON h.kurban_id = k.id
+      JOIN organizasyonlar o ON k.organizasyon_id = o.id
+      WHERE h.bagisci_adi IS NOT NULL AND k.organizasyon_id = ?
+      ORDER BY h.olusturma DESC, h.id DESC LIMIT 500
+    `).all(orgId);
   } else {
     if (!q) return res.json([]);
     const like = `%${q.toLowerCase()}%`;
     const telLike = `%${q.replace(/^\+/, '')}%`;
-    list = db.prepare(`SELECT h.*, k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id, COALESCE(k.fiyat, k.alis_fiyati, 0) as kurban_fiyat FROM hisseler h
-      JOIN kurbanlar k ON h.kurban_id=k.id
+    list = db.prepare(`
+      SELECT h.*,
+        k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id,
+        CASE
+          WHEN k.tur = 'buyukbas' THEN COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), o.buyukbas_hisse_fiyati, 0)
+          ELSE COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), o.kucukbas_hisse_fiyati, 0)
+        END as kurban_fiyat
+      FROM hisseler h
+      JOIN kurbanlar k ON h.kurban_id = k.id
+      JOIN organizasyonlar o ON k.organizasyon_id = o.id
       WHERE h.bagisci_adi IS NOT NULL AND (
         LOWER(h.bagisci_adi) LIKE ?
         OR LOWER(COALESCE(h.bagisci_telefon,'')) LIKE ?
         OR REPLACE(COALESCE(h.bagisci_telefon,''), '+', '') LIKE ?
         OR LOWER(COALESCE(h.kimin_adina,'')) LIKE ?
       )
-      ORDER BY h.bagisci_adi LIMIT 100`).all(like, like, telLike, like);
+      ORDER BY h.bagisci_adi LIMIT 100
+    `).all(like, like, telLike, like);
     if (orgId) list = list.filter(h => String(h.organizasyon_id) === String(orgId));
   }
   res.json(list);
@@ -266,13 +286,20 @@ router.get('/organizasyonlar/:orgId/istatistik', async (req, res) => {
 router.get('/organizasyonlar/:orgId/hisseler', async (req, res) => {
   const db = await getDb();
   const orgId = req.params.orgId;
+  const org = db.prepare('SELECT * FROM organizasyonlar WHERE id=?').get(orgId);
+  const bbFiyat = org ? (org.buyukbas_hisse_fiyati || 0) : 0;
+  const kbFiyat = org ? (org.kucukbas_hisse_fiyati || 0) : 0;
   const hisseler = db.prepare(`
-    SELECT h.*, k.id as kurban_id, k.tur, k.kurban_no, k.alis_fiyati, k.fiyat
+    SELECT h.*, k.id as kurban_id, k.tur, k.kurban_no,
+      CASE
+        WHEN k.tur = 'buyukbas' THEN COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), ?, 0)
+        ELSE COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), ?, 0)
+      END as kurban_fiyat
     FROM hisseler h
     JOIN kurbanlar k ON h.kurban_id = k.id
     WHERE k.organizasyon_id = ?
     ORDER BY k.kurban_no, h.hisse_no
-  `).all(orgId);
+  `).all(bbFiyat, kbFiyat, orgId);
   res.json(hisseler);
 });
 
@@ -284,25 +311,29 @@ router.get('/tum-organizasyonlar-ozet', async (req, res) => {
   const result = orgs.map(org => {
     const kurbanlar = db.prepare('SELECT * FROM kurbanlar WHERE organizasyon_id=?').all(org.id);
     const hisseler = db.prepare(`
-      SELECT h.*, k.tur, k.kurban_no, k.alis_fiyati, k.fiyat as kurban_fiyat
+      SELECT h.*, k.tur, k.kurban_no, k.id as kurban_id,
+        CASE
+          WHEN k.tur = 'buyukbas' THEN COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), ?, 0)
+          ELSE COALESCE(NULLIF(k.fiyat,0), NULLIF(k.alis_fiyati,0), ?, 0)
+        END as kurban_fiyat
       FROM hisseler h
       JOIN kurbanlar k ON h.kurban_id = k.id
       WHERE k.organizasyon_id = ? AND h.bagisci_adi IS NOT NULL
-    `).all(org.id);
+    `).all(org.buyukbas_hisse_fiyati || 0, org.kucukbas_hisse_fiyati || 0, org.id);
     
     const buyukbas = kurbanlar.filter(k => k.tur === 'buyukbas').length;
     const kucukbas = kurbanlar.filter(k => k.tur === 'kucukbas').length;
     const toplamBagisci = hisseler.length;
     
-    // Gelir hesapla - kurban fiyatı veya alış fiyatı
+    // Gelir hesapla - kurban fiyatı yoksa organizasyon fiyatını kullan
     let toplamGelir = 0, odenenGelir = 0, bekleyenGelir = 0, iptalGelir = 0;
     for (const k of kurbanlar) {
-      const fiyat = k.fiyat || k.alis_fiyati || 0;
+      const fiyat = k.fiyat || k.alis_fiyati ||
+        (k.tur === 'buyukbas' ? (org.buyukbas_hisse_fiyati || 0) : (org.kucukbas_hisse_fiyati || 0));
       toplamGelir += fiyat;
     }
     for (const h of hisseler) {
-      const kurban = kurbanlar.find(k => k.id === h.kurban_id);
-      const fiyat = kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
+      const fiyat = h.kurban_fiyat || 0;
       if (h.odeme_durumu === 'odendi') odenenGelir += fiyat;
       else if (h.odeme_durumu === 'bekliyor') bekleyenGelir += fiyat;
       else if (h.odeme_durumu === 'iptal') iptalGelir += fiyat;
@@ -312,7 +343,9 @@ router.get('/tum-organizasyonlar-ozet', async (req, res) => {
       org,
       kurbanlar: kurbanlar.map(k => ({
         ...k,
-        dolu_hisse: hisseler.filter(h => h.kurban_id === k.id).length
+        dolu_hisse: hisseler.filter(h => h.kurban_id === k.id).length,
+        fiyat: k.fiyat || k.alis_fiyati ||
+          (k.tur === 'buyukbas' ? (org.buyukbas_hisse_fiyati || 0) : (org.kucukbas_hisse_fiyati || 0))
       })),
       hisseler,
       stats: { buyukbas, kucukbas, toplamBagisci, toplamGelir, odenenGelir, bekleyenGelir, iptalGelir }

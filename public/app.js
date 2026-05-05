@@ -857,9 +857,21 @@ function hisseKart(h, kurbanId) {
       `}    </div>`;
 }
 
-async function modalBagisciDuzenle(hisseId, kurbanId) {
+async function modalBagisciDuzenle(hisseId, kurbanId, mevcutFiyatParam) {
   const hisseler = await api('GET',`/kurbanlar/${kurbanId}/hisseler`);
   const h = hisseler.find(x=>x.id===hisseId); if (!h) return;
+  
+  // Kurban fiyatını belirle
+  const kurban = _kurbanlar.find(k => k.id === kurbanId);
+  let mevcutFiyat = mevcutFiyatParam || 0;
+  if (!mevcutFiyat) {
+    const org = (await api('GET', '/organizasyonlar')).find(o => o.id === S.orgId);
+    const otomatikFiyat = kurban
+      ? (kurban.tur === 'buyukbas' ? (org?.buyukbas_hisse_fiyati || 0) : (org?.kucukbas_hisse_fiyati || 0))
+      : 0;
+    mevcutFiyat = kurban ? (kurban.fiyat || kurban.alis_fiyati || otomatikFiyat) : otomatikFiyat;
+  }
+
   const html = `
     <div style="margin-bottom:16px">
       <span class="badge badge-blue" style="font-size:12px"><i class="fa-solid fa-hashtag"></i> Hisse ${h.hisse_no}</span>
@@ -876,6 +888,10 @@ async function modalBagisciDuzenle(hisseId, kurbanId) {
       <div class="form-group">
         <label>Kategori</label>
         <select id="fh-kategori">${bagisciKategoriOptions(h.bagisci_kategori||'Genel Bağışçı')}</select>
+      </div>
+      <div class="form-group">
+        <label>Fiyat (TL) <span style="color:var(--text3);font-weight:400;font-size:11px">Oto: ${mevcutFiyat.toLocaleString('tr-TR')} ₺</span></label>
+        <input id="fh-fiyat" type="number" value="${mevcutFiyat}" placeholder="${mevcutFiyat}" min="0" step="100"/>
       </div>
       <div class="form-group">
         <label>Kimin Adina <span style="color:var(--text3);font-weight:400">(Opsiyonel)</span></label>
@@ -922,9 +938,27 @@ async function kaydetBagisci(hisseId, kurbanId) {
   const odeme_durumu = document.getElementById('fh-odeme').value;
   const video_ister = document.getElementById('fh-video').value==='1';
   const aciklama = document.getElementById('fh-not').value.trim();
+  const fiyat = parseFloat(document.getElementById('fh-fiyat')?.value) || 0;
   if (!bagisci_adi) return toast('Bagisci adi zorunlu','error');
   try {
+    // Hisse bilgilerini güncelle
     await api('PUT',`/hisseler/${hisseId}`,{bagisci_adi,bagisci_telefon,bagisci_kategori,kimin_adina,kimin_adina_telefon,odeme_durumu,video_ister,aciklama});
+    // Kurban fiyatını güncelle
+    if (fiyat > 0) {
+      const kurban = _kurbanlar.find(k => k.id === kurbanId);
+      if (kurban) {
+        await api('PUT',`/kurbanlar/${kurbanId}`,{
+          kupe_no: kurban.kupe_no,
+          alis_fiyati: fiyat,
+          kesildi: kurban.kesildi,
+          kesim_tarihi: kurban.kesim_tarihi,
+          aciklama: kurban.aciklama,
+          kurban_turu: kurban.kurban_turu,
+          kesen_kisi: kurban.kesen_kisi,
+          kucukbas_sayi: kurban.kucukbas_sayi
+        });
+      }
+    }
     closeModal(); toast('Bagisci kaydedildi');
     await loadKurbanlar();
   } catch(e) { toast(e.message,'error'); }
@@ -1058,7 +1092,7 @@ function renderBagisciTablosu(list) {
       <td><strong style="color:var(--green)">${fiyat.toLocaleString('tr-TR')} ₺</strong></td>
       <td><span class="badge ${oRenk[h.odeme_durumu]||'badge-gray'}">${oLabel[h.odeme_durumu]||h.odeme_durumu}</span></td>
       <td>${h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-'}</td>
-      <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
+      <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id},${fiyat})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
     </tr>`;
   }).join('');
 }

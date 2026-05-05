@@ -175,7 +175,7 @@ router.get('/bagiscilar/ara', async (req, res) => {
     list = db.prepare(`SELECT h.*, k.kurban_no, k.tur, k.organizasyon_id, k.id as kurban_id, COALESCE(k.fiyat, k.alis_fiyati, 0) as kurban_fiyat FROM hisseler h
       JOIN kurbanlar k ON h.kurban_id=k.id
       WHERE h.bagisci_adi IS NOT NULL AND k.organizasyon_id=?
-      ORDER BY k.kurban_no ASC, h.hisse_no ASC LIMIT 500`).all(orgId);
+      ORDER BY h.olusturma DESC, h.id DESC LIMIT 500`).all(orgId);
   } else {
     if (!q) return res.json([]);
     const like = `%${q.toLowerCase()}%`;

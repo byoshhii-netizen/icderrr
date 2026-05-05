@@ -1424,6 +1424,105 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
 
   const minSatir = tur === 'buyukbas' ? 7 : 1;
+
+  const baseUrl = window.location.origin;
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
+
+  // ── KÜÇÜKBAŞ: Özel tek kişilik makbuz tasarımı ──────────────────────────
+  if (tur === 'kucukbas') {
+    const h = hisseler[0];
+    const bagisciAdi = h && h.bagisci_adi ? h.bagisci_adi : '';
+    const kimin = h && h.kimin_adina ? h.kimin_adina : '';
+    const odeme = h && h.odeme_durumu === 'odendi' ? 'Ödendi' : h && h.odeme_durumu === 'iptal' ? 'İptal' : 'Bekliyor';
+    const odemeRenk = h && h.odeme_durumu === 'odendi' ? '#16a34a' : h && h.odeme_durumu === 'iptal' ? '#dc2626' : '#d97706';
+    const tarih = new Date().toLocaleDateString('tr-TR');
+
+    const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="120" height="80">
+      <rect width="1200" height="800" fill="#E30A17"/>
+      <circle cx="425" cy="400" r="200" fill="white"/>
+      <circle cx="475" cy="400" r="160" fill="#E30A17"/>
+      <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
+    </svg>`;
+
+    const bayrakImg = bayrakSrc
+      ? `<img src="${bayrakSrc}" alt="Bayrak" style="height:80px;width:120px;object-fit:contain" onerror="this.style.visibility='hidden'"/>`
+      : '';
+
+    const printStyle = `
+      @page { margin: 0; size: A4 portrait; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }
+      .page { width: 210mm; min-height: 297mm; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20mm; }
+      .card-wrap { width: 100%; max-width: 160mm; border: 3px solid #1a2a50; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.12); }
+      .card-header { background: #1a2a50; color: #fff; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; }
+      .card-header .logo-area { display: flex; align-items: center; justify-content: center; flex: 1; }
+      .card-header .logo-area img { height: 90px; max-width: 220px; object-fit: contain; filter: brightness(0) invert(1); }
+      .card-header .flag-left { width: 120px; }
+      .card-header .flag-right { width: 120px; display: flex; justify-content: flex-end; }
+      .card-title-bar { background: #e8f0fe; border-bottom: 2px solid #1a2a50; padding: 14px 28px; text-align: center; }
+      .card-title-bar .main-title { font-size: 26px; font-weight: 900; color: #1a2a50; letter-spacing: 1px; }
+      .card-title-bar .sub-title { font-size: 14px; color: #555; margin-top: 4px; }
+      .card-body { padding: 28px 36px; }
+      .info-row { display: flex; align-items: center; border-bottom: 1.5px solid #e5e7eb; padding: 14px 0; gap: 16px; }
+      .info-row:last-child { border-bottom: none; }
+      .info-label { font-size: 13px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; width: 130px; flex-shrink: 0; }
+      .info-value { font-size: 20px; font-weight: 700; color: #111; flex: 1; }
+      .info-value.big { font-size: 26px; color: #1a2a50; }
+      .badge-odeme { display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 15px; font-weight: 700; color: #fff; }
+      .card-footer { background: #f8fafc; border-top: 2px solid #e5e7eb; padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #9ca3af; }
+      @media print { html, body { margin: 0; } }
+    `;
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban Makbuzu #${kurbanNo}</title>
+      <style>${printStyle}</style></head><body>
+      <div class="page">
+        <div class="card-wrap">
+          <div class="card-header">
+            <div class="flag-left">${turkBayrakSVG}</div>
+            <div class="logo-area">
+              <img src="${logoSrc}" alt="Logo" onerror="this.style.visibility='hidden'"/>
+            </div>
+            <div class="flag-right">${bayrakImg}</div>
+          </div>
+          <div class="card-title-bar">
+            <div class="main-title">KURBAN MAKBUZU</div>
+            <div class="sub-title">${esc(S.orgAd || 'İÇDER Kurban Organizasyonu')} &mdash; ${S.orgYil || new Date().getFullYear()}</div>
+          </div>
+          <div class="card-body">
+            <div class="info-row">
+              <div class="info-label">Kurban No</div>
+              <div class="info-value big"># ${kurbanNo}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Kurban Türü</div>
+              <div class="info-value">${kurbanTuru} <span style="font-size:14px;color:#6b7280;font-weight:400">(Küçükbaş)</span></div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Bağışçı Adı</div>
+              <div class="info-value big">${esc(bagisciAdi) || '<span style="color:#9ca3af;font-style:italic">—</span>'}</div>
+            </div>
+            ${kimin ? `<div class="info-row">
+              <div class="info-label">Kimin Adına</div>
+              <div class="info-value">${esc(kimin)}</div>
+            </div>` : ''}
+            <div class="info-row">
+              <div class="info-label">Ödeme</div>
+              <div class="info-value">
+                <span class="badge-odeme" style="background:${odemeRenk}">${odeme}</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <span>İÇDER &amp; Defterdar İşbirliği</span>
+            <span>${tarih}</span>
+          </div>
+        </div>
+      </div>
+    </body></html>`;
+  }
+
+  // ── BÜYÜKBAŞ: Mevcut tablo tasarımı ─────────────────────────────────────
   let rows = '';
   for (let i = 0; i < minSatir; i++) {
     const h = hisseler[i];
@@ -1434,11 +1533,6 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     rows += '</tr>';
   }
 
-  const baseUrl = window.location.origin;
-  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
-  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
-
-  // Yatay modda daha büyük logolar
   const logoHeight = orientation === 'landscape' ? '200px' : '180px';
   const logoMaxWidth = orientation === 'landscape' ? '500px' : '400px';
   const bayrakHeight = orientation === 'landscape' ? '120px' : '100px';
@@ -1461,31 +1555,28 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 18px; font-weight: 700; background: #fff; }
     td { border: 1.5px solid #000; padding: 8px 12px; font-size: 18px; font-weight: 600; }
     .footer { display: none; }
-    @media print {
-      html, body { margin: 0; padding: 0; }
-    }
+    @media print { html, body { margin: 0; padding: 0; } }
   `;
 
-  // Türk bayrağı SVG - boyut dinamik
-  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="${turkBayrakWidth}" height="${turkBayrakHeight}">
+  const turkBayrakSVG2 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="${turkBayrakWidth}" height="${turkBayrakHeight}">
     <rect width="1200" height="800" fill="#E30A17"/>
     <circle cx="425" cy="400" r="200" fill="white"/>
     <circle cx="475" cy="400" r="160" fill="#E30A17"/>
     <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
   </svg>`;
 
-  const bayrakImg = bayrakSrc
+  const bayrakImg2 = bayrakSrc
     ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bayrakHeight + ';width:' + bayrakWidth + ';object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
     : '';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
-    '<div class="header-left">' + turkBayrakSVG + '</div>' +
+    '<div class="header-left">' + turkBayrakSVG2 + '</div>' +
     '<div class="header-center">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
     '</div>' +
-    '<div class="header-right">' + bayrakImg + '</div>' +
+    '<div class="header-right">' + bayrakImg2 + '</div>' +
     '</div>' +
     '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
     '<table>' +

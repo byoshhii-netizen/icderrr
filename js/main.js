@@ -61,7 +61,7 @@ function openVideo() {
     box.innerHTML = `
       <button class="modal-close" onclick="closeVideo()"><i class="fa fa-times"></i></button>
       <video id="tanitimVideo" controls autoplay style="width:100%;display:block;border-radius:0 0 12px 12px;">
-        <source src="tanitimvideo.mp4" type="video/mp4">
+        <source src="tanıtımvideo.mp4" type="video/mp4">
         Tarayıcınız video oynatmayı desteklemiyor.
       </video>
     `;

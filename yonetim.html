@@ -260,3 +260,490 @@
   </style>
 </head>
 <body>
+
+  <!-- PASSWORD GATE -->
+  <div id="passwordGate">
+    <div class="gate-card">
+      <div style="width:72px;height:72px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:30px;color:#2e7d32;">
+        <i class="fa fa-shield-halved"></i>
+      </div>
+      <h2 class="gate-title">Yönetim Paneli</h2>
+      <p class="gate-sub">Şifreyi girin</p>
+      <div class="gate-input-wrap">
+        <i class="fa fa-lock"></i>
+        <input type="password" id="passwordInput" class="gate-input" placeholder="Şifre" />
+      </div>
+      <button class="gate-btn" onclick="checkPassword()">Giriş Yap</button>
+      <div class="gate-error" id="gateError">Yanlış şifre!</div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel">
+    <!-- HEADER -->
+    <header class="admin-header">
+      <div class="admin-header-left">
+        <div class="admin-title">
+          İÇDER YÖNETİM PANELİ
+          <span>Bağış & Kullanıcı Yönetimi</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <a href="/" style="color:rgba(255,255,255,.8);font-size:14px;text-decoration:none;display:flex;align-items:center;gap:6px;">
+          <i class="fa fa-home"></i> Siteye Dön
+        </a>
+        <button class="btn-logout" onclick="logout()">
+          <i class="fa fa-sign-out-alt"></i> Çıkış
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-main">
+      <!-- STATS ROW -->
+      <div class="stats-row" id="statsRow"></div>
+
+      <!-- TABS -->
+      <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="tumBagislar" onclick="switchTab('tumBagislar')">
+          <i class="fa fa-list"></i> Tüm Bağışlar
+        </button>
+        <button class="tab-btn" data-tab="kurbanlar" onclick="switchTab('kurbanlar')">
+          <i class="fa fa-cow"></i> Kurban Bağışları
+          <span class="tab-badge" id="kurbanBadge">0</span>
+        </button>
+        <button class="tab-btn" data-tab="kullanicilar" onclick="switchTab('kullanicilar')">
+          <i class="fa fa-users"></i> Bağışçılar
+        </button>
+        <button class="tab-btn" data-tab="ayarlar" onclick="switchTab('ayarlar')">
+          <i class="fa fa-cog"></i> Site Ayarları
+        </button>
+      </div>
+
+      <!-- TAB CONTENT -->
+      <div id="tabContent"></div>
+    </main>
+  </div>
+
+  <!-- NOTE MODAL -->
+  <div class="modal-overlay" id="noteModal">
+    <div class="modal-box">
+      <h3 class="modal-title"><i class="fa fa-sticky-note"></i> Not Ekle / Düzenle</h3>
+      <p class="modal-sub">Bağışçının göreceği not ve yönetici notu ekleyin</p>
+      <label class="modal-label">Bağışçı Notu (Görünür)</label>
+      <textarea class="modal-textarea" id="modalNotText" placeholder="Kurbanınız kesilmiştir. Allah kabul etsin."></textarea>
+      <label class="modal-label">Yönetici Notu (Sadece yönetici görür)</label>
+      <textarea class="modal-textarea" id="modalEkNot" placeholder="İç not..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeNoteModal()">İptal</button>
+        <button class="btn-modal-save" onclick="saveNote()"><i class="fa fa-check"></i> Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- SCRIPTS -->
+  <script src="js/bagis-db.js"></script>
+  <script src="js/site-config.js"></script>
+  <script>
+    const ADMIN_PASSWORD = 'icder2026';
+    let currentTab = 'tumBagislar';
+    let currentNoteId = null;
+
+    // ===== PASSWORD GATE =====
+    function checkPassword() {
+      const input = document.getElementById('passwordInput');
+      const error = document.getElementById('gateError');
+      if (input.value === ADMIN_PASSWORD) {
+        sessionStorage.setItem('icder_admin_auth', '1');
+        document.getElementById('passwordGate').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadDashboard();
+      } else {
+        error.style.display = 'block';
+        input.value = '';
+        setTimeout(() => error.style.display = 'none', 3000);
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('icder_admin_auth');
+      location.reload();
+    }
+
+    // Enter key support
+    document.addEventListener('DOMContentLoaded', () => {
+      const pwInput = document.getElementById('passwordInput');
+      if (pwInput) {
+        pwInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') checkPassword();
+        });
+        pwInput.focus();
+      }
+    });
+
+    // ===== INIT =====
+    if (sessionStorage.getItem('icder_admin_auth') === '1') {
+      document.getElementById('passwordGate').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      loadDashboard();
+    }
+
+    // ===== DASHBOARD =====
+    async function loadDashboard() {
+      const bagislar = await BagisDB.hepsiniGetir();
+      const kurbanlar = bagislar.filter(b => (b.tur||'').includes('Kurban') || (b.baslik||'').includes('Kurban'));
+      const bekleyen = kurbanlar.filter(b => b.durum === 'bekliyor').length;
+      const toplam = bagislar.reduce((s, b) => s + Number(b.tutar || 0), 0);
+
+      document.getElementById('statsRow').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa fa-hand-holding-heart"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">${bagislar.length}</div>
+            <div class="stat-label">Toplam Bağış</div>
+          </div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon"><i class="fa fa-lira-sign"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">${toplam.toLocaleString('tr-TR')} ₺</div>
+            <div class="stat-label">Toplam Tutar</div>
+          </div>
+        </div>
+        <div class="stat-card green2">
+          <div class="stat-icon"><i class="fa fa-cow"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">${kurbanlar.length}</div>
+            <div class="stat-label">Kurban Bağışı</div>
+          </div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-icon"><i class="fa fa-clock"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">${bekleyen}</div>
+            <div class="stat-label">Bekleyen Kurban</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('kurbanBadge').textContent = bekleyen;
+      switchTab(currentTab);
+    }
+
+    // ===== TAB SWITCH =====
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+      if (tab === 'tumBagislar') renderTumBagislar();
+      else if (tab === 'kurbanlar') renderKurbanlar();
+      else if (tab === 'kullanicilar') renderKullanicilar();
+      else if (tab === 'ayarlar') renderAyarlar();
+    }
+
+    // ===== TÜM BAĞIŞLAR =====
+    async function renderTumBagislar() {
+      const bagislar = await BagisDB.hepsiniGetir();
+      const sorted = bagislar.slice().reverse();
+
+      if (!sorted.length) {
+        document.getElementById('tabContent').innerHTML = `
+          <div class="empty-state">
+            <i class="fa fa-inbox"></i>
+            <p>Henüz bağış yok</p>
+          </div>
+        `;
+        return;
+      }
+
+      const rows = sorted.map(b => `
+        <tr>
+          <td class="td-id">${b.id}</td>
+          <td class="td-name">${b.ad || ''} ${b.soyad || ''}<br><small style="color:#888;">${b.kullaniciAdi || '-'}</small></td>
+          <td class="td-phone">${b.tel || '-'}</td>
+          <td>${getBadge(b.tur)}</td>
+          <td>${b.baslik || '-'}</td>
+          <td class="td-amount">${Number(b.tutar || 0).toLocaleString('tr-TR')} ₺</td>
+          <td class="td-date">${new Date(b.tarih).toLocaleString('tr-TR')}</td>
+          <td>${getDurumBadge(b.durum)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('tabContent').innerHTML = `
+        <div class="table-card">
+          <div class="table-card-header">
+            <div class="table-card-title"><i class="fa fa-list"></i> Tüm Bağışlar (${sorted.length})</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Ad Soyad</th>
+                  <th>Telefon</th>
+                  <th>Tür</th>
+                  <th>Başlık</th>
+                  <th>Tutar</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== KURBAN BAĞIŞLARI =====
+    async function renderKurbanlar() {
+      const bagislar = await BagisDB.hepsiniGetir();
+      const kurbanlar = bagislar.filter(b => (b.tur||'').includes('Kurban') || (b.baslik||'').includes('Kurban')).reverse();
+
+      if (!kurbanlar.length) {
+        document.getElementById('tabContent').innerHTML = `
+          <div class="empty-state">
+            <i class="fa fa-cow"></i>
+            <p>Henüz kurban bağışı yok</p>
+          </div>
+        `;
+        return;
+      }
+
+      const rows = kurbanlar.map(b => `
+        <tr id="row-${b.id}">
+          <td class="td-id">${b.id}</td>
+          <td class="td-name">${b.ad || ''} ${b.soyad || ''}</td>
+          <td class="td-phone">${b.tel || '-'}</td>
+          <td>${b.baslik || b.tur || '-'}</td>
+          <td class="td-amount">${Number(b.tutar || 0).toLocaleString('tr-TR')} ₺</td>
+          <td class="td-date">${new Date(b.tarih).toLocaleString('tr-TR')}</td>
+          <td id="durum-${b.id}">${getDurumBadge(b.durum)}</td>
+          <td style="max-width:200px;font-size:12px;color:#666;">${(b.not || '').substring(0, 50)}</td>
+          <td class="td-actions">
+            ${b.durum === 'bekliyor' 
+              ? `<button class="btn-action btn-kesildi-off" onclick="toggleDurum('${b.id}', 'tamamlandi')"><i class="fa fa-check"></i> Kesildi</button>`
+              : `<button class="btn-action btn-kesildi-on" onclick="toggleDurum('${b.id}', 'bekliyor')"><i class="fa fa-clock"></i> Bekliyor</button>`
+            }
+            <button class="btn-action btn-not" onclick="openNoteModal('${b.id}')"><i class="fa fa-sticky-note"></i> Not</button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('tabContent').innerHTML = `
+        <div style="background:#fff8e1;border-left:4px solid #f57c00;padding:16px;border-radius:12px;margin-bottom:20px;font-size:14px;color:#555;">
+          <i class="fa fa-info-circle"></i> Kurban bağışlarını buradan yönetin. Durum değiştirince bağışçı anında görür.
+        </div>
+        <div class="table-card">
+          <div class="table-card-header">
+            <div class="table-card-title"><i class="fa fa-cow"></i> Kurban Bağışları (${kurbanlar.length})</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Ad Soyad</th>
+                  <th>Telefon</th>
+                  <th>Tür</th>
+                  <th>Tutar</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                  <th>Not</th>
+                  <th>İşlem</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== KULLANICILAR =====
+    async function renderKullanicilar() {
+      const users = await BagisDB.kullanicilariGetir();
+      const bagislar = await BagisDB.hepsiniGetir();
+
+      if (!users.length) {
+        document.getElementById('tabContent').innerHTML = `
+          <div class="empty-state">
+            <i class="fa fa-users"></i>
+            <p>Henüz kayıtlı bağışçı yok</p>
+          </div>
+        `;
+        return;
+      }
+
+      const rows = users.map(u => {
+        const ub = bagislar.filter(b => b.kullaniciAdi === u.kullaniciAdi);
+        const toplam = ub.reduce((s, b) => s + Number(b.tutar || 0), 0);
+        return `
+          <tr>
+            <td class="td-name">${u.kullaniciAdi}</td>
+            <td>${u.ad || ''} ${u.soyad || ''}</td>
+            <td class="td-phone">${u.tel || '-'}</td>
+            <td>${u.email || '-'}</td>
+            <td class="td-date">${new Date(u.kayitTarihi).toLocaleDateString('tr-TR')}</td>
+            <td style="text-align:center;font-weight:700;">${ub.length}</td>
+            <td class="td-amount">${toplam.toLocaleString('tr-TR')} ₺</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('tabContent').innerHTML = `
+        <div class="table-card">
+          <div class="table-card-header">
+            <div class="table-card-title"><i class="fa fa-users"></i> Bağışçılar (${users.length})</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kullanıcı Adı</th>
+                  <th>Ad Soyad</th>
+                  <th>Telefon</th>
+                  <th>E-posta</th>
+                  <th>Kayıt Tarihi</th>
+                  <th>Bağış Sayısı</th>
+                  <th>Toplam Tutar</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== AYARLAR =====
+    async function renderAyarlar() {
+      const cfg = await SiteConfig.getFromServer();
+
+      document.getElementById('tabContent').innerHTML = `
+        <div style="max-width:800px;">
+          <div class="table-card" style="margin-bottom:20px;">
+            <div class="table-card-header">
+              <div class="table-card-title"><i class="fa fa-phone"></i> İletişim Bilgileri</div>
+            </div>
+            <div style="padding:24px;">
+              ${inputField('telefon', 'Telefon', cfg.telefon)}
+              ${inputField('whatsapp', 'WhatsApp (ülke koduyla)', cfg.whatsapp)}
+              ${inputField('email', 'E-posta', cfg.email)}
+              ${inputField('adres', 'Adres', cfg.adres)}
+            </div>
+          </div>
+
+          <div class="table-card" style="margin-bottom:20px;">
+            <div class="table-card-header">
+              <div class="table-card-title"><i class="fa fa-share-alt"></i> Sosyal Medya</div>
+            </div>
+            <div style="padding:24px;">
+              ${inputField('facebook', 'Facebook URL', cfg.facebook)}
+              ${inputField('twitter', 'X (Twitter) URL', cfg.twitter)}
+              ${inputField('instagram', 'Instagram URL', cfg.instagram)}
+              ${inputField('youtube', 'YouTube URL', cfg.youtube)}
+            </div>
+          </div>
+
+          <button class="btn-modal-save" onclick="saveSettings()" style="padding:14px 32px;font-size:15px;">
+            <i class="fa fa-save"></i> Ayarları Kaydet
+          </button>
+        </div>
+      `;
+    }
+
+    function inputField(id, label, value) {
+      return `
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px;">${label}</label>
+          <input type="text" id="cfg_${id}" value="${value || ''}" 
+            style="width:100%;padding:12px 14px;border:2px solid #e0e0e0;border-radius:10px;font-size:14px;outline:none;transition:border-color .2s;"
+            onfocus="this.style.borderColor='#2e7d32'" onblur="this.style.borderColor='#e0e0e0'" />
+        </div>
+      `;
+    }
+
+    async function saveSettings() {
+      const fields = ['telefon', 'whatsapp', 'email', 'adres', 'facebook', 'twitter', 'instagram', 'youtube'];
+      const config = {};
+      fields.forEach(f => {
+        const el = document.getElementById('cfg_' + f);
+        if (el) config[f] = el.value.trim();
+      });
+      await SiteConfig.save(config);
+      showToast('Ayarlar kaydedildi!');
+    }
+
+    // ===== DURUM DEĞİŞTİR =====
+    async function toggleDurum(id, yeniDurum) {
+      const not = yeniDurum === 'tamamlandi'
+        ? 'Kurbanınız kesilmiştir. Allah kabul etsin.'
+        : 'Kurban kesim işleminiz devam etmekte.';
+      await BagisDB.guncelle(id, { durum: yeniDurum, not });
+      showToast('Durum güncellendi!');
+      loadDashboard();
+    }
+
+    // ===== NOT MODAL =====
+    function openNoteModal(id) {
+      currentNoteId = id;
+      BagisDB.hepsiniGetir().then(bagislar => {
+        const b = bagislar.find(x => x.id === id);
+        if (b) {
+          document.getElementById('modalNotText').value = b.not || '';
+          document.getElementById('modalEkNot').value = b.ekNot || '';
+          document.getElementById('noteModal').classList.add('open');
+        }
+      });
+    }
+
+    function closeNoteModal() {
+      document.getElementById('noteModal').classList.remove('open');
+      currentNoteId = null;
+    }
+
+    async function saveNote() {
+      if (!currentNoteId) return;
+      const not = document.getElementById('modalNotText').value.trim();
+      const ekNot = document.getElementById('modalEkNot').value.trim();
+      await BagisDB.guncelle(currentNoteId, { not, ekNot });
+      closeNoteModal();
+      showToast('Not kaydedildi!');
+      if (currentTab === 'kurbanlar') renderKurbanlar();
+    }
+
+    // Close modal on overlay click
+    document.getElementById('noteModal').addEventListener('click', (e) => {
+      if (e.target.id === 'noteModal') closeNoteModal();
+    });
+
+    // ===== HELPERS =====
+    function getBadge(tur) {
+      if (!tur) return '<span class="badge badge-genel">Genel</span>';
+      if (tur.includes('Kurban')) return '<span class="badge badge-kurban">Kurban</span>';
+      if (tur.includes('Zekat')) return '<span class="badge badge-zekat">Zekat</span>';
+      if (tur.includes('Fitre')) return '<span class="badge badge-fitre">Fitre</span>';
+      if (tur.includes('Sadaka')) return '<span class="badge badge-sadaka">Sadaka</span>';
+      return '<span class="badge badge-genel">'+tur+'</span>';
+    }
+
+    function getDurumBadge(durum) {
+      if (durum === 'tamamlandi') return '<span class="badge badge-tamamlandi"><i class="fa fa-check-circle"></i> Kesildi</span>';
+      return '<span class="badge badge-bekliyor"><i class="fa fa-clock"></i> Bekliyor</span>';
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  </script>
+
+</body>
+</html>

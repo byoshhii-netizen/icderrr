@@ -5,175 +5,308 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Yonetim - ICDER</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',sans-serif;}</style>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f0f4f0;}
+.ptab{padding:9px 18px;border:none;background:none;border-radius:8px;font-size:13px;font-weight:700;color:#666;cursor:pointer;}
+.ptab.active{background:#2e7d32;color:#fff;}
+.ptab:hover:not(.active){background:#e8f5e9;color:#1b5e20;}
+.tablo{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.07);}
+.tablo th{background:#1b5e20;color:#fff;padding:12px 14px;text-align:left;font-size:12px;font-weight:700;text-transform:uppercase;}
+.tablo td{padding:11px 14px;font-size:13px;color:#333;border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+.tablo tr:hover td{background:#f9fbe7;}
+.btn-sm{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;}
+.not-input{width:100%;padding:8px;border:1px solid #e0e0e0;border-radius:6px;font-size:12px;outline:none;resize:none;font-family:inherit;}
+.detay-panel{background:#f9fbe7;border-radius:10px;padding:16px;border-left:3px solid #2e7d32;}
+</style>
 </head>
 <body>
 <div id="root"></div>
 <script>
-/* ============================================
-   ICDER â€“ BaÄŸÄ±ÅŸ VeritabanÄ±
-   API varsa sunucuya, yoksa localStorage'a yazar
-   ============================================ */
-
-const BagisDB = {
-
-  apiBase: '',  // aynÄ± origin, prefix yok
-
-  async _get(url) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error();
-      return await r.json();
-    } catch { return null; }
+/* ---- BagisDB ---- */
+var BagisDB = {
+  _get: function(url) {
+    return fetch(url).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
   },
-
-  async _post(url, data) {
-    try {
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await r.json();
-    } catch { return null; }
+  _post: function(url, data) {
+    return fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){ return r.json(); }).catch(function(){ return null; });
   },
-
-  async _put(url, data) {
-    try {
-      const r = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await r.json();
-    } catch { return null; }
+  _put: function(url, data) {
+    return fetch(url, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){ return r.json(); }).catch(function(){ return null; });
   },
+  _lsGet: function(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } },
+  _lsSet: function(k,v){ localStorage.setItem(k,JSON.stringify(v)); },
 
-  // ---- BAÄIÅ KAYDET ----
-  async kaydet(bagis) {
-    const result = await this._post('/api/bagislar', bagis);
-    if (result) {
-      // localStorage'a da yaz (offline fallback)
-      const list = this._lsGet('icder_bagislar');
-      list.push(result);
-      this._lsSet('icder_bagislar', list);
-      return result;
-    }
-    // API yoksa localStorage
-    return this._lsKaydet(bagis);
+  hepsiniGetir: function() {
+    return this._get('/api/bagislar').then(function(r){ return r || JSON.parse(localStorage.getItem('icder_bagislar')||'[]'); });
   },
-
-  // ---- HEPSÄ°NÄ° GETÄ°R ----
-  async hepsiniGetir() {
-    const result = await this._get('/api/bagislar');
-    if (result) return result;
-    return this._lsGet('icder_bagislar');
+  kullanicilariGetir: function() {
+    return this._get('/api/kullanicilar').then(function(r){ return r || JSON.parse(localStorage.getItem('icder_kullanicilar')||'[]'); });
   },
-
-  // ---- KULLANICIYA GÃ–RE ----
-  async kullaniciBagislari(kullaniciAdi) {
-    const list = await this.hepsiniGetir();
-    return list.filter(b =>
-      b.kullaniciAdi && b.kullaniciAdi.toLowerCase() === kullaniciAdi.toLowerCase()
-    );
-  },
-
-  // ---- GÃœNCELLE ----
-  async guncelle(id, degisiklikler) {
-    const result = await this._put(`/api/bagislar/${id}`, degisiklikler);
-    if (result) {
-      // localStorage'Ä± da gÃ¼ncelle
-      const list = this._lsGet('icder_bagislar');
-      const idx = list.findIndex(b => b.id === id);
-      if (idx !== -1) { list[idx] = { ...list[idx], ...degisiklikler }; this._lsSet('icder_bagislar', list); }
+  guncelle: function(id, data) {
+    var self = this;
+    return this._put('/api/bagislar/'+id, data).then(function(r){
+      var list = self._lsGet('icder_bagislar');
+      var idx = list.findIndex(function(b){ return b.id===id; });
+      if(idx>=0){ list[idx]=Object.assign({},list[idx],data); self._lsSet('icder_bagislar',list); }
       return true;
-    }
-    // Fallback
-    const list = this._lsGet('icder_bagislar');
-    const idx = list.findIndex(b => b.id === id);
-    if (idx === -1) return false;
-    list[idx] = { ...list[idx], ...degisiklikler };
-    this._lsSet('icder_bagislar', list);
-    return true;
-  },
-
-  // ---- KULLANICI KAYDET ----
-  async kullaniciKaydet(ad, soyad, tel, email) {
-    const result = await this._post('/api/kullanicilar', { ad, soyad, tel, email });
-    if (result && !result.error) {
-      const users = this._lsGet('icder_kullanicilar');
-      if (!users.find(u => u.kullaniciAdi === result.kullaniciAdi)) {
-        users.push(result);
-        this._lsSet('icder_kullanicilar', users);
-      }
-      return result;
-    }
-    return this._lsKullaniciKaydet(ad, soyad, tel, email);
-  },
-
-  async kullanicilariGetir() {
-    const result = await this._get('/api/kullanicilar');
-    if (result) return result;
-    return this._lsGet('icder_kullanicilar');
-  },
-
-  async girisYap(kullaniciAdi) {
-    const result = await this._get(`/api/kullanicilar/${kullaniciAdi}`);
-    const user = result && !result.error ? result : this._lsGet('icder_kullanicilar').find(u => u.kullaniciAdi === kullaniciAdi);
-    if (user) {
-      sessionStorage.setItem('icder_aktif_kullanici', JSON.stringify(user));
-      return user;
-    }
-    return null;
-  },
-
-  aktifKullanici() {
-    return JSON.parse(sessionStorage.getItem('icder_aktif_kullanici') || 'null');
-  },
-
-  cikisYap() {
-    sessionStorage.removeItem('icder_aktif_kullanici');
-  },
-
-  // ---- LOCALSTORAGE FALLBACK ----
-  _lsGet(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } },
-  _lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); },
-
-  _lsKaydet(bagis) {
-    const list = this._lsGet('icder_bagislar');
-    const yeni = {
-      id: 'B' + Date.now(),
-      tarih: new Date().toISOString(),
-      durum: (bagis.tur||'').includes('Kurban') ? 'bekliyor' : 'tamamlandi',
-      not: (bagis.tur||'').includes('Kurban') ? 'Kurban kesim iÅŸleminiz devam etmekte.' : '',
-      ekNot: '',
-      ...bagis
-    };
-    list.push(yeni);
-    this._lsSet('icder_bagislar', list);
-    return yeni;
-  },
-
-  _lsKullaniciKaydet(ad, soyad, tel, email) {
-    const users = this._lsGet('icder_kullanicilar');
-    const kullaniciAdi = (ad + soyad).toLowerCase()
-      .replace(/\s/g,'').replace(/ÄŸ/g,'g').replace(/Ã¼/g,'u')
-      .replace(/ÅŸ/g,'s').replace(/Ä±/g,'i').replace(/Ã¶/g,'o').replace(/Ã§/g,'c');
-    let user = users.find(u => u.kullaniciAdi === kullaniciAdi);
-    if (!user) {
-      user = { kullaniciAdi, ad, soyad, tel, email, kayitTarihi: new Date().toISOString() };
-      users.push(user);
-      this._lsSet('icder_kullanicilar', users);
-    }
-    return user;
+    });
   }
 };
-
-window.BagisDB = BagisDB;
-
 </script>
 <script>
+/* ---- Yonetim Paneli ---- */
+var SIFRE = 'icder2026';
+var aktifTab = 'tumBagislar';
 
+function fmt(n){ return Number(n||0).toLocaleString('tr-TR'); }
+function tarih(iso){ return iso ? new Date(iso).toLocaleString('tr-TR') : '-'; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function bosEkran(m){ return '<div style="text-align:center;padding:60px;color:#aaa;font-size:15px;">'+m+'</div>'; }
+function badge(d){
+  if(d==='tamamlandi') return '<span style="background:#e8f5e9;color:#2e7d32;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">Kesildi</span>';
+  return '<span style="background:#fff8e1;color:#f57f17;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">Bekliyor</span>';
+}
+
+/* GİRİŞ */
+function renderGiris(hata) {
+  document.getElementById('root').innerHTML =
+    '<div style="min-height:100vh;background:#f9fbe7;display:flex;align-items:center;justify-content:center;padding:20px;">'
+    +'<div style="background:#fff;border-radius:20px;padding:48px 40px;max-width:400px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.12);text-align:center;">'
+    +'<div style="width:72px;height:72px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:30px;color:#2e7d32;"><i class="fa fa-shield-halved"></i></div>'
+    +'<h2 style="color:#1b5e20;font-size:1.6rem;font-weight:800;margin-bottom:6px;">Yonetim Paneli</h2>'
+    +'<p style="color:#888;font-size:14px;margin-bottom:24px;">Sifreyi girin</p>'
+    +(hata?'<div style="background:#ffebee;color:#c62828;padding:10px;border-radius:8px;font-size:13px;margin-bottom:14px;">'+hata+'</div>':'')
+    +'<input id="sp" type="password" placeholder="Sifre" style="width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;outline:none;margin-bottom:14px;box-sizing:border-box;" onkeydown="if(event.key===\'Enter\')giris()" />'
+    +'<button onclick="giris()" style="width:100%;background:#2e7d32;color:#fff;padding:14px;border-radius:10px;font-weight:800;font-size:16px;border:none;cursor:pointer;">Giris Yap</button>'
+    +'</div></div>';
+  setTimeout(function(){ var e=document.getElementById('sp'); if(e) e.focus(); },100);
+}
+
+function giris() {
+  var e=document.getElementById('sp');
+  if(!e) return;
+  if(e.value===SIFRE){ sessionStorage.setItem('icder_admin','1'); renderPanel(); }
+  else renderGiris('Yanlis sifre.');
+}
+
+function cikis() { sessionStorage.removeItem('icder_admin'); renderGiris(); }
+
+/* PANEL */
+function renderPanel() {
+  BagisDB.hepsiniGetir().then(function(bagislar) {
+    var kurbanlar = bagislar.filter(function(b){ return (b.tur||'').indexOf('Kurban')>=0||(b.baslik||'').indexOf('Kurban')>=0; });
+    var toplam = bagislar.reduce(function(s,b){ return s+Number(b.tutar||0); },0);
+    var bekleyen = kurbanlar.filter(function(b){ return b.durum==='bekliyor'; }).length;
+
+    document.getElementById('root').innerHTML =
+      '<div style="min-height:100vh;background:#f0f4f0;">'
+      +'<div style="background:#1b5e20;color:#fff;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">'
+      +'<span style="font-weight:800;font-size:16px;">ICDER YONETIM PANELI</span>'
+      +'<div style="display:flex;gap:10px;">'
+      +'<a href="/" style="color:rgba(255,255,255,.8);font-size:13px;text-decoration:none;">Siteye Don</a>'
+      +'<button onclick="cikis()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;">Cikis</button>'
+      +'</div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 28px 0;">'
+      +sKart('Toplam Bagis',bagislar.length,'#2e7d32')
+      +sKart('Toplam Tutar',fmt(toplam)+' TL','#1b5e20')
+      +sKart('Kurban Bagisi',kurbanlar.length,'#388e3c')
+      +sKart('Bekleyen Kurban',bekleyen,'#f57f17')
+      +'</div>'
+      +'<div style="padding:20px 28px 0;">'
+      +'<div style="display:flex;gap:4px;background:#fff;border-radius:12px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.06);width:fit-content;flex-wrap:wrap;">'
+      +'<button class="ptab active" id="tab-tumBagislar" onclick="sw(\'tumBagislar\')">Tum Bagislar</button>'
+      +'<button class="ptab" id="tab-kurbanlar" onclick="sw(\'kurbanlar\')">Kurban Bagislari</button>'
+      +'<button class="ptab" id="tab-kullanicilar" onclick="sw(\'kullanicilar\')">Bagiscilar</button>'
+      +'<button class="ptab" id="tab-ayarlar" onclick="sw(\'ayarlar\')">Site Ayarlari</button>'
+      +'</div></div>'
+      +'<div style="padding:20px 28px 40px;" id="pc"></div>'
+      +'</div>';
+
+    sw('tumBagislar');
+  }).catch(function(e){ console.error(e); });
+}
+
+function sKart(label,val,renk){
+  return '<div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid '+renk+';">'
+    +'<div style="font-size:22px;font-weight:800;color:#1b5e20;">'+val+'</div>'
+    +'<div style="font-size:12px;color:#888;">'+label+'</div></div>';
+}
+
+function sw(tab) {
+  aktifTab=tab;
+  document.querySelectorAll('.ptab').forEach(function(b){ b.classList.remove('active'); });
+  var t=document.getElementById('tab-'+tab); if(t) t.classList.add('active');
+  var c=document.getElementById('pc'); if(!c) return;
+  c.innerHTML='<div style="text-align:center;padding:40px;color:#aaa;">Yukleniyor...</div>';
+  var p;
+  if(tab==='tumBagislar') p=tabTum();
+  else if(tab==='kurbanlar') p=tabKurban();
+  else if(tab==='kullanicilar') p=tabKullanici();
+  else if(tab==='ayarlar') p=tabAyar();
+  else p=Promise.resolve(bosEkran('?'));
+  p.then(function(h){ if(c) c.innerHTML=h; }).catch(function(e){ if(c) c.innerHTML=bosEkran('Hata: '+e.message); });
+}
+
+/* TUM BAGISLAR */
+function tabTum(){
+  return BagisDB.hepsiniGetir().then(function(list){
+    list=list.slice().reverse();
+    if(!list.length) return bosEkran('Henuz bagis yok.');
+    var rows=list.map(function(b){
+      return '<tr>'
+        +'<td style="font-family:monospace;font-size:11px;color:#aaa;">'+esc(b.id)+'</td>'
+        +'<td><strong>'+esc(b.ad||'')+' '+esc(b.soyad||'')+'</strong><br/><small style="color:#aaa;">'+esc(b.kullaniciAdi||'')+'</small></td>'
+        +'<td>'+esc(b.tel||'-')+'</td>'
+        +'<td>'+esc(b.tur||'-')+'</td>'
+        +'<td>'+esc(b.baslik||'-')+'</td>'
+        +'<td style="font-weight:800;color:#1b5e20;">'+fmt(b.tutar)+' TL</td>'
+        +'<td style="font-size:12px;">'+tarih(b.tarih)+'</td>'
+        +'<td>'+badge(b.durum)+'</td>'
+        +'<td><button class="btn-sm" style="background:#e8f5e9;color:#1b5e20;" onclick="detay(\''+b.id+'\')">Detay</button></td>'
+        +'</tr>'
+        +'<tr id="d-'+b.id+'" style="display:none;"><td colspan="9">'+detayHTML(b)+'</td></tr>';
+    }).join('');
+    return '<div style="overflow-x:auto;"><table class="tablo"><thead><tr>'
+      +'<th>ID</th><th>Ad Soyad</th><th>Tel</th><th>Tur</th><th>Baslik</th><th>Tutar</th><th>Tarih</th><th>Durum</th><th>#</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  });
+}
+
+/* KURBAN */
+function tabKurban(){
+  return BagisDB.hepsiniGetir().then(function(all){
+    var list=all.filter(function(b){ return (b.tur||'').indexOf('Kurban')>=0||(b.baslik||'').indexOf('Kurban')>=0; }).slice().reverse();
+    if(!list.length) return bosEkran('Henuz kurban bagisi yok.');
+    var rows=list.map(function(b){
+      var btn=b.durum==='bekliyor'
+        ?'<button class="btn-sm" style="background:#2e7d32;color:#fff;" onclick="durumDegistir(\''+b.id+'\',\'tamamlandi\')">Kesildi Isaretle</button>'
+        :'<button class="btn-sm" style="background:#fff8e1;color:#f57f17;border:1px solid #f57f17;" onclick="durumDegistir(\''+b.id+'\',\'bekliyor\')">Bekliyor Yap</button>';
+      return '<tr id="kr-'+b.id+'">'
+        +'<td style="font-family:monospace;font-size:11px;color:#aaa;">'+esc(b.id)+'</td>'
+        +'<td><strong>'+esc(b.ad||'')+' '+esc(b.soyad||'')+'</strong></td>'
+        +'<td>'+esc(b.tel||'-')+'</td>'
+        +'<td>'+esc(b.baslik||b.tur||'-')+'</td>'
+        +'<td style="font-weight:800;color:#1b5e20;">'+fmt(b.tutar)+' TL</td>'
+        +'<td style="font-size:12px;">'+tarih(b.tarih)+'</td>'
+        +'<td id="dd-'+b.id+'">'+badge(b.durum)+'</td>'
+        +'<td style="font-size:12px;color:#555;max-width:160px;">'+esc((b.not||'').substring(0,50))+'</td>'
+        +'<td><div style="display:flex;flex-direction:column;gap:4px;">'+btn
+        +'<button class="btn-sm" style="background:#e8f5e9;color:#1b5e20;" onclick="notAc(\''+b.id+'\')">Not Ekle</button>'
+        +'</div></td></tr>'
+        +'<tr id="np-'+b.id+'" style="display:none;"><td colspan="9"><div class="detay-panel">'
+        +'<div style="font-size:12px;font-weight:700;color:#1b5e20;margin-bottom:8px;">Yonetici Notu (bagisci gorecek)</div>'
+        +'<textarea id="nt-'+b.id+'" class="not-input" rows="2">'+esc(b.not||'')+'</textarea>'
+        +'<div style="font-size:12px;font-weight:700;color:#1b5e20;margin:8px 0 4px;">Ek Not</div>'
+        +'<textarea id="en-'+b.id+'" class="not-input" rows="2">'+esc(b.ekNot||'')+'</textarea>'
+        +'<div style="display:flex;gap:8px;margin-top:10px;">'
+        +'<button class="btn-sm" style="background:#2e7d32;color:#fff;" onclick="notKaydet(\''+b.id+'\')">Kaydet</button>'
+        +'<button class="btn-sm" style="background:#f5f5f5;color:#555;" onclick="notKapat(\''+b.id+'\')">Iptal</button>'
+        +'</div></div></td></tr>';
+    }).join('');
+    return '<div style="margin-bottom:16px;padding:14px;background:#fff8e1;border-radius:10px;border-left:3px solid #f57f17;font-size:13px;color:#555;">'
+      +'Kurban bagislarini buradan yonetin. Durum degistirince bagisci aninda gorur.</div>'
+      +'<div style="overflow-x:auto;"><table class="tablo"><thead><tr>'
+      +'<th>ID</th><th>Ad Soyad</th><th>Tel</th><th>Tur</th><th>Tutar</th><th>Tarih</th><th>Durum</th><th>Not</th><th>Islem</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  });
+}
+
+/* KULLANICILAR */
+function tabKullanici(){
+  return Promise.all([BagisDB.kullanicilariGetir(),BagisDB.hepsiniGetir()]).then(function(res){
+    var users=res[0], bagislar=res[1];
+    if(!users.length) return bosEkran('Henuz kayitli bagisci yok.');
+    var rows=users.map(function(u){
+      var ub=bagislar.filter(function(b){ return b.kullaniciAdi===u.kullaniciAdi; });
+      var top=ub.reduce(function(s,b){ return s+Number(b.tutar||0); },0);
+      return '<tr>'
+        +'<td style="font-family:monospace;font-weight:700;color:#1b5e20;">'+esc(u.kullaniciAdi)+'</td>'
+        +'<td>'+esc(u.ad||'')+' '+esc(u.soyad||'')+'</td>'
+        +'<td>'+esc(u.tel||'-')+'</td>'
+        +'<td>'+esc(u.email||'-')+'</td>'
+        +'<td style="font-size:12px;">'+tarih(u.kayitTarihi)+'</td>'
+        +'<td style="text-align:center;font-weight:700;">'+ub.length+'</td>'
+        +'<td style="font-weight:800;color:#1b5e20;">'+fmt(top)+' TL</td>'
+        +'</tr>';
+    }).join('');
+    return '<div style="overflow-x:auto;"><table class="tablo"><thead><tr>'
+      +'<th>Kullanici Adi</th><th>Ad Soyad</th><th>Tel</th><th>Email</th><th>Kayit</th><th>Bagis</th><th>Toplam</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  });
+}
+
+/* AYARLAR */
+function tabAyar(){
+  return fetch('/api/config').then(function(r){ return r.ok?r.json():{}; }).catch(function(){ return {}; }).then(function(cfg){
+    var D={telefon:'0850 305 18 55',whatsapp:'905403051855',email:'bilgi@icder.org',adres:'Haskoy Mah. Bozkar Sokak No:49 Canik/Samsun',facebook:'https://www.facebook.com/icdertr',twitter:'https://x.com/icderorg',instagram:'https://www.instagram.com/icderorg',youtube:'https://www.youtube.com/icderorg'};
+    var c=Object.assign({},D,cfg);
+    function inp(id,lbl,val){
+      return '<div style="margin-bottom:14px;"><label style="display:block;font-size:12px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:6px;">'+lbl+'</label>'
+        +'<input id="cfg_'+id+'" value="'+esc(val)+'" style="width:100%;padding:11px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;" /></div>';
+    }
+    return '<div style="max-width:700px;">'
+      +'<div style="background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:20px;">'
+      +'<h3 style="color:#1b5e20;font-size:16px;font-weight:800;margin-bottom:20px;">Iletisim Bilgileri</h3>'
+      +inp('telefon','Telefon',c.telefon)+inp('whatsapp','WhatsApp',c.whatsapp)+inp('email','E-posta',c.email)+inp('adres','Adres',c.adres)
+      +'</div>'
+      +'<div style="background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:20px;">'
+      +'<h3 style="color:#1b5e20;font-size:16px;font-weight:800;margin-bottom:20px;">Sosyal Medya</h3>'
+      +inp('facebook','Facebook',c.facebook)+inp('twitter','Twitter/X',c.twitter)+inp('instagram','Instagram',c.instagram)+inp('youtube','YouTube',c.youtube)
+      +'</div>'
+      +'<button onclick="ayarKaydet()" style="background:#2e7d32;color:#fff;padding:14px 32px;border-radius:10px;font-weight:800;font-size:15px;border:none;cursor:pointer;">Kaydet</button>'
+      +'<div id="ayarMsg" style="margin-top:12px;font-size:13px;"></div></div>';
+  });
+}
+
+/* DETAY */
+function detayHTML(b){
+  return '<div class="detay-panel"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:13px;">'
+    +'<div><small style="color:#888;">ID</small><br/><strong style="font-family:monospace;">'+esc(b.id)+'</strong></div>'
+    +'<div><small style="color:#888;">Kullanici</small><br/><strong>'+esc(b.kullaniciAdi||'-')+'</strong></div>'
+    +'<div><small style="color:#888;">Tarih</small><br/><strong>'+tarih(b.tarih)+'</strong></div>'
+    +'<div><small style="color:#888;">Ad Soyad</small><br/><strong>'+esc(b.ad||'')+' '+esc(b.soyad||'')+'</strong></div>'
+    +'<div><small style="color:#888;">Tel</small><br/><strong>'+esc(b.tel||'-')+'</strong></div>'
+    +'<div><small style="color:#888;">Email</small><br/><strong>'+esc(b.email||'-')+'</strong></div>'
+    +'<div><small style="color:#888;">Tur</small><br/><strong>'+esc(b.tur||'-')+'</strong></div>'
+    +'<div><small style="color:#888;">Baslik</small><br/><strong>'+esc(b.baslik||'-')+'</strong></div>'
+    +'<div><small style="color:#888;">Tutar</small><br/><strong style="color:#1b5e20;font-size:16px;">'+fmt(b.tutar)+' TL</strong></div>'
+    +'</div>'
+    +(b.not?'<div style="margin-top:10px;padding:10px;background:#fff;border-radius:8px;font-size:13px;"><strong>Not:</strong> '+esc(b.not)+'</div>':'')
+    +(b.ekNot?'<div style="margin-top:6px;padding:10px;background:#fff;border-radius:8px;font-size:13px;"><strong>Ek Not:</strong> '+esc(b.ekNot)+'</div>':'')
+    +'</div>';
+}
+
+function detay(id){ var r=document.getElementById('d-'+id); if(r) r.style.display=r.style.display==='none'?'table-row':'none'; }
+function notAc(id){ var p=document.getElementById('np-'+id); if(p) p.style.display=p.style.display==='none'?'table-row':'none'; }
+function notKapat(id){ var p=document.getElementById('np-'+id); if(p) p.style.display='none'; }
+
+function durumDegistir(id,d){
+  var not=d==='tamamlandi'?'Kurbaniniz kesilmistir. Allah kabul etsin.':'Kurban kesim isleminiz devam etmekte.';
+  BagisDB.guncelle(id,{durum:d,not:not}).then(function(){ sw('kurbanlar'); });
+}
+
+function notKaydet(id){
+  var not=(document.getElementById('nt-'+id)||{}).value||'';
+  var ekNot=(document.getElementById('en-'+id)||{}).value||'';
+  BagisDB.guncelle(id,{not:not,ekNot:ekNot}).then(function(){ notKapat(id); alert('Not kaydedildi.'); });
+}
+
+function ayarKaydet(){
+  var fields=['telefon','whatsapp','email','adres','facebook','twitter','instagram','youtube'];
+  var cfg={};
+  fields.forEach(function(f){ var e=document.getElementById('cfg_'+f); if(e) cfg[f]=e.value.trim(); });
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)})
+    .then(function(r){
+      var m=document.getElementById('ayarMsg');
+      if(m) m.innerHTML=r.ok?'<span style="color:#2e7d32;">Kaydedildi!</span>':'<span style="color:#e53935;">Hata!</span>';
+      setTimeout(function(){ if(m) m.innerHTML=''; },3000);
+    }).catch(function(){ alert('Sunucu hatasi.'); });
+}
+
+/* INIT */
+if(sessionStorage.getItem('icder_admin')==='1'){ renderPanel(); }
+else{ renderGiris(); }
 </script>
 </body>
 </html>

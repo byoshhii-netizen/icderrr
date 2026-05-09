@@ -83,6 +83,7 @@ function navigateTo(page) {
     bagislar: 'Bağışlar',
     kurbanlar: 'Kurban Yönetimi',
     kullanicilar: 'Bağışçılar',
+    icerik: 'İçerik Yönetimi',
     medya: 'Medya Yönetimi',
     ayarlar: 'Site Ayarları'
   };
@@ -103,6 +104,9 @@ function navigateTo(page) {
       break;
     case 'kullanicilar':
       renderKullanicilar(contentArea);
+      break;
+    case 'icerik':
+      renderIcerik(contentArea);
       break;
     case 'medya':
       renderMedya(contentArea);
@@ -845,3 +849,504 @@ if (window.innerWidth <= 1024) {
 document.querySelector('.btn-menu-toggle')?.addEventListener('click', () => {
   document.getElementById('sidebar')?.classList.toggle('show');
 });
+
+
+// ============================================
+// İÇERİK YÖNETİMİ
+// ============================================
+async function renderIcerik(container) {
+  const content = await SiteContent.getFromServer();
+  
+  container.innerHTML = `
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-image"></i>
+          Hero Slider Görselleri
+        </h3>
+        <button class="btn btn-primary btn-sm" onclick="addHeroSlide()">
+          <i class="fas fa-plus"></i> Yeni Ekle
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="media-grid">
+          ${content.heroSlider.map((slide, index) => `
+            <div class="media-item">
+              <img src="${slide.src}" alt="${slide.alt}">
+              <div class="media-overlay">
+                <p class="media-name">${slide.alt}</p>
+                <div class="media-actions">
+                  <button class="btn btn-sm btn-primary" onclick="editHeroSlide(${index})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteHeroSlide(${index})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                  <button class="btn btn-sm btn-secondary" onclick="toggleHeroSlide(${index})">
+                    <i class="fas fa-${slide.active ? 'eye-slash' : 'eye'}"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-th"></i>
+          Bağış Kategorileri İkonları
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="media-grid">
+          ${content.categories.map((cat, index) => `
+            <div class="media-item">
+              <img src="${cat.icon}" alt="${cat.name}">
+              <div class="media-overlay">
+                <p class="media-name">${cat.name}</p>
+                <div class="media-actions">
+                  <button class="btn btn-sm btn-primary" onclick="editCategory(${index})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-project-diagram"></i>
+          Projeler
+        </h3>
+        <button class="btn btn-primary btn-sm" onclick="addProject()">
+          <i class="fas fa-plus"></i> Yeni Proje
+        </button>
+      </div>
+      <div class="card-body">
+        ${renderProjectsList(content.projects)}
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-newspaper"></i>
+          Haberler
+        </h3>
+        <button class="btn btn-primary btn-sm" onclick="addNews()">
+          <i class="fas fa-plus"></i> Yeni Haber
+        </button>
+      </div>
+      <div class="card-body">
+        ${renderNewsList(content.news)}
+      </div>
+    </div>
+  `;
+}
+
+function renderProjectsList(projects) {
+  if (!projects.length) {
+    return '<div class="empty-state"><p class="empty-title">Henüz proje yok</p></div>';
+  }
+  
+  return `
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Görsel</th>
+            <th>Başlık</th>
+            <th>Açıklama</th>
+            <th>İlerleme</th>
+            <th>Hedef</th>
+            <th>Durum</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${projects.map((proj, index) => `
+            <tr>
+              <td><img src="${proj.image}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;"></td>
+              <td><strong>${proj.title}</strong></td>
+              <td style="max-width:300px;font-size:13px;">${proj.desc.substring(0, 80)}...</td>
+              <td>
+                <div style="width:100px;">
+                  <div style="background:#e0e0e0;height:8px;border-radius:4px;overflow:hidden;">
+                    <div style="background:var(--primary);height:100%;width:${proj.progress}%;"></div>
+                  </div>
+                  <small style="font-size:11px;color:var(--gray-600);">${proj.progress}%</small>
+                </div>
+              </td>
+              <td style="font-size:13px;">${proj.target}</td>
+              <td><span class="badge badge-${proj.badge === 'Aktif' ? 'success' : proj.badge === 'Acil' ? 'danger' : 'warning'}">${proj.badge}</span></td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-sm btn-primary" onclick="editProject(${index})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteProject(${index})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderNewsList(news) {
+  if (!news.length) {
+    return '<div class="empty-state"><p class="empty-title">Henüz haber yok</p></div>';
+  }
+  
+  return `
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Görsel</th>
+            <th>Başlık</th>
+            <th>Açıklama</th>
+            <th>Tarih</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${news.map((item, index) => `
+            <tr>
+              <td><img src="${item.image}" style="width:80px;height:60px;object-fit:cover;border-radius:8px;"></td>
+              <td><strong>${item.title}</strong></td>
+              <td style="max-width:350px;font-size:13px;">${item.desc.substring(0, 100)}...</td>
+              <td style="font-size:13px;color:var(--gray-600);">${item.date}</td>
+              <td>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-sm btn-primary" onclick="editNews(${index})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteNews(${index})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// Hero Slider İşlemleri
+async function editHeroSlide(index) {
+  const content = await SiteContent.getFromServer();
+  const slide = content.heroSlider[index];
+  
+  const modal = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">Hero Slider Düzenle</h3>
+          <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Görsel Önizleme</label>
+            <img src="${slide.src}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:12px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Görsel Yolu</label>
+            <input type="text" class="form-control" id="heroSrc" value="${slide.src}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alt Metin</label>
+            <input type="text" class="form-control" id="heroAlt" value="${slide.alt}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+          <button class="btn btn-primary" onclick="saveHeroSlide(${index})">
+            <i class="fas fa-save"></i> Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('modalContainer').innerHTML = modal;
+}
+
+async function saveHeroSlide(index) {
+  const src = document.getElementById('heroSrc').value.trim();
+  const alt = document.getElementById('heroAlt').value.trim();
+  
+  const content = await SiteContent.getFromServer();
+  content.heroSlider[index] = { ...content.heroSlider[index], src, alt };
+  await SiteContent.save(content);
+  
+  closeModal();
+  showToast('Hero slider güncellendi!', 'success');
+  navigateTo('icerik');
+}
+
+async function deleteHeroSlide(index) {
+  if (!confirm('Bu görseli silmek istediğinizden emin misiniz?')) return;
+  
+  const content = await SiteContent.getFromServer();
+  content.heroSlider.splice(index, 1);
+  await SiteContent.save(content);
+  
+  showToast('Görsel silindi!', 'success');
+  navigateTo('icerik');
+}
+
+async function toggleHeroSlide(index) {
+  const content = await SiteContent.getFromServer();
+  content.heroSlider[index].active = !content.heroSlider[index].active;
+  await SiteContent.save(content);
+  
+  showToast('Durum güncellendi!', 'success');
+  navigateTo('icerik');
+}
+
+// Kategori İşlemleri
+async function editCategory(index) {
+  const content = await SiteContent.getFromServer();
+  const cat = content.categories[index];
+  
+  const modal = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">Kategori Düzenle</h3>
+          <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">İkon Önizleme</label>
+            <img src="${cat.icon}" style="width:80px;height:80px;object-fit:contain;border:2px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:12px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kategori Adı</label>
+            <input type="text" class="form-control" id="catName" value="${cat.name}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">İkon Yolu</label>
+            <input type="text" class="form-control" id="catIcon" value="${cat.icon}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Link</label>
+            <input type="text" class="form-control" id="catLink" value="${cat.link}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+          <button class="btn btn-primary" onclick="saveCategory(${index})">
+            <i class="fas fa-save"></i> Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('modalContainer').innerHTML = modal;
+}
+
+async function saveCategory(index) {
+  const name = document.getElementById('catName').value.trim();
+  const icon = document.getElementById('catIcon').value.trim();
+  const link = document.getElementById('catLink').value.trim();
+  
+  const content = await SiteContent.getFromServer();
+  content.categories[index] = { ...content.categories[index], name, icon, link };
+  await SiteContent.save(content);
+  
+  closeModal();
+  showToast('Kategori güncellendi!', 'success');
+  navigateTo('icerik');
+}
+
+// Proje İşlemleri
+async function editProject(index) {
+  const content = await SiteContent.getFromServer();
+  const proj = content.projects[index];
+  
+  const modal = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()" style="max-width:700px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Proje Düzenle</h3>
+          <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Görsel Önizleme</label>
+            <img src="${proj.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:12px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Başlık</label>
+            <input type="text" class="form-control" id="projTitle" value="${proj.title}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Açıklama</label>
+            <textarea class="form-control" id="projDesc" rows="3">${proj.desc}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Görsel Yolu</label>
+            <input type="text" class="form-control" id="projImage" value="${proj.image}">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">İlerleme (%)</label>
+              <input type="number" class="form-control" id="projProgress" value="${proj.progress}" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hedef</label>
+              <input type="text" class="form-control" id="projTarget" value="${proj.target}">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Durum</label>
+              <select class="form-control" id="projBadge">
+                <option value="Aktif" ${proj.badge === 'Aktif' ? 'selected' : ''}>Aktif</option>
+                <option value="Acil" ${proj.badge === 'Acil' ? 'selected' : ''}>Acil</option>
+                <option value="Devam Ediyor" ${proj.badge === 'Devam Ediyor' ? 'selected' : ''}>Devam Ediyor</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link</label>
+              <input type="text" class="form-control" id="projLink" value="${proj.link}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+          <button class="btn btn-primary" onclick="saveProject(${index})">
+            <i class="fas fa-save"></i> Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('modalContainer').innerHTML = modal;
+}
+
+async function saveProject(index) {
+  const title = document.getElementById('projTitle').value.trim();
+  const desc = document.getElementById('projDesc').value.trim();
+  const image = document.getElementById('projImage').value.trim();
+  const progress = parseInt(document.getElementById('projProgress').value);
+  const target = document.getElementById('projTarget').value.trim();
+  const badge = document.getElementById('projBadge').value;
+  const link = document.getElementById('projLink').value.trim();
+  
+  const content = await SiteContent.getFromServer();
+  content.projects[index] = { ...content.projects[index], title, desc, image, progress, target, badge, link };
+  await SiteContent.save(content);
+  
+  closeModal();
+  showToast('Proje güncellendi!', 'success');
+  navigateTo('icerik');
+}
+
+async function deleteProject(index) {
+  if (!confirm('Bu projeyi silmek istediğinizden emin misiniz?')) return;
+  
+  const content = await SiteContent.getFromServer();
+  content.projects.splice(index, 1);
+  await SiteContent.save(content);
+  
+  showToast('Proje silindi!', 'success');
+  navigateTo('icerik');
+}
+
+// Haber İşlemleri
+async function editNews(index) {
+  const content = await SiteContent.getFromServer();
+  const news = content.news[index];
+  
+  const modal = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()" style="max-width:700px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Haber Düzenle</h3>
+          <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Görsel Önizleme</label>
+            <img src="${news.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:12px;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Başlık</label>
+            <input type="text" class="form-control" id="newsTitle" value="${news.title}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Açıklama</label>
+            <textarea class="form-control" id="newsDesc" rows="3">${news.desc}</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Görsel Yolu</label>
+            <input type="text" class="form-control" id="newsImage" value="${news.image}">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Tarih</label>
+              <input type="text" class="form-control" id="newsDate" value="${news.date}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link</label>
+              <input type="text" class="form-control" id="newsLink" value="${news.link}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+          <button class="btn btn-primary" onclick="saveNews(${index})">
+            <i class="fas fa-save"></i> Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('modalContainer').innerHTML = modal;
+}
+
+async function saveNews(index) {
+  const title = document.getElementById('newsTitle').value.trim();
+  const desc = document.getElementById('newsDesc').value.trim();
+  const image = document.getElementById('newsImage').value.trim();
+  const date = document.getElementById('newsDate').value.trim();
+  const link = document.getElementById('newsLink').value.trim();
+  
+  const content = await SiteContent.getFromServer();
+  content.news[index] = { ...content.news[index], title, desc, image, date, link };
+  await SiteContent.save(content);
+  
+  closeModal();
+  showToast('Haber güncellendi!', 'success');
+  navigateTo('icerik');
+}
+
+async function deleteNews(index) {
+  if (!confirm('Bu haberi silmek istediğinizden emin misiniz?')) return;
+  
+  const content = await SiteContent.getFromServer();
+  content.news.splice(index, 1);
+  await SiteContent.save(content);
+  
+  showToast('Haber silindi!', 'success');
+  navigateTo('icerik');
+}

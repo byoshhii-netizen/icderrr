@@ -378,13 +378,39 @@ class Sepet {
   }
 
   processOdeme() {
-    // Simulate processing
     const btn = document.querySelector('.btn-ileri');
     if (btn) {
-      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> İşleniyor...';
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Isleniyor...';
       btn.disabled = true;
     }
+
+    // Kullanici bilgilerini al
+    const ad    = document.getElementById('odAd')?.value?.trim() || '';
+    const soyad = document.getElementById('odSoyad')?.value?.trim() || '';
+    const email = document.getElementById('odEmail')?.value?.trim() || '';
+    const tel   = document.getElementById('odTel')?.value?.trim() || '';
+
     setTimeout(() => {
+      // Kullanici kaydet / bul
+      let user = null;
+      if (window.BagisDB && ad) {
+        user = BagisDB.kullaniciKaydet(ad, soyad, tel, email);
+        BagisDB.girisYap(user.kullaniciAdi);
+      }
+
+      // Her sepet itemini DB'ye kaydet
+      if (window.BagisDB) {
+        this.items.forEach(item => {
+          BagisDB.kaydet({
+            kullaniciAdi: user?.kullaniciAdi || '',
+            ad, soyad, tel, email,
+            tur: item.cat || item.title,
+            baslik: item.title,
+            tutar: item.amount || item.price,
+          });
+        });
+      }
+
       this.goStep(3);
     }, 1800);
   }

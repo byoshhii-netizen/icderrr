@@ -59,9 +59,15 @@ const BagisDB = {
 
   // ---- KULLANICI ----
   async kayitOl(ad, soyad, tel, email, sifre) {
-    // Kullanici adi olustur
+    // Kullanici adi olustur - Türkçe karakterleri düzelt
+    const trMap = {
+      'ç':'c', 'ğ':'g', 'ı':'i', 'ö':'o', 'ş':'s', 'ü':'u',
+      'Ç':'c', 'Ğ':'g', 'İ':'i', 'Ö':'o', 'Ş':'s', 'Ü':'u'
+    };
+    
     const kullaniciAdi = (ad + soyad).toLowerCase()
-      .replace(/\s/g,'').replace(/g/g,'g')
+      .split('').map(c => trMap[c] || c).join('')
+      .replace(/\s/g,'')
       .replace(/[^a-z0-9]/g, '');
 
     const data = { ad, soyad, tel, email, sifre, kullaniciAdi };

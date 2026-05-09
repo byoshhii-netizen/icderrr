@@ -501,6 +501,11 @@
       if (redirect && redirect !== location.href) {
         history.replaceState(null, null, redirect);
       }
+      
+      // Yönetici paneli route kontrolü
+      if (window.location.pathname === '/yoneticipanel' || window.location.pathname === '/yoneticipanel/') {
+        window.location.href = '/yoneticipanel.html';
+      }
     })();
   </script>
 </body>

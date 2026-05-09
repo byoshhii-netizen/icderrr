@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İÇDER Yönetici Paneli</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="css/admin-panel.css">
+</head>
+<body>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-logo">
+          <img src="icderyazi.png" alt="İÇDER">
+        </div>
+        <h1>Yönetici Paneli</h1>
+        <p class="login-subtitle">Güvenli giriş yapın</p>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="passwordInput" placeholder="Şifre" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn-login">
+            <i class="fas fa-sign-in-alt"></i> Giriş Yap
+          </button>
+          <div id="loginError" class="login-error"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel" class="admin-panel" style="display:none;">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="icderyazi.png" alt="İÇDER" class="sidebar-logo">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active" onclick="navigateTo('dashboard')">
+          <i class="fas fa-chart-line"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#bagislar" class="nav-item" onclick="navigateTo('bagislar')">
+          <i class="fas fa-hand-holding-heart"></i>
+          <span>Bağışlar</span>
+          <span class="badge" id="bagisCount">0</span>
+        </a>
+        <a href="#kurbanlar" class="nav-item" onclick="navigateTo('kurbanlar')">
+          <i class="fas fa-cow"></i>
+          <span>Kurban Yönetimi</span>
+          <span class="badge badge-warning" id="kurbanCount">0</span>
+        </a>
+        <a href="#kullanicilar" class="nav-item" onclick="navigateTo('kullanicilar')">
+          <i class="fas fa-users"></i>
+          <span>Bağışçılar</span>
+        </a>
+        <a href="#medya" class="nav-item" onclick="navigateTo('medya')">
+          <i class="fas fa-images"></i>
+          <span>Medya Yönetimi</span>
+        </a>
+        <a href="#ayarlar" class="nav-item" onclick="navigateTo('ayarlar')">
+          <i class="fas fa-cog"></i>
+          <span>Site Ayarları</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Çıkış Yap</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-menu-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="topbar-right">
+          <a href="/" class="btn-view-site" target="_blank">
+            <i class="fas fa-external-link-alt"></i>
+            <span>Siteyi Görüntüle</span>
+          </a>
+          <div class="user-menu">
+            <button class="user-btn" onclick="toggleUserMenu()">
+              <i class="fas fa-user-circle"></i>
+              <span>Yönetici</span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="user-dropdown" id="userDropdown">
+              <a href="#" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT AREA -->
+      <div class="content-area" id="contentArea">
+        <!-- Dynamic content will be loaded here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+  <div id="modalContainer"></div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="js/bagis-db.js"></script>
+  <script src="js/site-config.js"></script>
+  <script src="js/admin-panel.js"></script>
+</body>
+</html>

@@ -89,6 +89,42 @@ function closeVideo() {
   }
 }
 
+// ============ HERO SLIDER ============
+let sliderIdx = 0;
+let sliderTimer = null;
+
+function initSlider() {
+  const slides = document.querySelectorAll('.hero-slide');
+  const dotsWrap = document.getElementById('sliderDots');
+  if (!slides.length || !dotsWrap) return;
+
+  dotsWrap.innerHTML = '';
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'slider-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goSlide(i);
+    dotsWrap.appendChild(dot);
+  });
+
+  sliderTimer = setInterval(() => sliderNext(), 3500);
+}
+
+function goSlide(n) {
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots   = document.querySelectorAll('.slider-dot');
+  if (!slides.length) return;
+  slides[sliderIdx].classList.remove('active');
+  dots[sliderIdx]?.classList.remove('active');
+  sliderIdx = (n + slides.length) % slides.length;
+  slides[sliderIdx].classList.add('active');
+  dots[sliderIdx]?.classList.add('active');
+}
+
+function sliderNext() { goSlide(sliderIdx + 1); }
+function sliderPrev() { goSlide(sliderIdx - 1); }
+
+document.addEventListener('DOMContentLoaded', initSlider);
+
 // ============ NAVBAR SCROLL SHADOW ============
 window.addEventListener('scroll', () => {
   const navbar = document.querySelector('.navbar');

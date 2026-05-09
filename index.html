@@ -92,27 +92,19 @@
           <a href="/projeler" class="btn-outline">Projelerimiz</a>
         </div>
       </div>
-      <!-- DONATION WIDGET -->
-      <div class="donate-widget">
-        <h3>Hızlı Bağış</h3>
-        <div class="donate-tabs">
-          <button class="tab-btn active" data-tab="sadaka">Sadaka</button>
-          <button class="tab-btn" data-tab="zekat">Zekat</button>
-          <button class="tab-btn" data-tab="kurban">Kurban</button>
-          <button class="tab-btn" data-tab="genel">Genel</button>
+      <!-- HERO SLIDER -->
+      <div class="hero-slider-wrap">
+        <div class="hero-slider" id="heroSlider">
+          <div class="hero-slide active" style="background-image:url('gazze1.jpg')"></div>
+          <div class="hero-slide" style="background-image:url('gazze2.jpg')"></div>
+          <div class="hero-slide" style="background-image:url('gazze3.jpg')"></div>
+          <div class="hero-slide" style="background-image:url('gazze4.webp')"></div>
+          <div class="hero-slide" style="background-image:url('gazze5.jpg')"></div>
+          <div class="hero-slide" style="background-image:url('gazze6.webp')"></div>
         </div>
-        <div class="donate-amounts">
-          <button class="amount-btn" data-amount="100">100 ₺</button>
-          <button class="amount-btn" data-amount="250">250 ₺</button>
-          <button class="amount-btn active" data-amount="500">500 ₺</button>
-          <button class="amount-btn" data-amount="1000">1.000 ₺</button>
-        </div>
-        <div class="donate-input-wrap">
-          <span class="currency">₺</span>
-          <input type="number" id="donateAmount" placeholder="Diğer tutar" value="500" />
-        </div>
-        <a href="/bagis" class="btn-donate-widget">BAĞIŞ YAP <i class="fa fa-arrow-right"></i></a>
-        <p class="donate-note"><i class="fa fa-lock"></i> Güvenli ödeme altyapısı</p>
+        <button class="slider-btn slider-prev" onclick="sliderPrev()"><i class="fa fa-chevron-left"></i></button>
+        <button class="slider-btn slider-next" onclick="sliderNext()"><i class="fa fa-chevron-right"></i></button>
+        <div class="slider-dots" id="sliderDots"></div>
       </div>
     </div>
   </section>

@@ -1,1 +1,9 @@
-﻿{"build":{"builder":"NIXPACKS"},"deploy":{"startCommand":"npx serve . -p $PORT","restartPolicyType":"ON_FAILURE"}}
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "npx serve . -p ${PORT:-3000}",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}

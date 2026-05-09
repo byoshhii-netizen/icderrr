@@ -1,0 +1,11 @@
+{
+  "name": "icder-web",
+  "version": "1.0.0",
+  "description": "ICDER Web Sitesi",
+  "scripts": {
+    "start": "npx serve . -p $PORT"
+  },
+  "dependencies": {
+    "serve": "^14.2.3"
+  }
+}

@@ -4,14 +4,16 @@ const path = require('path');
 const url = require('url');
 
 const PORT = process.env.PORT || 3000;
-const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || './data';
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'bagislar.json');
 const USERS_FILE = path.join(DATA_DIR, 'kullanicilar.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 
 // Data klasörü yoksa oluştur
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '[]');
 if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]');
+if (!fs.existsSync(CONFIG_FILE)) fs.writeFileSync(CONFIG_FILE, '{}');
 
 function readJSON(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
@@ -60,6 +62,25 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') { cors(res); res.writeHead(204); res.end(); return; }
 
   // ---- API ROUTES ----
+
+  // GET /api/config
+  if (req.method === 'GET' && pathname === '/api/config') {
+    return json(res, readJSON(CONFIG_FILE));
+  }
+
+  // POST /api/config
+  if (req.method === 'POST' && pathname === '/api/config') {
+    let body = '';
+    req.on('data', d => body += d);
+    req.on('end', () => {
+      try {
+        const config = JSON.parse(body);
+        writeJSON(CONFIG_FILE, config);
+        json(res, { ok: true });
+      } catch { json(res, { error: 'Gecersiz veri' }, 400); }
+    });
+    return;
+  }
 
   // GET /api/bagislar
   if (req.method === 'GET' && pathname === '/api/bagislar') {

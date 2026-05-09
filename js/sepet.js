@@ -389,27 +389,33 @@ class Sepet {
     const email = document.getElementById('odEmail')?.value?.trim() || '';
     const tel   = document.getElementById('odTel')?.value?.trim() || '';
 
-    const doOdeme = async () => {
-      let user = null;
-      if (window.BagisDB && ad) {
-        user = await BagisDB.kullaniciKaydet(ad, soyad, tel, email);
-        if (user) await BagisDB.girisYap(user.kullaniciAdi);
-      }
-      if (window.BagisDB) {
-        for (const item of this.items) {
-          await BagisDB.kaydet({
-            kullaniciAdi: user?.kullaniciAdi || '',
-            ad, soyad, tel, email,
-            tur: item.cat || item.title,
-            baslik: item.title,
-            tutar: item.amount || item.price,
-          });
+    // 1.8sn animasyon sonra kaydet
+    setTimeout(async () => {
+      try {
+        let user = null;
+        if (window.BagisDB && ad) {
+          user = await BagisDB.kullaniciKaydet(ad, soyad, tel, email);
+          if (user) await BagisDB.girisYap(user.kullaniciAdi);
         }
+        if (window.BagisDB) {
+          for (const item of this.items) {
+            await BagisDB.kaydet({
+              kullaniciAdi: user?.kullaniciAdi || 'anonim',
+              ad: ad || 'Anonim',
+              soyad: soyad || '',
+              tel: tel || '',
+              email: email || '',
+              tur: item.cat || item.title,
+              baslik: item.title,
+              tutar: item.amount || item.price,
+            });
+          }
+        }
+      } catch(e) {
+        console.error('Bagis kayit hatasi:', e);
       }
       this.goStep(3);
-    };
-
-    setTimeout(() => doOdeme(), 1800);
+    }, 1800);
   }
 
   // ---- KART ANİMASYONLARI ----

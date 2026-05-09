@@ -47,8 +47,8 @@ function girisKontrol() {
 }
 
 /* ---- ANA PANEL ---- */
-function renderPanel() {
-  const bagislar = BagisDB.hepsiniGetir();
+async function renderPanel() {
+  const bagislar = await BagisDB.hepsiniGetir();
   const kurbanlar = bagislar.filter(b => (b.tur||'').includes('Kurban') || (b.baslik||'').includes('Kurban'));
   const toplam = bagislar.reduce((s,b) => s + Number(b.tutar||0), 0);
   const bekleyen = kurbanlar.filter(b => b.durum === 'bekliyor').length;
@@ -89,6 +89,9 @@ function renderPanel() {
           </button>
           <button class="ptab" id="tab-kullanicilar" onclick="switchTab('kullanicilar')">
             <i class="fa fa-users"></i> Bagiscilar
+          </button>
+          <button class="ptab" id="tab-ayarlar" onclick="switchTab('ayarlar')">
+            <i class="fa fa-gear"></i> Site Ayarlari
           </button>
         </div>
       </div>
@@ -138,19 +141,22 @@ function statKart(icon, label, val, renk) {
 }
 
 let aktifTab = 'tumBagislar';
-function switchTab(tab) {
+async function switchTab(tab) {
   aktifTab = tab;
   document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+tab)?.classList.add('active');
   const c = document.getElementById('panelContent');
-  if (tab === 'tumBagislar') c.innerHTML = renderTumBagislar();
-  else if (tab === 'kurbanlar') c.innerHTML = renderKurbanlar();
-  else if (tab === 'kullanicilar') c.innerHTML = renderKullanicilar();
+  if (!c) return;
+  c.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;"><i class="fa fa-spinner fa-spin" style="font-size:32px;"></i></div>';
+  if (tab === 'tumBagislar') c.innerHTML = await renderTumBagislar();
+  else if (tab === 'kurbanlar') c.innerHTML = await renderKurbanlar();
+  else if (tab === 'kullanicilar') c.innerHTML = await renderKullanicilar();
+  else if (tab === 'ayarlar') c.innerHTML = await renderAyarlar();
 }
 
 /* ---- TUM BAGISLAR ---- */
-function renderTumBagislar() {
-  const list = BagisDB.hepsiniGetir().slice().reverse();
+async function renderTumBagislar() {
+  const list = (await BagisDB.hepsiniGetir()).slice().reverse();
   if (!list.length) return bosEkran('Henuz bagis yok.');
   return `
     <div style="overflow-x:auto;">
@@ -189,8 +195,8 @@ function renderTumBagislar() {
 }
 
 /* ---- KURBAN BAGISLARI ---- */
-function renderKurbanlar() {
-  const list = BagisDB.hepsiniGetir()
+async function renderKurbanlar() {
+  const list = (await BagisDB.hepsiniGetir())
     .filter(b => (b.tur||'').includes('Kurban') || (b.baslik||'').includes('Kurban'))
     .slice().reverse();
   if (!list.length) return bosEkran('Henuz kurban bagisi yok.');
@@ -252,9 +258,9 @@ function renderKurbanlar() {
 }
 
 /* ---- KULLANICILAR ---- */
-function renderKullanicilar() {
-  const users = BagisDB.kullanicilariGetir();
-  const bagislar = BagisDB.hepsiniGetir();
+async function renderKullanicilar() {
+  const users = await BagisDB.kullanicilariGetir();
+  const bagislar = await BagisDB.hepsiniGetir();
   if (!users.length) return bosEkran('Henuz kayitli bagisci yok.');
   return `
     <div style="overflow-x:auto;">
@@ -313,12 +319,12 @@ function detayAc(id) {
 }
 
 /* ---- ISLEMLER ---- */
-function durumDegistir(id, yeniDurum) {
+async function durumDegistir(id, yeniDurum) {
   const varsayilanNot = yeniDurum === 'tamamlandi'
     ? 'Kurbaniniz kesilmistir. Allah kabul etsin.'
     : 'Kurban kesim isleminiz hala devam etmekte. Kesildikten sonra kesildigini buradan gorebilirsiniz.';
-  BagisDB.guncelle(id, { durum: yeniDurum, not: varsayilanNot });
-  switchTab('kurbanlar');
+  await BagisDB.guncelle(id, { durum: yeniDurum, not: varsayilanNot });
+  await switchTab('kurbanlar');
 }
 
 function notPanelAc(id) {
@@ -331,10 +337,10 @@ function notPanelKapat(id) {
   if (p) p.style.display = 'none';
 }
 
-function notKaydet(id) {
+async function notKaydet(id) {
   const not = document.getElementById('nottext-'+id)?.value || '';
   const ekNot = document.getElementById('eknot-'+id)?.value || '';
-  BagisDB.guncelle(id, { not, ekNot });
+  await BagisDB.guncelle(id, { not, ekNot });
   notPanelKapat(id);
   const cell = document.querySelector(`#krow-${id} td:nth-child(8)`);
   if (cell) cell.textContent = not.substring(0,60) + (not.length>60?'...':'');
@@ -363,7 +369,100 @@ if (sessionStorage.getItem('icder_admin') === '1') {
   renderGiris();
 }
 
-// Diger sekmelerden gelen degisiklikleri dinle
+/* ---- SITE AYARLARI ---- */
+async function renderAyarlar() {
+  let cfg = {};
+  try {
+    const r = await fetch('/api/config');
+    if (r.ok) cfg = await r.json();
+  } catch {}
+
+  const DEFAULTS = {
+    telefon: '0850 305 18 55',
+    whatsapp: '905403051855',
+    email: 'bilgi@icder.org',
+    adres: 'Hasköy Mah. Bozkır Sokak No:49 Canik / Samsun',
+    facebook: 'https://www.facebook.com/icdertr',
+    twitter: 'https://x.com/icderorg',
+    instagram: 'https://www.instagram.com/icderorg',
+    youtube: 'https://www.youtube.com/icderorg',
+  };
+  const c = { ...DEFAULTS, ...cfg };
+
+  return `
+    <div style="max-width:700px;">
+      <div style="background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:20px;">
+        <h3 style="color:#1b5e20;font-size:16px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+          <i class="fa fa-phone"></i> İletişim Bilgileri
+        </h3>
+        ${ayarInput('telefon','Telefon','tel',c.telefon)}
+        ${ayarInput('whatsapp','WhatsApp (ülke koduyla, boşluksuz)','text',c.whatsapp)}
+        ${ayarInput('email','E-posta','email',c.email)}
+        ${ayarInput('adres','Adres','text',c.adres)}
+      </div>
+
+      <div style="background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:20px;">
+        <h3 style="color:#1b5e20;font-size:16px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+          <i class="fa fa-share-nodes"></i> Sosyal Medya Linkleri
+        </h3>
+        ${ayarInput('facebook','Facebook URL','url',c.facebook)}
+        ${ayarInput('twitter','X (Twitter) URL','url',c.twitter)}
+        ${ayarInput('instagram','Instagram URL','url',c.instagram)}
+        ${ayarInput('youtube','YouTube URL','url',c.youtube)}
+      </div>
+
+      <button onclick="ayarlariKaydet()"
+        style="background:#2e7d32;color:#fff;padding:14px 32px;border-radius:10px;font-weight:800;font-size:15px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
+        <i class="fa fa-save"></i> Kaydet
+      </button>
+      <div id="ayarMesaj" style="margin-top:12px;font-size:13px;"></div>
+    </div>
+  `;
+}
+
+function ayarInput(id, label, type, value) {
+  return `
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${label}</label>
+      <input id="cfg_${id}" type="${type}" value="${esc(value)}"
+        style="width:100%;padding:11px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;transition:border .2s;"
+        onfocus="this.style.borderColor='#2e7d32'" onblur="this.style.borderColor='#e0e0e0'" />
+    </div>`;
+}
+
+async function ayarlariKaydet() {
+  const fields = ['telefon','whatsapp','email','adres','facebook','twitter','instagram','youtube'];
+  const config = {};
+  fields.forEach(f => {
+    const el = document.getElementById('cfg_' + f);
+    if (el) config[f] = el.value.trim();
+  });
+
+  try {
+    const r = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    const msg = document.getElementById('ayarMesaj');
+    if (r.ok) {
+      msg.innerHTML = '<span style="color:#2e7d32;"><i class="fa fa-check-circle"></i> Ayarlar kaydedildi!</span>';
+    } else {
+      msg.innerHTML = '<span style="color:#e53935;"><i class="fa fa-times-circle"></i> Kaydetme hatasi.</span>';
+    }
+    setTimeout(() => { if(msg) msg.innerHTML = ''; }, 3000);
+  } catch {
+    alert('Sunucu baglantisi kurulamadi.');
+  }
+}
+
+/* ---- INIT ---- */
+if (sessionStorage.getItem('icder_admin') === '1') {
+  renderPanel();
+} else {
+  renderGiris();
+}
+
 window.addEventListener('storage', () => {
   if (sessionStorage.getItem('icder_admin') === '1' && aktifTab) {
     switchTab(aktifTab);

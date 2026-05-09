@@ -82,6 +82,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // POST /api/giris
+  if (req.method === 'POST' && pathname === '/api/giris') {
+    let body = '';
+    req.on('data', d => body += d);
+    req.on('end', () => {
+      try {
+        const { kullaniciAdi, sifre } = JSON.parse(body);
+        const users = readJSON(USERS_FILE);
+        const user = users.find(u => u.kullaniciAdi === kullaniciAdi && u.sifre === sifre);
+        if (user) {
+          json(res, { ok: true, user });
+        } else {
+          json(res, { ok: false, hata: 'Kullanici adi veya sifre yanlis.' }, 401);
+        }
+      } catch { json(res, { error: 'Gecersiz veri' }, 400); }
+    });
+    return;
+  }
+
   // GET /api/bagislar
   if (req.method === 'GET' && pathname === '/api/bagislar') {
     return json(res, readJSON(DB_FILE));
@@ -151,14 +170,13 @@ const server = http.createServer((req, res) => {
     req.on('data', d => body += d);
     req.on('end', () => {
       try {
-        const { ad, soyad, tel, email } = JSON.parse(body);
+        const { ad, soyad, tel, email, sifre, kullaniciAdi: kaKadi } = JSON.parse(body);
         const users = readJSON(USERS_FILE);
-        const kullaniciAdi = (ad + soyad).toLowerCase()
-          .replace(/\s/g,'').replace(/ğ/g,'g').replace(/ü/g,'u')
-          .replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
+        const kullaniciAdi = kaKadi || (ad + soyad).toLowerCase()
+          .replace(/\s/g,'').replace(/[^a-z0-9]/g,'');
         let user = users.find(u => u.kullaniciAdi === kullaniciAdi);
         if (!user) {
-          user = { kullaniciAdi, ad, soyad, tel, email, kayitTarihi: new Date().toISOString() };
+          user = { kullaniciAdi, ad, soyad, tel, email, sifre: sifre||'', kayitTarihi: new Date().toISOString() };
           users.push(user);
           writeJSON(USERS_FILE, users);
         }

@@ -198,6 +198,16 @@ class Sepet {
 
   renderOdeme() {
     const body = document.getElementById('odemeBody');
+    // goStep(2) için global fonksiyon
+    window._odemeDevam = () => {
+      const ad = document.getElementById('odAd')?.value?.trim() || '';
+      const sifre = document.getElementById('odSifre')?.value?.trim() || '';
+      const hataEl = document.getElementById('odemeHata');
+      if (!ad) { if(hataEl){hataEl.textContent='Ad alanı zorunludur.';hataEl.style.display='block';} return; }
+      if (sifre.length < 6) { if(hataEl){hataEl.textContent='Şifre en az 6 karakter olmalıdır.';hataEl.style.display='block';} return; }
+      if(hataEl) hataEl.style.display='none';
+      this.goStep(2);
+    };
     body.innerHTML = `
       <!-- STEPS -->
       <div class="odeme-steps">
@@ -215,7 +225,7 @@ class Sepet {
         </div>
       </div>
 
-      <!-- PANEL 1: KİŞİSEL BİLGİLER -->
+      <!-- PANEL 1: KİŞİSEL BİLGİLER & HESAP -->
       <div class="odeme-panel ${this.currentStep === 1 ? 'active' : ''}" id="panel1">
         <div class="odeme-ozet">
           ${this.items.map(i => `
@@ -228,6 +238,10 @@ class Sepet {
             <span>Toplam</span>
             <span>${this.total().toLocaleString('tr-TR')} ₺</span>
           </div>
+        </div>
+
+        <div style="background:#e8f5e9;border-radius:10px;padding:14px;margin-bottom:18px;font-size:13px;color:#1b5e20;">
+          <i class="fa fa-circle-info"></i> Bağışlarınızı takip edebilmek için hesap oluşturuyoruz. Kullanıcı adı ve şifrenizi not alın.
         </div>
 
         <div class="odeme-form-row">
@@ -248,9 +262,14 @@ class Sepet {
           <label>Telefon</label>
           <input type="tel" id="odTel" placeholder="05XX XXX XX XX" />
         </div>
+        <div class="odeme-form-group">
+          <label>Şifre <span style="color:#888;font-size:11px;">(bağışlarım girişi için)</span></label>
+          <input type="password" id="odSifre" placeholder="En az 6 karakter" />
+        </div>
+        <div id="odemeHata" style="color:#e53935;font-size:13px;margin-bottom:8px;display:none;"></div>
 
         <div class="odeme-nav">
-          <button class="btn-ileri" onclick="window.sepet.goStep(2)">
+          <button class="btn-ileri" onclick="window._odemeDevam()">
             Devam Et <i class="fa fa-arrow-right"></i>
           </button>
         </div>
@@ -350,23 +369,31 @@ class Sepet {
         <div class="odeme-success">
           <div class="odeme-success-icon"><i class="fa fa-check"></i></div>
           <h3>Bağışınız Alındı!</h3>
-          <p>Bağışınız için teşekkür ederiz. Allah kabul etsin. Makbuzunuz e-posta adresinize gönderilecektir.</p>
-          <div style="background:#f9fbe7; border-radius:12px; padding:16px; margin-bottom:20px; text-align:left;">
-            <div style="font-size:13px; color:#888; margin-bottom:8px;">Bağış Özeti</div>
+          <p>Teşekkür ederiz. Allah kabul etsin.</p>
+          <div style="background:#e8f5e9;border-radius:12px;padding:16px;margin-bottom:16px;text-align:left;">
+            <div style="font-size:13px;color:#1b5e20;font-weight:700;margin-bottom:6px;"><i class="fa fa-user-circle"></i> Hesabınız Oluşturuldu</div>
+            <div style="font-size:13px;color:#555;">Kullanıcı adınız: <strong style="color:#1b5e20;" id="successKullaniciAdi">-</strong></div>
+            <div style="font-size:12px;color:#888;margin-top:4px;"><a href="/bagislarim" style="color:#2e7d32;font-weight:600;">Bağışlarım</a> sayfasından takip edebilirsiniz.</div>
+          </div>
+          <div style="background:#f9fbe7;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left;">
+            <div style="font-size:13px;color:#888;margin-bottom:8px;">Bağış Özeti</div>
             ${this.items.map(i => `
-              <div style="display:flex; justify-content:space-between; font-size:14px; color:#333; padding:4px 0;">
+              <div style="display:flex;justify-content:space-between;font-size:14px;color:#333;padding:4px 0;">
                 <span>${i.title}</span>
-                <span style="font-weight:700; color:#1b5e20;">${(i.amount||i.price).toLocaleString('tr-TR')} ₺</span>
+                <span style="font-weight:700;color:#1b5e20;">${(i.amount||i.price).toLocaleString('tr-TR')} ₺</span>
               </div>
             `).join('')}
-            <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:800; color:#1b5e20; padding-top:8px; border-top:1px solid #e8f5e9; margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;color:#1b5e20;padding-top:8px;border-top:1px solid #e8f5e9;margin-top:8px;">
               <span>Toplam</span>
               <span>${this.total().toLocaleString('tr-TR')} ₺</span>
             </div>
           </div>
-          <button class="btn-ileri" onclick="window.sepet.closeOdeme(); window.sepet.clearAfterPayment();">
-            Tamam
-          </button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+            <a href="/bagislarim" class="btn-ileri" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+              <i class="fa fa-basket-shopping"></i> Bağışlarımı Gör
+            </a>
+            <button class="btn-geri" onclick="window.sepet.closeOdeme();window.sepet.clearAfterPayment();">Tamam</button>
+          </div>
         </div>
       </div>
     `;
@@ -388,14 +415,14 @@ class Sepet {
     const soyad = document.getElementById('odSoyad')?.value?.trim() || '';
     const email = document.getElementById('odEmail')?.value?.trim() || '';
     const tel   = document.getElementById('odTel')?.value?.trim() || '';
+    const sifre = document.getElementById('odSifre')?.value?.trim() || '';
 
-    // 1.8sn animasyon sonra kaydet
     setTimeout(async () => {
       try {
         let user = null;
         if (window.BagisDB && ad) {
-          user = await BagisDB.kullaniciKaydet(ad, soyad, tel, email);
-          if (user) await BagisDB.girisYap(user.kullaniciAdi);
+          const kayitSonuc = await BagisDB.kayitOl(ad, soyad, tel, email, sifre);
+          user = kayitSonuc.user || null;
         }
         if (window.BagisDB) {
           for (const item of this.items) {
@@ -411,10 +438,16 @@ class Sepet {
             });
           }
         }
+        this.goStep(3);
+        // Kullanici adini goster
+        setTimeout(() => {
+          const el = document.getElementById('successKullaniciAdi');
+          if (el && user) el.textContent = user.kullaniciAdi;
+        }, 100);
       } catch(e) {
         console.error('Bagis kayit hatasi:', e);
+        this.goStep(3);
       }
-      this.goStep(3);
     }, 1800);
   }
 

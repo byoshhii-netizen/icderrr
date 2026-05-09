@@ -1,159 +1,117 @@
-/* ============================================
-   ICDER – Bağış Veritabanı
-   API varsa sunucuya, yoksa localStorage'a yazar
-   ============================================ */
-
+/* ICDER Bagis Veritabani - API + localStorage fallback */
 const BagisDB = {
 
-  apiBase: '',  // aynı origin, prefix yok
-
   async _get(url) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error();
-      return await r.json();
-    } catch { return null; }
+    try { const r = await fetch(url); return r.ok ? r.json() : null; } catch { return null; }
   },
-
   async _post(url, data) {
-    try {
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await r.json();
-    } catch { return null; }
+    try { const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }); return r.json(); } catch { return null; }
   },
-
   async _put(url, data) {
-    try {
-      const r = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await r.json();
-    } catch { return null; }
+    try { const r = await fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) }); return r.json(); } catch { return null; }
   },
+  _lsGet(k) { try { return JSON.parse(localStorage.getItem(k)||'[]'); } catch { return []; } },
+  _lsSet(k,v) { localStorage.setItem(k, JSON.stringify(v)); },
 
-  // ---- BAĞIŞ KAYDET ----
+  // ---- BAGIS ----
   async kaydet(bagis) {
-    const result = await this._post('/api/bagislar', bagis);
-    if (result) {
-      // localStorage'a da yaz (offline fallback)
+    const r = await this._post('/api/bagislar', bagis);
+    if (r && r.id) {
       const list = this._lsGet('icder_bagislar');
-      list.push(result);
+      list.push(r);
       this._lsSet('icder_bagislar', list);
-      return result;
+      return r;
     }
-    // API yoksa localStorage
     return this._lsKaydet(bagis);
   },
 
-  // ---- HEPSİNİ GETİR ----
   async hepsiniGetir() {
-    const result = await this._get('/api/bagislar');
-    if (result) return result;
-    return this._lsGet('icder_bagislar');
+    const r = await this._get('/api/bagislar');
+    return r || this._lsGet('icder_bagislar');
   },
 
-  // ---- KULLANICIYA GÖRE ----
   async kullaniciBagislari(kullaniciAdi) {
     const list = await this.hepsiniGetir();
-    return list.filter(b =>
-      b.kullaniciAdi && b.kullaniciAdi.toLowerCase() === kullaniciAdi.toLowerCase()
-    );
+    return list.filter(b => b.kullaniciAdi && b.kullaniciAdi.toLowerCase() === kullaniciAdi.toLowerCase());
   },
 
-  // ---- GÜNCELLE ----
-  async guncelle(id, degisiklikler) {
-    const result = await this._put(`/api/bagislar/${id}`, degisiklikler);
-    if (result) {
-      // localStorage'ı da güncelle
-      const list = this._lsGet('icder_bagislar');
-      const idx = list.findIndex(b => b.id === id);
-      if (idx !== -1) { list[idx] = { ...list[idx], ...degisiklikler }; this._lsSet('icder_bagislar', list); }
-      return true;
-    }
-    // Fallback
+  async guncelle(id, data) {
+    await this._put('/api/bagislar/' + id, data);
     const list = this._lsGet('icder_bagislar');
     const idx = list.findIndex(b => b.id === id);
-    if (idx === -1) return false;
-    list[idx] = { ...list[idx], ...degisiklikler };
-    this._lsSet('icder_bagislar', list);
+    if (idx >= 0) { list[idx] = Object.assign({}, list[idx], data); this._lsSet('icder_bagislar', list); }
     return true;
   },
 
-  // ---- KULLANICI KAYDET ----
-  async kullaniciKaydet(ad, soyad, tel, email) {
-    const result = await this._post('/api/kullanicilar', { ad, soyad, tel, email });
-    if (result && !result.error) {
+  _lsKaydet(bagis) {
+    const list = this._lsGet('icder_bagislar');
+    const yeni = Object.assign({
+      id: 'B' + Date.now(),
+      tarih: new Date().toISOString(),
+      durum: (bagis.tur||'').indexOf('Kurban') >= 0 ? 'bekliyor' : 'tamamlandi',
+      not: (bagis.tur||'').indexOf('Kurban') >= 0 ? 'Kurban kesim isleminiz devam etmekte.' : '',
+      ekNot: ''
+    }, bagis);
+    list.push(yeni);
+    this._lsSet('icder_bagislar', list);
+    return yeni;
+  },
+
+  // ---- KULLANICI ----
+  async kayitOl(ad, soyad, tel, email, sifre) {
+    // Kullanici adi olustur
+    const kullaniciAdi = (ad + soyad).toLowerCase()
+      .replace(/\s/g,'').replace(/g/g,'g')
+      .replace(/[^a-z0-9]/g, '');
+
+    const data = { ad, soyad, tel, email, sifre, kullaniciAdi };
+    const r = await this._post('/api/kullanicilar', data);
+    if (r && r.kullaniciAdi) {
       const users = this._lsGet('icder_kullanicilar');
-      if (!users.find(u => u.kullaniciAdi === result.kullaniciAdi)) {
-        users.push(result);
-        this._lsSet('icder_kullanicilar', users);
-      }
-      return result;
+      if (!users.find(u => u.kullaniciAdi === r.kullaniciAdi)) { users.push(r); this._lsSet('icder_kullanicilar', users); }
+      sessionStorage.setItem('icder_aktif_kullanici', JSON.stringify(r));
+      return { ok: true, user: r };
     }
-    return this._lsKullaniciKaydet(ad, soyad, tel, email);
+    // Fallback localStorage
+    const users = this._lsGet('icder_kullanicilar');
+    if (users.find(u => u.kullaniciAdi === kullaniciAdi)) {
+      return { ok: false, hata: 'Bu kullanici adi zaten kayitli.' };
+    }
+    const yeni = { kullaniciAdi, ad, soyad, tel, email, sifre, kayitTarihi: new Date().toISOString() };
+    users.push(yeni);
+    this._lsSet('icder_kullanicilar', users);
+    sessionStorage.setItem('icder_aktif_kullanici', JSON.stringify(yeni));
+    return { ok: true, user: yeni };
   },
 
-  async kullanicilariGetir() {
-    const result = await this._get('/api/kullanicilar');
-    if (result) return result;
-    return this._lsGet('icder_kullanicilar');
-  },
-
-  async girisYap(kullaniciAdi) {
-    const result = await this._get(`/api/kullanicilar/${kullaniciAdi}`);
-    const user = result && !result.error ? result : this._lsGet('icder_kullanicilar').find(u => u.kullaniciAdi === kullaniciAdi);
+  async girisYap(kullaniciAdi, sifre) {
+    // API ile dene
+    const r = await this._post('/api/giris', { kullaniciAdi, sifre });
+    if (r && r.ok) {
+      sessionStorage.setItem('icder_aktif_kullanici', JSON.stringify(r.user));
+      return { ok: true, user: r.user };
+    }
+    // localStorage fallback
+    const users = this._lsGet('icder_kullanicilar');
+    const user = users.find(u => u.kullaniciAdi === kullaniciAdi && u.sifre === sifre);
     if (user) {
       sessionStorage.setItem('icder_aktif_kullanici', JSON.stringify(user));
-      return user;
+      return { ok: true, user };
     }
-    return null;
+    return { ok: false, hata: 'Kullanici adi veya sifre yanlis.' };
   },
 
   aktifKullanici() {
-    return JSON.parse(sessionStorage.getItem('icder_aktif_kullanici') || 'null');
+    try { return JSON.parse(sessionStorage.getItem('icder_aktif_kullanici') || 'null'); } catch { return null; }
   },
 
   cikisYap() {
     sessionStorage.removeItem('icder_aktif_kullanici');
   },
 
-  // ---- LOCALSTORAGE FALLBACK ----
-  _lsGet(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } },
-  _lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); },
-
-  _lsKaydet(bagis) {
-    const list = this._lsGet('icder_bagislar');
-    const yeni = {
-      id: 'B' + Date.now(),
-      tarih: new Date().toISOString(),
-      durum: (bagis.tur||'').includes('Kurban') ? 'bekliyor' : 'tamamlandi',
-      not: (bagis.tur||'').includes('Kurban') ? 'Kurban kesim işleminiz devam etmekte.' : '',
-      ekNot: '',
-      ...bagis
-    };
-    list.push(yeni);
-    this._lsSet('icder_bagislar', list);
-    return yeni;
-  },
-
-  _lsKullaniciKaydet(ad, soyad, tel, email) {
-    const users = this._lsGet('icder_kullanicilar');
-    const kullaniciAdi = (ad + soyad).toLowerCase()
-      .replace(/\s/g,'').replace(/ğ/g,'g').replace(/ü/g,'u')
-      .replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
-    let user = users.find(u => u.kullaniciAdi === kullaniciAdi);
-    if (!user) {
-      user = { kullaniciAdi, ad, soyad, tel, email, kayitTarihi: new Date().toISOString() };
-      users.push(user);
-      this._lsSet('icder_kullanicilar', users);
-    }
-    return user;
+  async kullanicilariGetir() {
+    const r = await this._get('/api/kullanicilar');
+    return r || this._lsGet('icder_kullanicilar');
   }
 };
 

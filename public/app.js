@@ -1626,23 +1626,28 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation) {
       '</tr>';
   }
 
+  const isBuyukbas = tur === 'buyukbas';
+
   const printStyle =
     '@page { margin: 12mm 15mm; size: A4 ' + orientation + '; }' +
     '* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
-    'html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }' +
-    '.page { display: flex; flex-direction: column; height: calc(' + pageH + ' - 24mm); overflow: hidden; }' +
-    '.header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; flex-shrink: 0; }' +
+    'html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000;' + (isBuyukbas ? ' height: 100%;' : '') + ' }' +
+    (isBuyukbas
+      ? '.page { display: flex; flex-direction: column; height: calc(' + pageH + ' - 24mm); overflow: hidden; }'
+      : '.page { display: block; }') +
+    '.header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; }' +
     '.header-left { width: ' + bw + 'px; }' +
     '.header-center { flex: 1; text-align: center; padding: 0 10px; }' +
     '.header-center img { height: ' + logoH + '; max-width: 400px; object-fit: contain; }' +
     '.header-right { width: ' + bw + 'px; display: flex; justify-content: flex-end; }' +
-    '.kurban-title { font-size: ' + titleSize + '; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; flex-shrink: 0; }' +
-    '.table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }' +
-    'table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }' +
+    '.kurban-title { font-size: ' + titleSize + '; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; }' +
+    (isBuyukbas
+      ? '.table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; } table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }'
+      : '.table-wrap { } table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }') +
     'thead { display: table-header-group; }' +
     'th { border: 2px solid #000; padding: 6px 10px; font-size: 16px; font-weight: 700; text-align: center; }' +
     'tbody { display: table-row-group; }' +
-    'tbody tr { height: calc(100% / ' + satirSayisi + '); }' +
+    (isBuyukbas ? 'tbody tr { height: calc(100% / 7); }' : 'tbody tr { }') +
     'td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 800; width: 50px; vertical-align: middle; }' +
     'td.ad-cell { border: 2px solid #000; padding: 2px 10px; font-weight: 800; vertical-align: middle; text-align: center; white-space: nowrap; overflow: hidden; }' +
     'td.tur-cell { border: 2px solid #000; text-align: center; font-size: 19px; font-weight: 700; width: 140px; vertical-align: middle; }' +

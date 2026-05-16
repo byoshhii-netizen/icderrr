@@ -1629,22 +1629,24 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
       @page { margin: ${pageMargin}; size: A4 ${orientation}; }
       * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }
-      .page { display: flex; flex-direction: column; min-height: calc(${pageH} - 24mm); }
-      .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; margin-bottom: 14px; }
+      .page { display: flex; flex-direction: column; height: calc(${isLandscape ? '210mm' : '297mm'} - 24mm); overflow: hidden; }
+      .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; flex-shrink: 0; }
       .header-left { width: ${bw}px; }
       .header-center { flex: 1; text-align: center; padding: 0 10px; }
-      .header-center img { height: ${logoH}; max-width: 400px; object-fit: contain; }
+      .header-center img { height: ${isLandscape ? '100px' : '120px'}; max-width: 400px; object-fit: contain; }
       .header-right { width: ${bw}px; display: flex; justify-content: flex-end; }
-      .kurban-title { font-size: 36px; font-weight: 700; color: #1a2a50; text-align: center; margin: 12px 0 16px; }
-      .table-wrap { flex: 1; display: flex; flex-direction: column; }
-      table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
-      th { border: 2px solid #000; padding: 10px 14px; font-size: 16px; font-weight: 700; text-align: center; }
+      .kurban-title { font-size: ${isLandscape ? '28px' : '32px'}; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; flex-shrink: 0; }
+      .table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }
+      thead { display: table-header-group; }
+      th { border: 2px solid #000; padding: 6px 10px; font-size: 14px; font-weight: 700; text-align: center; }
       th.ad-th { text-align: left; }
-      tbody tr { height: ${rowH}; }
-      td.no-cell { border: 2px solid #000; text-align: center; font-size: 20px; font-weight: 700; width: 56px; vertical-align: middle; }
-      td.ad-cell { border: 2px solid #000; padding: 0 18px; font-size: 19px; font-weight: 700; vertical-align: middle; }
-      td.tur-cell { border: 2px solid #000; text-align: center; font-size: 19px; font-weight: 600; width: 150px; vertical-align: middle; }
-      @media print { html, body { margin: 0; padding: 0; } }
+      tbody { display: table-row-group; }
+      tbody tr { height: calc(100% / 7); }
+      td.no-cell { border: 2px solid #000; text-align: center; font-size: 18px; font-weight: 700; width: 50px; vertical-align: middle; }
+      td.ad-cell { border: 2px solid #000; padding: 0 14px; font-size: 17px; font-weight: 700; vertical-align: middle; }
+      td.tur-cell { border: 2px solid #000; text-align: center; font-size: 17px; font-weight: 600; width: 140px; vertical-align: middle; }
+      @media print { html, body { margin: 0; padding: 0; } table { page-break-inside: avoid; } }
     `;
 
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ${kurbanNo}</title>

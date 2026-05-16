@@ -1521,6 +1521,11 @@ async function yazdirKurban(kurbanId, kurbanNo, tur) {
 
 // ─── YAZDIR SEÇİM MODALI ────────────────────────────────────────────────────
 function modalYazdirSecim(kurbanId, kurbanNo, tur) {
+  if (tur === 'kucukbas') {
+    // Tekli için direkt dikey yazdır, modal açma
+    yazdirKurbanDikey(kurbanId, kurbanNo, tur);
+    return;
+  }
   openModal('Yazdırma Yönü Seçin', `
     <div style="text-align:center;padding:20px 0">
       <p style="color:var(--text2);margin-bottom:30px;font-size:15px">Kurban ${kurbanNo} için yazdırma yönünü seçin:</p>
@@ -1640,11 +1645,11 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
       table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }
       thead { display: table-header-group; }
       th { border: 2px solid #000; padding: 6px 10px; font-size: 16px; font-weight: 700; text-align: center; }
-      th.ad-th { text-align: left; }
+      th.ad-th { text-align: center; }
       tbody { display: table-row-group; }
       tbody tr { height: calc(100% / 7); }
       td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 800; width: 50px; vertical-align: middle; }
-      td.ad-cell { border: 2px solid #000; padding: 0 14px; font-size: 21px; font-weight: 800; vertical-align: middle; }
+      td.ad-cell { border: 2px solid #000; padding: 4px 14px; font-size: 21px; font-weight: 800; vertical-align: middle; text-align: center; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; }
       td.tur-cell { border: 2px solid #000; text-align: center; font-size: 21px; font-weight: 700; width: 140px; vertical-align: middle; }
       @media print { html, body { margin: 0; padding: 0; } table { page-break-inside: avoid; } }
     `;
@@ -1662,7 +1667,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
           <table>
             <thead><tr>
               <th style="width:56px">No</th>
-              <th class="ad-th">Ad Soyad</th>
+              <th class="ad-th" style="text-align:center">Ad Soyad</th>
               <th style="width:150px">Kurban Türü</th>
             </tr></thead>
             <tbody>${rows}</tbody>
@@ -1672,56 +1677,48 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
     </body></html>`;
   }
 
-  // ── TEKLİ (KÜÇÜKBAŞ): eski sade tasarım, portrait, isim ortada ──
+  // ── TEKLİ (KÜÇÜKBAŞ): sade, portrait, üstte ──
   const h = hisseler[0];
   const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
 
   const printStyle = `
     @page { margin: 15mm; size: A4 portrait; }
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }
-    .page { display: flex; flex-direction: column; height: calc(297mm - 30mm); }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; flex-shrink: 0; }
+    html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; }
     .header-left { width: 150px; display: flex; align-items: center; }
     .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; padding: 0 10px; }
-    .header-center img { height: 160px; max-width: 380px; object-fit: contain; }
+    .header-center img { height: 180px; max-width: 400px; object-fit: contain; }
     .header-right { width: 150px; display: flex; align-items: center; justify-content: flex-end; }
-    .kurban-title { font-size: 40px; font-weight: 800; color: #1a2a50; text-align: center; margin: 16px 0 24px; flex-shrink: 0; }
-    .table-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
-    table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
-    th { border: 2px solid #000; padding: 14px 16px; text-align: left; font-size: 20px; font-weight: 700; background: #fff; }
-    th.center { text-align: center; }
-    td { border: 2px solid #000; padding: 28px 20px; font-size: 26px; font-weight: 700; vertical-align: middle; }
-    td.center { text-align: center; }
+    .kurban-title { font-size: 36px; font-weight: 700; color: #1a2a50; text-align: center; margin: 20px 0 30px; }
+    table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
+    th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 18px; font-weight: 700; background: #fff; }
+    td { border: 1.5px solid #000; padding: 8px 12px; font-size: 18px; font-weight: 600; }
     @media print { html, body { margin: 0; padding: 0; } }
   `;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ${kurbanNo}</title>
     <style>${printStyle}</style></head><body>
-    <div class="page">
-      <div class="header">
-        <div class="header-left">${turkBayrakSVG}</div>
-        <div class="header-center"><img src="${logoSrc}" alt="Logo" onerror="this.style.visibility='hidden'"/></div>
-        <div class="header-right">${bayrakImg}</div>
-      </div>
-      <div class="kurban-title">Kurban : ${kurbanNo}</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th class="center" style="width:70px">No</th>
-            <th>Ad Soyad</th>
-            <th class="center" style="width:160px">Kurban Türü</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td class="center">1</td>
-              <td>${h && h.bagisci_adi ? h.bagisci_adi : ''}</td>
-              <td class="center">${hisseTuru}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="header">
+      <div class="header-left">${turkBayrakSVG}</div>
+      <div class="header-center"><img src="${logoSrc}" alt="Logo" onerror="this.style.visibility='hidden'"/></div>
+      <div class="header-right">${bayrakImg}</div>
     </div>
+    <div class="kurban-title">Kurban : ${kurbanNo}</div>
+    <table>
+      <thead><tr>
+        <th style="width:60px;text-align:center">No</th>
+        <th>Ad Soyad</th>
+        <th style="width:140px;text-align:center">Kurban Türü</th>
+      </tr></thead>
+      <tbody>
+        <tr style="height:42px">
+          <td style="text-align:center;font-weight:700">1</td>
+          <td>${h && h.bagisci_adi ? h.bagisci_adi : ''}</td>
+          <td style="text-align:center">${hisseTuru}</td>
+        </tr>
+      </tbody>
+    </table>
   </body></html>`;
 }
 // ═══════════════════════════════════════════════════════════════════════════

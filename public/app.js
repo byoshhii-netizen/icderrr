@@ -2029,53 +2029,66 @@ async function modalKapatmaYedek() {
 
 function yazdirBagiscilar() {
   if (!S.orgId) return toast('Once organizasyon secin', 'error');
-  const tbody = document.getElementById('bagisci-tbody');
-  if (!tbody) return toast('Bagisci listesi yuklu degil', 'error');
-
-  const rows = Array.from(tbody.querySelectorAll('tr')).map(tr => {
-    const cells = tr.querySelectorAll('td');
-    if (!cells.length) return '';
-    let r = '<tr>';
-    cells.forEach((td, i) => {
-      if (i < cells.length - 1) r += '<td>' + td.innerText.trim() + '</td>';
-    });
-    r += '</tr>';
-    return r;
-  }).join('');
+  if (!_tumBagiscilar || !_tumBagiscilar.length) return toast('Bagisci listesi yuklu degil', 'error');
 
   const baseUrl = window.location.origin;
   const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/yazi.png');
+  const oLabel = {odendi:'Ödendi', iptal:'İptal', bekliyor:'Bekliyor'};
+
+  const rows = _tumBagiscilar.map((h, i) => {
+    const fiyat = h.kurban_fiyat || (() => {
+      const k = _kurbanlar.find(k => k.id === h.kurban_id);
+      return k ? (k.fiyat || k.alis_fiyati || 0) : 0;
+    })();
+    const siraNo = _tumBagiscilar.length - i;
+    return `<tr>
+      <td>${siraNo}</td>
+      <td><strong>${esc(h.bagisci_adi)}</strong></td>
+      <td>${h.bagisci_telefon || '-'}</td>
+      <td>${h.bagisci_kategori || '-'}</td>
+      <td>${h.kimin_adina || '-'}</td>
+      <td>${h.kurban_no}</td>
+      <td>${h.hisse_no}</td>
+      <td>${h.tur === 'buyukbas' ? 'Büyükbaş' : 'Küçükbaş'}</td>
+      <td>${h.kurban_turu || 'Udhiye'}</td>
+      <td><strong>${fiyat ? fiyat.toLocaleString('tr-TR') + ' ₺' : '-'}</strong></td>
+      <td>${oLabel[h.odeme_durumu] || h.odeme_durumu || '-'}</td>
+      <td>${h.video_ister ? 'Evet' : 'Hayır'}</td>
+      <td>${h.vekalet_onay ? 'Alındı' : 'Alınmadı'}</td>
+    </tr>`;
+  }).join('');
 
   const printStyle = `
-    @page { margin: 12mm 15mm; size: A4; }
+    @page { margin: 10mm 12mm; size: A4 landscape; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; border-bottom: 3px solid #000; padding-bottom: 12px; }
-    .header img { height: 70px; object-fit: contain; }
-    .header-info { flex: 1; }
-    .header-info .title { font-size: 22px; font-weight: 900; }
-    .header-info .sub { font-size: 15px; color: #333; margin-top: 3px; font-weight: 600; }
-    .header-right { text-align: right; font-size: 15px; color: #333; font-weight: 600; }
-    table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
-    th { background: #1a2a50; color: #fff; padding: 10px 8px; text-align: left; font-size: 13px; font-weight: 700; border: 1px solid #000; }
-    td { padding: 9px 8px; border: 1px solid #999; font-size: 13px; line-height: 1.5; font-weight: 500; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; border-bottom: 3px solid #000; padding-bottom: 10px; }
+    .header img { height: 60px; object-fit: contain; }
+    .header-info .title { font-size: 20px; font-weight: 900; }
+    .header-info .sub { font-size: 13px; color: #333; margin-top: 2px; }
+    .header-right { margin-left: auto; text-align: right; font-size: 13px; color: #333; }
+    table { width: 100%; border-collapse: collapse; border: 2px solid #000; font-size: 11px; }
+    th { background: #1a2a50; color: #fff; padding: 7px 5px; text-align: left; font-size: 11px; font-weight: 700; border: 1px solid #000; }
+    td { padding: 6px 5px; border: 1px solid #bbb; font-size: 11px; line-height: 1.4; }
     tr:nth-child(even) { background: #f5f5f5; }
-    .footer { display: none; }
     @media print { body { margin: 0; } }
   `;
 
-  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bagisci Listesi</title>' +
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bağışçı Listesi</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
     '<div class="header-info">' +
-    '<div class="sub">Bağışçı Listesi &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
+    '<div class="title">Bağışçı Listesi</div>' +
+    '<div class="sub">' + esc(S.orgAd) + ' — ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
     '</div>' +
-    '<div class="header-right">Organizasyon: <strong>' + esc(S.orgAd) + '</strong><br>' + S.orgYil + '</div>' +
+    '<div class="header-right">Toplam: <strong>' + _tumBagiscilar.length + ' kişi</strong></div>' +
     '</div>' +
-    '<table><thead><tr><th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kimin Adına</th><th>Kurban No</th><th>Hisse</th><th>Tür</th><th>Ödeme</th><th>Video</th></tr></thead>' +
-    '<tbody>' + rows + '</tbody></table>' +
-    '<div class="footer">İÇDER</div>' +
+    '<table><thead><tr>' +
+    '<th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kimin Adına</th>' +
+    '<th>Kurban No</th><th>Hisse</th><th>Hayvan</th><th>Kurban Türü</th>' +
+    '<th>Ücret</th><th>Ödeme</th><th>Video</th><th>Vekalet</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>' +
     '</body></html>';
 
   printHTML(html);

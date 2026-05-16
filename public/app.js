@@ -1521,11 +1521,6 @@ async function yazdirKurban(kurbanId, kurbanNo, tur) {
 
 // ─── YAZDIR SEÇİM MODALI ────────────────────────────────────────────────────
 function modalYazdirSecim(kurbanId, kurbanNo, tur) {
-  if (tur === 'kucukbas') {
-    // Tekli için direkt dikey yazdır, modal açma
-    yazdirKurbanDikey(kurbanId, kurbanNo, tur);
-    return;
-  }
   openModal('Yazdırma Yönü Seçin', `
     <div style="text-align:center;padding:20px 0">
       <p style="color:var(--text2);margin-bottom:30px;font-size:15px">Kurban ${kurbanNo} için yazdırma yönünü seçin:</p>

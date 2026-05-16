@@ -54,26 +54,26 @@ body.theme-light-green {
 
 /* ── BEYAZ/MAVİ TEMA ── */
 body.theme-light {
-  --bg:      #f8fafc;
+  --bg:      #eef2ff;
   --bg2:     #ffffff;
-  --bg3:     #f1f5f9;
-  --bg4:     #e2e8f0;
-  --bg5:     #cbd5e1;
-  --border:  #cbd5e1;
-  --border2: #94a3b8;
-  --accent:  #3b82f6;
-  --accent2: #60a5fa;
-  --purple:  #8b5cf6;
-  --green:   #10b981;
-  --yellow:  #f59e0b;
-  --red:     #ef4444;
-  --text:    #0f172a;
-  --text2:   #475569;
-  --text3:   #64748b;
-  --glow:    rgba(59,130,246,0.15);
-  --glow2:   rgba(59,130,246,0.08);
-  --shadow:  0 8px 32px rgba(0,0,0,0.1);
-  --hover-bg: rgba(59,130,246,0.06);
+  --bg3:     #f0f4ff;
+  --bg4:     #e0e7ff;
+  --bg5:     #c7d2fe;
+  --border:  #c7d2fe;
+  --border2: #a5b4fc;
+  --accent:  #4f46e5;
+  --accent2: #6366f1;
+  --purple:  #7c3aed;
+  --green:   #059669;
+  --yellow:  #d97706;
+  --red:     #dc2626;
+  --text:    #1e1b4b;
+  --text2:   #3730a3;
+  --text3:   #6366f1;
+  --glow:    rgba(79,70,229,0.18);
+  --glow2:   rgba(79,70,229,0.08);
+  --shadow:  0 8px 32px rgba(79,70,229,0.12);
+  --hover-bg: rgba(79,70,229,0.07);
   --card-bg: #ffffff;
 }
 
@@ -166,6 +166,104 @@ body.theme-mint .modal,
 body.theme-olive .modal { 
   background: linear-gradient(135deg, var(--bg2), var(--bg3)); 
 }
+
+/* ── BEYAZ/MAVİ TEMA ÖZEL STİLLER ── */
+body.theme-light .topbar {
+  background: linear-gradient(90deg, #4f46e5, #6366f1, #818cf8) !important;
+  box-shadow: 0 4px 20px rgba(79,70,229,0.3) !important;
+}
+body.theme-light .topbar-brand .brand-text,
+body.theme-light .topbar-brand .brand-text span,
+body.theme-light .topbar-right .topbar-badge,
+body.theme-light .topbar-right button {
+  color: #ffffff !important;
+}
+body.theme-light .topbar-brand .logo-icon {
+  background: rgba(255,255,255,0.2) !important;
+  border-color: rgba(255,255,255,0.5) !important;
+}
+body.theme-light .sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f0f4ff 100%) !important;
+  border-right: 1px solid #c7d2fe;
+}
+body.theme-light .sidebar-item:hover,
+body.theme-light .sidebar-item.active {
+  background: linear-gradient(90deg, rgba(79,70,229,0.1), rgba(79,70,229,0.05)) !important;
+  border-left: 3px solid #4f46e5;
+}
+body.theme-light .card {
+  background: #ffffff;
+  border: 1px solid #e0e7ff;
+  box-shadow: 0 4px 16px rgba(79,70,229,0.08);
+}
+body.theme-light .btn-primary {
+  background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+  box-shadow: 0 4px 12px rgba(79,70,229,0.3) !important;
+}
+body.theme-light .page-header {
+  background: linear-gradient(135deg, rgba(79,70,229,0.06), rgba(99,102,241,0.03));
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(79,70,229,0.1);
+}
+body.theme-light .badge-blue { background: #4f46e5; color: #fff; }
+body.theme-light .badge-green { background: #059669; color: #fff; }
+body.theme-light .badge-gray { background: #6b7280; color: #fff; }
+body.theme-light .badge-purple { background: #7c3aed; color: #fff; }
+body.theme-light .badge-yellow { background: #d97706; color: #fff; }
+body.theme-light .badge-red { background: #dc2626; color: #fff; }
+body.theme-light table thead tr {
+  background: linear-gradient(90deg, #4f46e5, #6366f1) !important;
+}
+body.theme-light table thead th {
+  color: #ffffff !important;
+}
+body.theme-light .modal {
+  background: #ffffff !important;
+  border: 1px solid #c7d2fe;
+  box-shadow: 0 20px 60px rgba(79,70,229,0.2) !important;
+}
+body.theme-light .modal-header {
+  background: linear-gradient(90deg, #4f46e5, #6366f1) !important;
+  border-radius: 12px 12px 0 0;
+}
+body.theme-light .modal-title,
+body.theme-light .modal-close {
+  color: #ffffff !important;
+}
+body.theme-light .form-group input,
+body.theme-light .form-group select,
+body.theme-light .form-group textarea {
+  background: #f8faff !important;
+  border: 1.5px solid #c7d2fe !important;
+  color: #1e1b4b !important;
+}
+body.theme-light .form-group input:focus,
+body.theme-light .form-group select:focus,
+body.theme-light .form-group textarea:focus {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.15) !important;
+}
+body.theme-light .org-card {
+  background: #ffffff;
+  border: 1px solid #e0e7ff;
+  box-shadow: 0 4px 16px rgba(79,70,229,0.08);
+}
+body.theme-light .org-card:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 8px 24px rgba(79,70,229,0.15);
+}
+body.theme-light .hisse-card {
+  background: #f8faff;
+  border: 1.5px solid #e0e7ff;
+}
+body.theme-light .hisse-card.dolu {
+  background: linear-gradient(135deg, #eef2ff, #f0f4ff);
+  border-color: #a5b4fc;
+}
+body.theme-light .progress-bar { background: #e0e7ff; }
+body.theme-light .progress-fill { background: linear-gradient(90deg, #4f46e5, #818cf8); }
 
 /* ── KOYU MAVİ TEMA ── */
 body.theme-dark-blue {

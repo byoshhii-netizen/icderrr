@@ -153,9 +153,12 @@ router.put('/hisseler/:id', async (req, res) => {
   const db = await getDb();
   const { bagisci_adi, bagisci_telefon, bagisci_kategori, kimin_adina, kimin_adina_telefon, odeme_durumu, video_ister, aciklama, kurban_turu, vekalet_onay } = req.body;
   const vekalet_tarihi = vekalet_onay ? new Date().toISOString() : null;
+  // kurban_turu gönderilmemişse mevcut değeri koru
+  const mevcutHisse = db.prepare('SELECT kurban_turu FROM hisseler WHERE id=?').get(req.params.id);
+  const finalKurbanTuru = kurban_turu || (mevcutHisse && mevcutHisse.kurban_turu) || 'Udhiye';
   db.prepare(`UPDATE hisseler SET bagisci_adi=?,bagisci_telefon=?,bagisci_kategori=?,kimin_adina=?,kimin_adina_telefon=?,odeme_durumu=?,video_ister=?,aciklama=?,kurban_turu=?,vekalet_onay=?,vekalet_tarihi=? WHERE id=?`)
     .run(bagisci_adi || null, bagisci_telefon || null, bagisci_kategori || 'Genel Bağışçı', kimin_adina || null, kimin_adina_telefon || null,
-      odeme_durumu || 'bekliyor', video_ister ? 1 : 0, aciklama || null, kurban_turu || 'Udhiye', vekalet_onay ? 1 : 0, vekalet_tarihi, req.params.id);
+      odeme_durumu || 'bekliyor', video_ister ? 1 : 0, aciklama || null, finalKurbanTuru, vekalet_onay ? 1 : 0, vekalet_tarihi, req.params.id);
   res.json({ ok: true });
 });
 

@@ -2430,16 +2430,16 @@ async function excelYedekSecildi(input) {
 // TEMA SİSTEMİ
 // ═══════════════════════════════════════════════════════════════════════════
 const TEMALAR = [
-  { id: 'dark',        name: 'Koyu Yeşil',    class: '',                  emoji: '🌿', preview: '#0a1410,#10b981' },
-  { id: 'light-green', name: 'Açık Yeşil',    class: 'theme-light-green', emoji: '🍃', preview: '#f0fdf7,#059669' },
-  { id: 'mint',        name: 'Nane Yeşili',   class: 'theme-mint',        emoji: '🌊', preview: '#f0fdfa,#14b8a6' },
-  { id: 'olive',       name: 'Zeytin Yeşili', class: 'theme-olive',       emoji: '🫒', preview: '#f7fee7,#65a30d' },
-  { id: 'light',       name: 'Beyaz/Mavi',    class: 'theme-light',       emoji: '❄️', preview: '#f8fafc,#3b82f6' },
-  { id: 'dark-blue',   name: 'Koyu Mavi',     class: 'theme-dark-blue',   emoji: '🌌', preview: '#0a0f1e,#6366f1' },
-  { id: 'dark-purple', name: 'Mor Gece',      class: 'theme-dark-purple', emoji: '🔮', preview: '#0d0a1e,#a855f7' },
-  { id: 'dark-red',    name: 'Kırmızı Kor',   class: 'theme-dark-red',    emoji: '🔥', preview: '#1a0a0a,#ef4444' },
-  { id: 'dark-gold',   name: 'Altın Çöl',     class: 'theme-dark-gold',   emoji: '🏜️', preview: '#1a1200,#f59e0b' },
-  { id: 'ocean',       name: 'Okyanus',       class: 'theme-ocean',       emoji: '🌊', preview: '#0a1628,#0ea5e9' }
+  { id: 'dark',        name: 'Koyu Yeşil',    class: '',                  preview: '#0a1410,#10b981' },
+  { id: 'light-green', name: 'Açık Yeşil',    class: 'theme-light-green', preview: '#f0fdf7,#059669' },
+  { id: 'mint',        name: 'Nane Yeşili',   class: 'theme-mint',        preview: '#f0fdfa,#14b8a6' },
+  { id: 'olive',       name: 'Zeytin Yeşili', class: 'theme-olive',       preview: '#f7fee7,#65a30d' },
+  { id: 'light',       name: 'Beyaz/Mavi',    class: 'theme-light',       preview: '#f8fafc,#3b82f6' },
+  { id: 'dark-blue',   name: 'Koyu Mavi',     class: 'theme-dark-blue',   preview: '#0a0f1e,#6366f1' },
+  { id: 'dark-purple', name: 'Mor Gece',      class: 'theme-dark-purple', preview: '#0d0a1e,#a855f7' },
+  { id: 'dark-red',    name: 'Kırmızı Kor',   class: 'theme-dark-red',    preview: '#1a0a0a,#ef4444' },
+  { id: 'dark-gold',   name: 'Altın Çöl',     class: 'theme-dark-gold',   preview: '#1a1200,#f59e0b' },
+  { id: 'ocean',       name: 'Okyanus',       class: 'theme-ocean',       preview: '#0a1628,#0ea5e9' }
 ];
 
 function toggleTheme() {
@@ -2467,7 +2467,6 @@ function modalTemaSecim() {
           <div style="width:10px;height:10px;border-radius:50%;background:${accent}44"></div>
         </div>
         <div style="background:${bg}dd;padding:8px 12px;text-align:center">
-          <div style="font-size:18px">${t.emoji}</div>
           <div style="font-size:12px;font-weight:600;color:${accent};margin-top:2px">${t.name}</div>
           ${secili ? '<div style="font-size:10px;color:#aaa;margin-top:2px">✓ Aktif</div>' : ''}
         </div>

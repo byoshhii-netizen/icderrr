@@ -525,8 +525,8 @@ router.get('/otomatik-yedek-ayar', adminKontrol, async (req, res) => {
     const aktif  = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='oto_yedek_aktif'").get();
     const dakika = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='oto_yedek_dakika'").get();
     res.json({
-      aktif:  aktif?.deger  !== '0',          // varsayılan: açık
-      dakika: parseInt(dakika?.deger || '10') // varsayılan: 10 dk
+      aktif:  aktif?.deger  !== '0',
+      dakika: parseInt(dakika?.deger || '10')
     });
   } catch (e) { res.status(500).json({ hata: e.message }); }
 });
@@ -538,8 +538,59 @@ router.post('/otomatik-yedek-ayar', adminKontrol, async (req, res) => {
     db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('oto_yedek_aktif', ?)").run(aktif ? '1' : '0');
     const dk = Math.max(1, Math.min(1440, parseInt(dakika) || 10));
     db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('oto_yedek_dakika', ?)").run(String(dk));
+    // Timer'ı yeniden başlat
+    try {
+      const serverMod = require('../server');
+      if (serverMod.otoYedekBaslat) serverMod.otoYedekBaslat();
+    } catch(e) {}
     res.json({ ok: true, aktif, dakika: dk });
   } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// ─── OTOMATİK YEDEK LOGLARI ─────────────────────────────────────────────────
+router.get('/oto-yedek-loglar', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    // Tablo yoksa oluştur
+    db.exec("CREATE TABLE IF NOT EXISTS oto_yedek_loglar (id INTEGER PRIMARY KEY AUTOINCREMENT, dosya_adi TEXT NOT NULL, boyut INTEGER DEFAULT 0, tarih DATETIME DEFAULT CURRENT_TIMESTAMP, durum TEXT DEFAULT 'basarili')");
+    const list = db.prepare('SELECT * FROM oto_yedek_loglar ORDER BY id DESC LIMIT 100').all();
+    res.json(list);
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
+// ─── OTOMATİK YEDEK İNDİR ───────────────────────────────────────────────────
+router.get('/oto-yedek-indir/:dosyaAdi', adminKontrol, async (req, res) => {
+  const { dosyaAdi } = req.params;
+  if (!dosyaAdi.startsWith('oto-yedek-') || !dosyaAdi.endsWith('.json') || dosyaAdi.includes('..') || dosyaAdi.includes('/')) {
+    return res.status(400).json({ hata: 'Geçersiz dosya adı' });
+  }
+  const fs = require('fs');
+  const pathMod = require('path');
+  let dir;
+  try {
+    const { app: electronApp } = require('electron');
+    dir = pathMod.join(electronApp.getPath('userData'), 'otomatik-yedek');
+  } catch (e) {
+    dir = pathMod.join(__dirname, '..', 'otomatik-yedek');
+  }
+  const dosyaYolu = pathMod.join(dir, dosyaAdi);
+  if (!fs.existsSync(dosyaYolu)) return res.status(404).json({ hata: 'Dosya bulunamadı' });
+  res.setHeader('Content-Disposition', `attachment; filename="${dosyaAdi}"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.sendFile(dosyaYolu);
+});
+
+// ─── HEMEN YEDEK AL ─────────────────────────────────────────────────────────
+router.post('/oto-yedek-simdi', adminKontrol, async (req, res) => {
+  try {
+    const serverMod = require('../server');
+    if (serverMod.otoYedekCalistir) {
+      await serverMod.otoYedekCalistir();
+      res.json({ ok: true, mesaj: 'Yedek alındı' });
+    } else {
+      res.status(500).json({ hata: 'Yedek fonksiyonu bulunamadı' });
+    }
+  } catch(e) { res.status(500).json({ hata: e.message }); }
 });
 
 // ─── KATEGORİ YÖNETİMİ ──────────────────────────────────────────────────────

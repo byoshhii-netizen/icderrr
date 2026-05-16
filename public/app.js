@@ -2306,17 +2306,17 @@ async function yukleOtoYedekAyar() {
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
           <div>
             <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Otomatik Yedek</div>
-            <div style="font-size:12px;color:var(--text3)">Program çalışırken arka planda otomatik yedek alır</div>
+            <div style="font-size:12px;color:var(--text3)">Sunucu çalışırken arka planda otomatik yedek alır — tarayıcı kapalı olsa bile</div>
           </div>
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-            <span style="font-size:13px;color:var(--text2)">${aktif ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>'}</span>
+            <span style="font-size:13px;color:var(--text2)" id="oto-yedek-label">${aktif ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>'}</span>
             <div style="position:relative;width:44px;height:24px">
               <input type="checkbox" id="oto-yedek-toggle" ${aktif ? 'checked' : ''} 
                 style="opacity:0;width:0;height:0;position:absolute" onchange="otoYedekToggle()"/>
               <div id="oto-yedek-slider" style="
                 position:absolute;inset:0;border-radius:24px;cursor:pointer;transition:.3s;
                 background:${aktif ? 'var(--accent)' : 'var(--border2)'};
-              ">
+              " onclick="document.getElementById('oto-yedek-toggle').click()">
                 <div style="
                   position:absolute;top:3px;left:${aktif ? '23px' : '3px'};
                   width:18px;height:18px;border-radius:50%;background:#fff;
@@ -2343,15 +2343,93 @@ async function yukleOtoYedekAyar() {
           <button class="btn btn-primary btn-sm" onclick="kaydetOtoYedekAyar()">
             <i class="fa-solid fa-floppy-disk"></i> Kaydet
           </button>
+          <button class="btn btn-green btn-sm" onclick="simdiYedekAl()">
+            <i class="fa-solid fa-bolt"></i> Şimdi Yedek Al
+          </button>
         </div>
         <div style="font-size:12px;color:var(--text3);background:var(--bg4);border-radius:8px;padding:10px 14px;line-height:1.7">
           <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
-          Yedekler <strong>userData/otomatik-yedek</strong> klasörüne kaydedilir. Son 20 yedek tutulur, eskiler silinir.
-          Ayar değişikliği programı yeniden başlatınca aktif olur.
+          Yedekler sunucuda <strong>otomatik-yedek/</strong> klasörüne kaydedilir. Son 50 yedek tutulur. Tarayıcı kapalı olsa bile sunucu çalıştığı sürece yedek alınır.
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:600;color:var(--text)"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> Yedek Geçmişi</div>
+          <button class="btn btn-secondary btn-sm" onclick="yukleYedekLoglar()"><i class="fa-solid fa-rotate"></i> Yenile</button>
+        </div>
+        <div id="yedek-log-listesi">
+          <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">
+            <i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...
+          </div>
         </div>
       </div>`;
+    // Logları yükle
+    yukleYedekLoglar();
   } catch(e) {
     if (wrap) wrap.innerHTML = '<span style="color:var(--text3);font-size:13px">Ayar yüklenemedi (admin girişi gerekebilir)</span>';
+  }
+}
+
+async function yukleYedekLoglar() {
+  const el = document.getElementById('yedek-log-listesi');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/admin/oto-yedek-loglar');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="fa-solid fa-inbox"></i> Henüz otomatik yedek alınmadı</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th>Tarih</th>
+            <th>Dosya Adı</th>
+            <th>Boyut</th>
+            <th>Durum</th>
+            <th>İndir</th>
+          </tr></thead>
+          <tbody>
+            ${list.map((log, i) => `
+              <tr>
+                <td style="color:var(--text3);font-size:12px">${list.length - i}</td>
+                <td style="font-size:12px;white-space:nowrap">${new Date(log.tarih).toLocaleString('tr-TR')}</td>
+                <td style="font-size:11px;color:var(--text3);font-family:monospace">${esc(log.dosya_adi)}</td>
+                <td style="font-size:12px">${log.boyut ? Math.round(log.boyut/1024) + ' KB' : '-'}</td>
+                <td><span class="badge ${log.durum === 'basarili' ? 'badge-green' : 'badge-red'}">${log.durum === 'basarili' ? 'Başarılı' : 'Hata'}</span></td>
+                <td>
+                  <button class="btn btn-secondary btn-sm btn-icon" onclick="yedekLogIndir('${esc(log.dosya_adi)}')" title="İndir">
+                    <i class="fa-solid fa-download"></i>
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<span style="color:var(--text3);font-size:13px">Log listesi yüklenemedi</span>';
+  }
+}
+
+function yedekLogIndir(dosyaAdi) {
+  const a = document.createElement('a');
+  a.href = '/api/admin/oto-yedek-indir/' + encodeURIComponent(dosyaAdi);
+  a.download = dosyaAdi;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); }, 1000);
+}
+
+async function simdiYedekAl() {
+  try {
+    toast('Yedek alınıyor...');
+    await api('POST', '/admin/oto-yedek-simdi', {});
+    toast('Yedek başarıyla alındı');
+    setTimeout(yukleYedekLoglar, 800);
+  } catch(e) {
+    toast('Yedek alınamadı: ' + e.message, 'error');
   }
 }
 
@@ -2376,7 +2454,7 @@ async function kaydetOtoYedekAyar() {
   const dakika = parseInt(document.getElementById('oto-yedek-dakika')?.value || '10');
   try {
     await api('POST', '/admin/otomatik-yedek-ayar', { aktif, dakika });
-    toast(`Oto yedek ayarı kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika. Değişiklik programı yeniden başlatınca aktif olur.`);
+    toast(`Oto yedek ayarı kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika`);
   } catch(e) {
     toast('Kayıt başarısız: ' + e.message, 'error');
   }

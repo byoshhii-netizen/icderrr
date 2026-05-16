@@ -774,9 +774,16 @@ async function renderYedek() {
         <div id="yedek-yukle-sonuc" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>
       </div>
     </div>
+
+    <div class="card" style="margin-bottom:16px;border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.04)">
+      <div class="card-title"><i class="fa-solid fa-gear" style="color:var(--purple)"></i> Otomatik Yedek Ayarları</div>
+      <div id="admin-oto-yedek-ayar-wrap">
+        <div style="color:var(--text3);font-size:13px">Yükleniyor...</div>
+      </div>
+    </div>
+
     <div class="card">
-      <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Otomatik Yedekler
-        <span style="font-size:12px;font-weight:400;color:var(--text3);margin-left:8px">Her 10 dakikada bir otomatik alınır • Son 20 yedek saklanır</span>
+      <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Otomatik Yedek Geçmişi
         <button class="btn btn-sm" onclick="adminOtoYedekListeYenile()" style="margin-left:auto;padding:4px 10px;font-size:12px">
           <i class="fa-solid fa-rotate"></i> Yenile
         </button>
@@ -786,7 +793,91 @@ async function renderYedek() {
       </div>
     </div>`;
 
+  adminYukleOtoYedekAyar();
   adminOtoYedekListeYenile();
+}
+
+async function adminYukleOtoYedekAyar() {
+  const wrap = document.getElementById('admin-oto-yedek-ayar-wrap');
+  if (!wrap) return;
+  try {
+    const ayar = await adminApi('GET', '/otomatik-yedek-ayar');
+    const aktif = ayar.aktif !== false;
+    const dakika = ayar.dakika || 10;
+    wrap.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">Otomatik Yedek</div>
+            <div style="font-size:12px;color:var(--text3)">Sunucu çalıştığı sürece arka planda yedek alır — tarayıcı kapalı olsa bile</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;color:var(--text2)" id="admin-oto-label">${aktif ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>'}</span>
+            <div style="position:relative;width:44px;height:24px" onclick="var cb=document.getElementById('admin-oto-toggle');cb.checked=!cb.checked;adminOtoYedekToggle(cb.checked)">
+              <div id="admin-oto-slider" style="position:absolute;inset:0;border-radius:24px;cursor:pointer;transition:.3s;background:${aktif ? 'var(--accent)' : 'var(--border2)'}">
+                <div id="admin-oto-knob" style="position:absolute;top:3px;left:${aktif ? '23px' : '3px'};width:18px;height:18px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>
+              </div>
+              <input type="checkbox" id="admin-oto-toggle" ${aktif ? 'checked' : ''} style="opacity:0;width:0;height:0;position:absolute"/>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;background:var(--bg3);border-radius:8px">
+          <i class="fa-solid fa-clock" style="color:var(--accent)"></i>
+          <label style="font-size:13px;color:var(--text2)">Her</label>
+          <select id="admin-oto-dakika" style="background:var(--bg4);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:7px 12px;font-size:13px;min-width:130px">
+            <option value="1"   ${dakika==1?'selected':''}>1 dakika</option>
+            <option value="5"   ${dakika==5?'selected':''}>5 dakika</option>
+            <option value="10"  ${dakika==10?'selected':''}>10 dakika</option>
+            <option value="15"  ${dakika==15?'selected':''}>15 dakika</option>
+            <option value="30"  ${dakika==30?'selected':''}>30 dakika</option>
+            <option value="60"  ${dakika==60?'selected':''}>1 saat</option>
+            <option value="120" ${dakika==120?'selected':''}>2 saat</option>
+            <option value="360" ${dakika==360?'selected':''}>6 saat</option>
+          </select>
+          <label style="font-size:13px;color:var(--text2)">bir otomatik yedek al</label>
+          <button class="btn btn-primary btn-sm" onclick="adminKaydetOtoYedekAyar()">
+            <i class="fa-solid fa-floppy-disk"></i> Kaydet
+          </button>
+          <button class="btn btn-green btn-sm" onclick="adminSimdiYedekAl()">
+            <i class="fa-solid fa-bolt"></i> Şimdi Yedek Al
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.7">
+          <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+          Mevcut ayar: <strong>${aktif ? 'Açık' : 'Kapalı'}</strong> — Her <strong>${dakika} dakika</strong>da bir yedek alınıyor. Son 50 yedek saklanır.
+        </div>
+      </div>`;
+  } catch(e) {
+    if (wrap) wrap.innerHTML = '<span style="color:var(--text3);font-size:13px">Ayar yüklenemedi</span>';
+  }
+}
+
+function adminOtoYedekToggle(goster) {
+  const slider = document.getElementById('admin-oto-slider');
+  const knob = document.getElementById('admin-oto-knob');
+  const label = document.getElementById('admin-oto-label');
+  if (slider) slider.style.background = goster ? 'var(--accent)' : 'var(--border2)';
+  if (knob) knob.style.left = goster ? '23px' : '3px';
+  if (label) label.innerHTML = goster ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>';
+}
+
+async function adminKaydetOtoYedekAyar() {
+  const aktif = document.getElementById('admin-oto-toggle')?.checked ?? true;
+  const dakika = parseInt(document.getElementById('admin-oto-dakika')?.value || '10');
+  try {
+    await adminApi('POST', '/otomatik-yedek-ayar', { aktif, dakika });
+    toast(`Kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika`);
+    adminYukleOtoYedekAyar();
+  } catch(e) { toast('Kayıt başarısız: ' + e.message, 'error'); }
+}
+
+async function adminSimdiYedekAl() {
+  try {
+    toast('Yedek alınıyor...');
+    await adminApi('POST', '/oto-yedek-simdi', {});
+    toast('Yedek başarıyla alındı');
+    setTimeout(adminOtoYedekListeYenile, 800);
+  } catch(e) { toast('Yedek alınamadı: ' + e.message, 'error'); }
 }
 
 async function adminOtoYedekListeYenile() {

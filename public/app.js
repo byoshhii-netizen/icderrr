@@ -1669,6 +1669,7 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation) {
     '</div>' +
     '</div>' +
     '</body></html>';
+}
 // ═══════════════════════════════════════════════════════════════════════════
 // DENETİM MASASI
 // ═══════════════════════════════════════════════════════════════════════════

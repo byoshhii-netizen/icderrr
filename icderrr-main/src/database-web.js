@@ -232,6 +232,10 @@ async function getDb() {
   try { sqlDb.run("UPDATE kurbanlar SET fiyat = alis_fiyati WHERE fiyat IS NULL OR fiyat = 0"); } catch(e) {}
   // hisseler tablosuna kurban_turu kolonu ekle (her hisse için ayrı kurban türü)
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN kurban_turu TEXT DEFAULT 'Udhiye'"); } catch(e) {}
+  // hisseler tablosuna vekalet_onay kolonu ekle
+  try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN vekalet_onay INTEGER DEFAULT 0"); } catch(e) {}
+  // hisseler tablosuna vekalet_tarihi kolonu ekle
+  try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN vekalet_tarihi DATETIME"); } catch(e) {}
   // ozel_kategoriler tablosu - admin panelinden yönetilebilir kategoriler
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_kategoriler (id INTEGER PRIMARY KEY AUTOINCREMENT, kategori_adi TEXT UNIQUE NOT NULL, kategori_tipi TEXT DEFAULT 'bagisci', aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   // ozel_filtreler tablosu - admin panelinden yönetilebilir filtreler

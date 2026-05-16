@@ -847,6 +847,7 @@ function hisseKart(h, kurbanId) {
         ${h.kurban_turu?`<div style="font-size:11px;color:var(--accent);margin-top:4px"><i class="fa-solid fa-tag"></i> ${esc(h.kurban_turu)}</div>`:''}
         ${h.kimin_adina?`<div class="hisse-adina"><i class="fa-solid fa-heart"></i> ${esc(h.kimin_adina)}</div>`:''}
         ${h.video_ister?`<div style="font-size:11px;color:var(--accent);margin-top:4px"><i class="fa-solid fa-video"></i> Video istiyor</div>`:''}
+        ${h.vekalet_onay?`<div style="font-size:11px;color:var(--green);margin-top:4px"><i class="fa-solid fa-handshake"></i> Vekalet Alındı</div>`:''}
         <div class="hisse-odeme"><span class="badge ${odemeRenk[h.odeme_durumu]||'badge-gray'}" style="font-size:10px">${odemeLabel[h.odeme_durumu]||h.odeme_durumu}</span></div>
         <div style="margin-top:6px" onclick="event.stopPropagation()">
           <button class="btn btn-purple btn-sm" style="font-size:10px;padding:4px 8px" onclick="modalHisseMedya(${h.id},${h.kurban_id||kurbanId},${h.hisse_no})">
@@ -876,6 +877,7 @@ async function modalBagisciDuzenle(hisseId, kurbanId, mevcutFiyatParam) {
   const html = `
     <div style="margin-bottom:16px">
       <span class="badge badge-blue" style="font-size:12px"><i class="fa-solid fa-hashtag"></i> Hisse ${h.hisse_no}</span>
+      ${h.vekalet_onay ? '<span class="badge badge-green" style="font-size:12px;margin-left:8px"><i class="fa-solid fa-check-circle"></i> Vekalet Alındı</span>' : ''}
     </div>
     <div class="form-grid">
       <div class="form-group">
@@ -922,6 +924,13 @@ async function modalBagisciDuzenle(hisseId, kurbanId, mevcutFiyatParam) {
         </select>
       </div>
       <div class="form-group" style="grid-column:1/-1">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="fh-vekalet" ${h.vekalet_onay?'checked':''} style="width:18px;height:18px;cursor:pointer"/>
+          <span><i class="fa-solid fa-handshake"></i> Vekalet Onayı Alındı</span>
+        </label>
+        ${h.vekalet_tarihi ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;margin-left:26px">Onay Tarihi: ${new Date(h.vekalet_tarihi).toLocaleString('tr-TR')}</div>` : ''}
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
         <label>Not</label>
         <textarea id="fh-not">${esc(h.aciklama||'')}</textarea>
       </div>
@@ -943,12 +952,13 @@ async function kaydetBagisci(hisseId, kurbanId) {
   const kimin_adina_telefon = document.getElementById('fh-adina-tel').value.trim();
   const odeme_durumu = document.getElementById('fh-odeme').value;
   const video_ister = document.getElementById('fh-video').value==='1';
+  const vekalet_onay = document.getElementById('fh-vekalet')?.checked || false;
   const aciklama = document.getElementById('fh-not').value.trim();
   const fiyat = parseFloat(document.getElementById('fh-fiyat')?.value) || 0;
   if (!bagisci_adi) return toast('Bagisci adi zorunlu','error');
   try {
     // Hisse bilgilerini güncelle
-    await api('PUT',`/hisseler/${hisseId}`,{bagisci_adi,bagisci_telefon,bagisci_kategori,kurban_turu,kimin_adina,kimin_adina_telefon,odeme_durumu,video_ister,aciklama});
+    await api('PUT',`/hisseler/${hisseId}`,{bagisci_adi,bagisci_telefon,bagisci_kategori,kurban_turu,kimin_adina,kimin_adina_telefon,odeme_durumu,video_ister,vekalet_onay,aciklama});
     // Kurban fiyatını güncelle
     if (fiyat > 0) {
       const kurban = _kurbanlar.find(k => k.id === kurbanId);
@@ -1009,6 +1019,15 @@ async function renderBagiscilar() {
       '</div>' +
     '</div>' +
     '<div class="card">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:8px">' +
+        '<div style="display:flex;align-items:center;gap:12px">' +
+          '<i class="fa-solid fa-users" style="font-size:24px;color:var(--accent)"></i>' +
+          '<div>' +
+            '<div style="font-size:24px;font-weight:700;color:var(--accent)" id="bagisci-toplam">0</div>' +
+            '<div style="font-size:12px;color:var(--text3)">Toplam Bağışçı</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="filter-bar" style="margin-bottom:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px">' +
         '<input id="b-ara" placeholder="Ad veya telefon ile ara..." oninput="filterBagiscilar()"/>' +
         '<select id="b-kategori" onchange="filterBagiscilar()">' +
@@ -1038,10 +1057,10 @@ async function renderBagiscilar() {
         '<table>' +
           '<thead><tr>' +
             '<th>#</th><th>Bagisci Adi</th><th>Telefon</th><th>Kategori</th><th>Kimin Adina</th>' +
-            '<th>Kurban No</th><th>Hisse</th><th>Hayvan Turu</th><th>Kurban Turu</th><th>Fiyat</th><th>Odeme</th><th>Video</th><th>Islem</th>' +
+            '<th>Kurban No</th><th>Hisse</th><th>Hayvan Turu</th><th>Kurban Turu</th><th>Fiyat</th><th>Odeme</th><th>Video</th><th>Vekalet</th><th>Islem</th>' +
           '</tr></thead>' +
           '<tbody id="bagisci-tbody">' +
-            '<tr><td colspan="13"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></td></tr>' +
+            '<tr><td colspan="14"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></td></tr>' +
           '</tbody>' +
         '</table>' +
       '</div>' +
@@ -1072,8 +1091,12 @@ async function aramaBagisci() {
 
 function renderBagisciTablosu(list) {
   const tbody = document.getElementById('bagisci-tbody');
+  // Toplam sayıyı güncelle
+  const toplamEl = document.getElementById('bagisci-toplam');
+  if (toplamEl) toplamEl.textContent = list.length;
+  
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sonuc bulunamadi.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sonuc bulunamadi.</p></div></td></tr>`;
     return;
   }
   const oRenk  = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
@@ -1085,9 +1108,12 @@ function renderBagisciTablosu(list) {
       return kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
     })();
     
+    // Sıra numarasını sondan başlat
+    const siraNo = list.length - i;
+    
     return `
     <tr>
-      <td style="color:var(--text3);font-size:12px">${i+1}</td>
+      <td style="color:var(--text3);font-size:12px">${siraNo}</td>
       <td><strong>${esc(h.bagisci_adi)}</strong></td>
       <td>${h.bagisci_telefon?esc(h.bagisci_telefon):'-'}</td>
       <td>${h.bagisci_kategori?`<span class="badge badge-purple">${esc(h.bagisci_kategori)}</span>`:'-'}</td>
@@ -1099,6 +1125,7 @@ function renderBagisciTablosu(list) {
       <td><strong style="color:var(--green)">${fiyat.toLocaleString('tr-TR')} ₺</strong></td>
       <td><span class="badge ${oRenk[h.odeme_durumu]||'badge-gray'}">${oLabel[h.odeme_durumu]||h.odeme_durumu}</span></td>
       <td>${h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-'}</td>
+      <td>${h.vekalet_onay?'<span class="badge badge-green"><i class="fa-solid fa-handshake"></i> Alındı</span>':'-'}</td>
       <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id},${fiyat})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
     </tr>`;
   }).join('');
@@ -2357,11 +2384,16 @@ async function excelYedekSecildi(input) {
 // TEMA SİSTEMİ
 // ═══════════════════════════════════════════════════════════════════════════
 const TEMALAR = [
-  { id: 'dark', name: 'Koyu Yeşil', class: '' },
-  { id: 'light-green', name: 'Açık Yeşil', class: 'theme-light-green' },
-  { id: 'mint', name: 'Nane Yeşili', class: 'theme-mint' },
-  { id: 'olive', name: 'Zeytin Yeşili', class: 'theme-olive' },
-  { id: 'light', name: 'Beyaz/Mavi', class: 'theme-light' }
+  { id: 'dark',        name: 'Koyu Yeşil',    class: '',                  emoji: '🌿', preview: '#0a1410,#10b981' },
+  { id: 'light-green', name: 'Açık Yeşil',    class: 'theme-light-green', emoji: '🍃', preview: '#f0fdf7,#059669' },
+  { id: 'mint',        name: 'Nane Yeşili',   class: 'theme-mint',        emoji: '🌊', preview: '#f0fdfa,#14b8a6' },
+  { id: 'olive',       name: 'Zeytin Yeşili', class: 'theme-olive',       emoji: '🫒', preview: '#f7fee7,#65a30d' },
+  { id: 'light',       name: 'Beyaz/Mavi',    class: 'theme-light',       emoji: '❄️', preview: '#f8fafc,#3b82f6' },
+  { id: 'dark-blue',   name: 'Koyu Mavi',     class: 'theme-dark-blue',   emoji: '🌌', preview: '#0a0f1e,#6366f1' },
+  { id: 'dark-purple', name: 'Mor Gece',      class: 'theme-dark-purple', emoji: '🔮', preview: '#0d0a1e,#a855f7' },
+  { id: 'dark-red',    name: 'Kırmızı Kor',   class: 'theme-dark-red',    emoji: '🔥', preview: '#1a0a0a,#ef4444' },
+  { id: 'dark-gold',   name: 'Altın Çöl',     class: 'theme-dark-gold',   emoji: '🏜️', preview: '#1a1200,#f59e0b' },
+  { id: 'ocean',       name: 'Okyanus',       class: 'theme-ocean',       emoji: '🌊', preview: '#0a1628,#0ea5e9' }
 ];
 
 function toggleTheme() {
@@ -2371,22 +2403,40 @@ function toggleTheme() {
 function modalTemaSecim() {
   const mevcutTema = localStorage.getItem('icder-kurban-tema') || 'dark';
   const temaButonlari = TEMALAR.map(t => {
-    const secili = t.id === mevcutTema ? 'style="border:2px solid var(--accent);box-shadow:0 0 12px var(--glow)"' : '';
+    const secili = t.id === mevcutTema;
+    const [bg, accent] = t.preview.split(',');
     return `
-      <button class="btn btn-secondary" onclick="temaDegistir('${t.id}')" ${secili} style="min-width:140px;padding:14px 20px;font-size:15px">
-        <i class="fa-solid fa-palette"></i> ${t.name}
-      </button>
+      <div onclick="temaDegistir('${t.id}')" style="
+        cursor:pointer;
+        border-radius:14px;
+        overflow:hidden;
+        border:3px solid ${secili ? accent : 'transparent'};
+        box-shadow:${secili ? `0 0 16px ${accent}66, 0 4px 16px rgba(0,0,0,0.3)` : '0 2px 8px rgba(0,0,0,0.2)'};
+        transition:all 0.2s;
+        transform:${secili ? 'scale(1.05)' : 'scale(1)'};
+      " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='${secili?'scale(1.05)':'scale(1)'}';this.style.boxShadow='${secili?`0 0 16px ${accent}66, 0 4px 16px rgba(0,0,0,0.3)`:'0 2px 8px rgba(0,0,0,0.2)'}'">
+        <div style="background:${bg};height:60px;display:flex;align-items:center;justify-content:center;gap:8px">
+          <div style="width:20px;height:20px;border-radius:50%;background:${accent};box-shadow:0 0 8px ${accent}88"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:${accent}88"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:${accent}44"></div>
+        </div>
+        <div style="background:${bg}dd;padding:8px 12px;text-align:center">
+          <div style="font-size:18px">${t.emoji}</div>
+          <div style="font-size:12px;font-weight:600;color:${accent};margin-top:2px">${t.name}</div>
+          ${secili ? '<div style="font-size:10px;color:#aaa;margin-top:2px">✓ Aktif</div>' : ''}
+        </div>
+      </div>
     `;
   }).join('');
 
   openModal('Tema Seçin', `
-    <div style="text-align:center;padding:20px 0">
-      <p style="color:var(--text2);margin-bottom:24px;font-size:14px">Uygulamanın görünümünü değiştirin:</p>
-      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <div style="padding:8px 0">
+      <p style="color:var(--text2);margin-bottom:20px;font-size:13px;text-align:center">Uygulamanın görünümünü değiştirin:</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
         ${temaButonlari}
       </div>
     </div>
-  `, false, 'palette');
+  `, true, 'palette');
 }
 
 function temaDegistir(temaId) {

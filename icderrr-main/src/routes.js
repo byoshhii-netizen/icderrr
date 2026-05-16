@@ -150,16 +150,17 @@ router.get('/kurbanlar/:kurbanId/hisseler', async (req, res) => {
 
 router.put('/hisseler/:id', async (req, res) => {
   const db = await getDb();
-  const { bagisci_adi, bagisci_telefon, bagisci_kategori, kimin_adina, kimin_adina_telefon, odeme_durumu, video_ister, aciklama, kurban_turu } = req.body;
-  db.prepare(`UPDATE hisseler SET bagisci_adi=?,bagisci_telefon=?,bagisci_kategori=?,kimin_adina=?,kimin_adina_telefon=?,odeme_durumu=?,video_ister=?,aciklama=?,kurban_turu=? WHERE id=?`)
+  const { bagisci_adi, bagisci_telefon, bagisci_kategori, kimin_adina, kimin_adina_telefon, odeme_durumu, video_ister, aciklama, kurban_turu, vekalet_onay } = req.body;
+  const vekalet_tarihi = vekalet_onay ? new Date().toISOString() : null;
+  db.prepare(`UPDATE hisseler SET bagisci_adi=?,bagisci_telefon=?,bagisci_kategori=?,kimin_adina=?,kimin_adina_telefon=?,odeme_durumu=?,video_ister=?,aciklama=?,kurban_turu=?,vekalet_onay=?,vekalet_tarihi=? WHERE id=?`)
     .run(bagisci_adi || null, bagisci_telefon || null, bagisci_kategori || 'Genel Bağışçı', kimin_adina || null, kimin_adina_telefon || null,
-      odeme_durumu || 'bekliyor', video_ister ? 1 : 0, aciklama || null, kurban_turu || 'Udhiye', req.params.id);
+      odeme_durumu || 'bekliyor', video_ister ? 1 : 0, aciklama || null, kurban_turu || 'Udhiye', vekalet_onay ? 1 : 0, vekalet_tarihi, req.params.id);
   res.json({ ok: true });
 });
 
 router.delete('/hisseler/:id/temizle', async (req, res) => {
   const db = await getDb();
-  db.prepare(`UPDATE hisseler SET bagisci_adi=NULL,bagisci_telefon=NULL,bagisci_kategori='Genel Bağışçı',kimin_adina=NULL,kimin_adina_telefon=NULL,odeme_durumu='bekliyor',video_ister=0,aciklama=NULL,kurban_turu='Udhiye' WHERE id=?`)
+  db.prepare(`UPDATE hisseler SET bagisci_adi=NULL,bagisci_telefon=NULL,bagisci_kategori='Genel Bağışçı',kimin_adina=NULL,kimin_adina_telefon=NULL,odeme_durumu='bekliyor',video_ister=0,aciklama=NULL,kurban_turu='Udhiye',vekalet_onay=0,vekalet_tarihi=NULL WHERE id=?`)
     .run(req.params.id);
   res.json({ ok: true });
 });

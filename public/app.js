@@ -550,6 +550,10 @@ async function renderKurbanlar() {
             <option value="video-var">Video İsteyenler</option>
             <option value="video-yok">Video İstemeyenler</option>
           </optgroup>
+          <optgroup label="── Vekalet">
+            <option value="vekalet-var">✅ Vekalet Alınanlar</option>
+            <option value="vekalet-yok">❌ Vekalet Alınmayanlar</option>
+          </optgroup>
           <optgroup label="── Hisse Sayısı">
             <option value="7hisse">7 Hisseli (Büyükbaş)</option>
             <option value="1hisse">1 Hisseli (Küçükbaş)</option>
@@ -572,6 +576,7 @@ async function renderKurbanlar() {
               <th>Alış Fiyatı</th>
               <th>Hisse Durumu</th>
               <th>Durum</th>
+              <th>Vekalet</th>
               <th>Kesim</th>
               <th>İşlemler</th>
             </tr></thead>
@@ -595,6 +600,7 @@ async function renderKurbanlar() {
               <th>Alış Fiyatı</th>
               <th>Hisse Durumu</th>
               <th>Durum</th>
+              <th>Vekalet</th>
               <th>Kesim</th>
               <th>İşlemler</th>
             </tr></thead>
@@ -630,6 +636,8 @@ function filterKurbanlar() {
     if (durum === 'bekliyor') return k._bekliyor_sayi > 0;
     if (durum === 'video-var') return k._video_sayi > 0;
     if (durum === 'video-yok') return k.dolu_hisse > 0 && k._video_sayi === 0;
+    if (durum === 'vekalet-var') return k._vekalet_sayi > 0;
+    if (durum === 'vekalet-yok') return k.dolu_hisse > 0 && (k._vekalet_sayi || 0) < k.dolu_hisse;
     if (durum === '7hisse') return k.toplam_hisse === 7;
     if (durum === '1hisse') return k.toplam_hisse === 1;
     return true;
@@ -653,6 +661,12 @@ function filterKurbanlar() {
     if (k.kesildi) durumBadge = `<span class="badge badge-red"><i class="fa-solid fa-scissors"></i> Kesildi</span>`;
     else if (dolu>=top) durumBadge = `<span class="badge badge-yellow"><i class="fa-solid fa-circle-dot"></i> Doldu</span>`;
     else durumBadge = `<span class="badge badge-green"><i class="fa-solid fa-circle"></i> Bos</span>`;
+    const vekaletSayi = k._vekalet_sayi || 0;
+    const vekaletBadge = dolu > 0
+      ? `<span class="badge ${vekaletSayi === dolu ? 'badge-green' : vekaletSayi > 0 ? 'badge-yellow' : 'badge-gray'}" style="font-size:10px" title="Vekalet: ${vekaletSayi}/${dolu}">
+          <i class="fa-solid fa-handshake"></i> ${vekaletSayi}/${dolu}
+        </span>`
+      : '';
     return `<tr>
       <td style="color:var(--text3);font-size:12px;font-weight:600">${idx+1}</td>
       <td><span class="kurban-no-badge">${k.kurban_no}</span></td>
@@ -665,6 +679,7 @@ function filterKurbanlar() {
         </div>
       </td>
       <td>${durumBadge}</td>
+      <td>${vekaletBadge}</td>
       <td>${k.kesim_tarihi?`<span style="font-size:12px">${k.kesim_tarihi}</span>`:'<span style="color:var(--text3)">-</span>'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
@@ -1028,7 +1043,7 @@ async function renderBagiscilar() {
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="filter-bar" style="margin-bottom:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px">' +
+      '<div class="filter-bar" style="margin-bottom:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px">' +
         '<input id="b-ara" placeholder="Ad veya telefon ile ara..." oninput="filterBagiscilar()"/>' +
         '<select id="b-kategori" onchange="filterBagiscilar()">' +
           '<option value="">Tüm Kategoriler</option>' +
@@ -1051,6 +1066,11 @@ async function renderBagiscilar() {
           '<option value="">Video Durumu</option>' +
           '<option value="1">Video İster</option>' +
           '<option value="0">Video İstemez</option>' +
+        '</select>' +
+        '<select id="b-vekalet" onchange="filterBagiscilar()">' +
+          '<option value="">Vekalet Durumu</option>' +
+          '<option value="1">✅ Vekalet Alındı</option>' +
+          '<option value="0">❌ Vekalet Alınmadı</option>' +
         '</select>' +
       '</div>' +
       '<div class="table-wrap">' +
@@ -1102,15 +1122,29 @@ function renderBagisciTablosu(list) {
   const oRenk  = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
   const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
   tbody.innerHTML = list.map((h,i)=>{
-    // Kurban fiyatını API'den gelen kurban_fiyat alanından al, yoksa _kurbanlar'dan bul
     const fiyat = h.kurban_fiyat || (() => {
       const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
       return kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
     })();
-    
-    // Sıra numarasını sondan başlat
     const siraNo = list.length - i;
-    
+    const vekaletBtn = h.vekalet_onay
+      ? `<button onclick="toggleVekalet(${h.id},0,event)" title="Vekalet alındı — tıkla kaldır" style="
+          display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+          background:linear-gradient(135deg,#10b981,#059669);
+          color:#fff;border:none;border-radius:20px;cursor:pointer;
+          font-size:11px;font-weight:600;box-shadow:0 2px 8px rgba(16,185,129,0.4);
+          transition:all 0.2s">
+          <i class="fa-solid fa-handshake"></i> Alındı
+        </button>`
+      : `<button onclick="toggleVekalet(${h.id},1,event)" title="Vekalet alınmadı — tıkla onayla" style="
+          display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+          background:var(--bg4);color:var(--text3);
+          border:1px dashed var(--border2);border-radius:20px;cursor:pointer;
+          font-size:11px;font-weight:600;transition:all 0.2s"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
+          <i class="fa-solid fa-handshake-slash"></i> Alınmadı
+        </button>`;
     return `
     <tr>
       <td style="color:var(--text3);font-size:12px">${siraNo}</td>
@@ -1125,10 +1159,22 @@ function renderBagisciTablosu(list) {
       <td><strong style="color:var(--green)">${fiyat.toLocaleString('tr-TR')} ₺</strong></td>
       <td><span class="badge ${oRenk[h.odeme_durumu]||'badge-gray'}">${oLabel[h.odeme_durumu]||h.odeme_durumu}</span></td>
       <td>${h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-'}</td>
-      <td>${h.vekalet_onay?'<span class="badge badge-green"><i class="fa-solid fa-handshake"></i> Alındı</span>':'-'}</td>
+      <td>${vekaletBtn}</td>
       <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id},${fiyat})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
     </tr>`;
   }).join('');
+}
+
+async function toggleVekalet(hisseId, yeniDurum, event) {
+  event.stopPropagation();
+  try {
+    await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: yeniDurum });
+    // Listedeki kaydı güncelle
+    const h = _tumBagiscilar.find(x => x.id === hisseId);
+    if (h) h.vekalet_onay = yeniDurum;
+    toast(yeniDurum ? '✅ Vekalet alındı olarak işaretlendi' : 'Vekalet kaldırıldı');
+    filterBagiscilar();
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function modalYeniBagisci() {
@@ -5155,7 +5201,6 @@ let _tumBagiscilar = [];
 async function filterBagiscilar() {
   if (!S.orgId) return;
   
-  // İlk yüklemede tüm bağışçıları çek
   if (_tumBagiscilar.length === 0) {
     const url = `/bagiscilar/ara?q=&orgId=${S.orgId}&tumunu=1`;
     _tumBagiscilar = await api('GET', url);
@@ -5165,31 +5210,19 @@ async function filterBagiscilar() {
   const kategori = document.getElementById('b-kategori')?.value || '';
   const odeme = document.getElementById('b-odeme')?.value || '';
   const video = document.getElementById('b-video')?.value || '';
+  const vekalet = document.getElementById('b-vekalet')?.value || '';
 
   let filtered = _tumBagiscilar.filter(h => {
-    // Arama filtresi
-    if (ara && !h.bagisci_adi.toLowerCase().includes(ara) && !(h.bagisci_telefon||'').toLowerCase().includes(ara)) {
-      return false;
-    }
-
-    // Kategori filtresi
-    if (kategori && h.bagisci_kategori !== kategori) {
-      return false;
-    }
-
-    // Ödeme filtresi
-    if (odeme && h.odeme_durumu !== odeme) {
-      return false;
-    }
-
-    // Video filtresi
+    if (ara && !h.bagisci_adi.toLowerCase().includes(ara) && !(h.bagisci_telefon||'').toLowerCase().includes(ara)) return false;
+    if (kategori && h.bagisci_kategori !== kategori) return false;
+    if (odeme && h.odeme_durumu !== odeme) return false;
     if (video !== '') {
-      const videoIster = video === '1';
-      if (h.video_ister !== videoIster) {
-        return false;
-      }
+      if (h.video_ister !== (video === '1')) return false;
     }
-
+    if (vekalet !== '') {
+      const vekaletIster = vekalet === '1';
+      if (!!h.vekalet_onay !== vekaletIster) return false;
+    }
     return true;
   });
 

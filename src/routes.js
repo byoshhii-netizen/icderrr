@@ -73,7 +73,8 @@ router.get('/organizasyonlar/:orgId/kurbanlar', async (req, res) => {
     (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.bagisci_adi IS NOT NULL) as dolu_hisse,
     (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.odeme_durumu='odendi') as _odendi_sayi,
     (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.bagisci_adi IS NOT NULL AND h.odeme_durumu='bekliyor') as _bekliyor_sayi,
-    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.video_ister=1) as _video_sayi
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.video_ister=1) as _video_sayi,
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.vekalet_onay=1) as _vekalet_sayi
     FROM kurbanlar k WHERE k.organizasyon_id=? ORDER BY k.kurban_no ASC`).all(orgId);
 
   if (tur) allKurbanlar = allKurbanlar.filter(k => k.tur === tur);
@@ -162,6 +163,16 @@ router.delete('/hisseler/:id/temizle', async (req, res) => {
   const db = await getDb();
   db.prepare(`UPDATE hisseler SET bagisci_adi=NULL,bagisci_telefon=NULL,bagisci_kategori='Genel Bağışçı',kimin_adina=NULL,kimin_adina_telefon=NULL,odeme_durumu='bekliyor',video_ister=0,aciklama=NULL,kurban_turu='Udhiye',vekalet_onay=0,vekalet_tarihi=NULL WHERE id=?`)
     .run(req.params.id);
+  res.json({ ok: true });
+});
+
+// ─── VEKALET TOGGLE ────────────────────────────────────────────────────────
+router.put('/hisseler/:id/vekalet', async (req, res) => {
+  const db = await getDb();
+  const { vekalet_onay } = req.body;
+  const vekalet_tarihi = vekalet_onay ? new Date().toISOString() : null;
+  db.prepare(`UPDATE hisseler SET vekalet_onay=?, vekalet_tarihi=? WHERE id=?`)
+    .run(vekalet_onay ? 1 : 0, vekalet_tarihi, req.params.id);
   res.json({ ok: true });
 });
 

@@ -1590,7 +1590,8 @@ function yazdirilabilirHTML(tip) {
 }
 
 
-function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'portrait') {
+function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation) {
+  orientation = orientation || 'portrait';
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
   const baseUrl = window.location.origin;
   const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
@@ -1599,128 +1600,80 @@ function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'po
   const isLandscape = orientation === 'landscape';
   const bw = isLandscape ? '180' : '150';
   const bh = isLandscape ? '120' : '100';
-  const logoH = isLandscape ? '160px' : '140px';
+  const logoH = isLandscape ? '100px' : '120px';
+  const titleSize = isLandscape ? '28px' : '32px';
+  const pageH = isLandscape ? '210mm' : '297mm';
+  const satirSayisi = tur === 'buyukbas' ? 7 : 1;
 
-  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="${bw}" height="${bh}">
-    <rect width="1200" height="800" fill="#E30A17"/>
-    <circle cx="425" cy="400" r="200" fill="white"/>
-    <circle cx="475" cy="400" r="160" fill="#E30A17"/>
-    <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
-  </svg>`;
-  const bayrakImg = bayrakSrc
-    ? `<img src="${bayrakSrc}" alt="Bayrak" style="height:${bh}px;width:${bw}px;object-fit:contain" onerror="this.style.visibility='hidden'"/>`
-    : '';
+  const turkBayrakSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="' + bw + '" height="' + bh + '"><rect width="1200" height="800" fill="#E30A17"/><circle cx="425" cy="400" r="200" fill="white"/><circle cx="475" cy="400" r="160" fill="#E30A17"/><polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/></svg>';
+  const bayrakImg = bayrakSrc ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bh + 'px;width:' + bw + 'px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>' : '';
 
-  // ── BÜYÜKBAŞ: orientation parametresine göre portrait veya landscape ──
-  if (tur === 'buyukbas') {
-    let rows = '';
-    for (let i = 0; i < 7; i++) {
-      const h = hisseler[i];
-      const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
-      rows += `<tr>
-        <td class="no-cell">${i + 1}</td>
-        <td class="ad-cell">${h && h.bagisci_adi ? h.bagisci_adi.toUpperCase() : ''}</td>
-        <td class="tur-cell">${hisseTuru}</td>
-      </tr>`;
-    }
-
-    const pageH = isLandscape ? '210mm' : '297mm';
-    const pageMargin = '12mm 15mm';
-    const rowH = isLandscape
-      ? 'calc((210mm - 24mm - 200px) / 7)'
-      : 'calc((297mm - 24mm - 220px) / 7)';
-
-    const printStyle = `
-      @page { margin: ${pageMargin}; size: A4 ${orientation}; }
-      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }
-      .page { display: flex; flex-direction: column; height: calc(${isLandscape ? '210mm' : '297mm'} - 24mm); overflow: hidden; }
-      .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; flex-shrink: 0; }
-      .header-left { width: ${bw}px; }
-      .header-center { flex: 1; text-align: center; padding: 0 10px; }
-      .header-center img { height: ${isLandscape ? '100px' : '120px'}; max-width: 400px; object-fit: contain; }
-      .header-right { width: ${bw}px; display: flex; justify-content: flex-end; }
-      .kurban-title { font-size: ${isLandscape ? '28px' : '32px'}; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; flex-shrink: 0; }
-      .table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-      table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }
-      thead { display: table-header-group; }
-      th { border: 2px solid #000; padding: 6px 10px; font-size: 16px; font-weight: 700; text-align: center; }
-      th.ad-th { text-align: center; }
-      tbody { display: table-row-group; }
-      tbody tr { height: calc(100% / 7); }
-      td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 800; width: 50px; vertical-align: middle; }
-      td.ad-cell { border: 2px solid #000; padding: 4px 14px; font-size: 21px; font-weight: 800; vertical-align: middle; text-align: center; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; }
-      td.tur-cell { border: 2px solid #000; text-align: center; font-size: 21px; font-weight: 700; width: 140px; vertical-align: middle; }
-      @media print { html, body { margin: 0; padding: 0; } table { page-break-inside: avoid; } }
-    `;
-
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ${kurbanNo}</title>
-      <style>${printStyle}</style></head><body>
-      <div class="page">
-        <div class="header">
-          <div class="header-left">${turkBayrakSVG}</div>
-          <div class="header-center"><img src="${logoSrc}" alt="Logo" onerror="this.style.visibility='hidden'"/></div>
-          <div class="header-right">${bayrakImg}</div>
-        </div>
-        <div class="kurban-title">Kurban : ${kurbanNo}</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th style="width:56px">No</th>
-              <th class="ad-th" style="text-align:center">Ad Soyad</th>
-              <th style="width:150px">Kurban Türü</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      </div>
-    </body></html>`;
+  // Font boyutunu isim uzunluğuna göre belirle — taşmasın, eşit kalsın
+  function getAdFont(ad) {
+    const len = ad ? ad.length : 0;
+    if (len > 32) return '12px';
+    if (len > 26) return '14px';
+    if (len > 20) return '17px';
+    if (len > 14) return '19px';
+    return '21px';
   }
 
-  // ── TEKLİ (KÜÇÜKBAŞ): sade, portrait, üstte ──
-  const h = hisseler[0];
-  const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
+  let rows = '';
+  for (let i = 0; i < satirSayisi; i++) {
+    const h = hisseler[i];
+    const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
+    const ad = (h && h.bagisci_adi) ? h.bagisci_adi.toUpperCase() : '';
+    const fontSize = getAdFont(ad);
+    rows += '<tr>' +
+      '<td class="no-cell">' + (i + 1) + '</td>' +
+      '<td class="ad-cell" style="font-size:' + fontSize + '">' + ad + '</td>' +
+      '<td class="tur-cell">' + hisseTuru + '</td>' +
+      '</tr>';
+  }
 
-  const printStyle = `
-    @page { margin: 15mm; size: A4 portrait; }
-    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; }
-    .header-left { width: 150px; display: flex; align-items: center; }
-    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; padding: 0 10px; }
-    .header-center img { height: 180px; max-width: 400px; object-fit: contain; }
-    .header-right { width: 150px; display: flex; align-items: center; justify-content: flex-end; }
-    .kurban-title { font-size: 36px; font-weight: 700; color: #1a2a50; text-align: center; margin: 20px 0 30px; }
-    table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
-    th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 18px; font-weight: 700; background: #fff; }
-    td { border: 1.5px solid #000; padding: 8px 12px; font-size: 18px; font-weight: 600; }
-    @media print { html, body { margin: 0; padding: 0; } }
-  `;
+  const printStyle =
+    '@page { margin: 12mm 15mm; size: A4 ' + orientation + '; }' +
+    '* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+    'html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }' +
+    '.page { display: flex; flex-direction: column; height: calc(' + pageH + ' - 24mm); overflow: hidden; }' +
+    '.header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; flex-shrink: 0; }' +
+    '.header-left { width: ' + bw + 'px; }' +
+    '.header-center { flex: 1; text-align: center; padding: 0 10px; }' +
+    '.header-center img { height: ' + logoH + '; max-width: 400px; object-fit: contain; }' +
+    '.header-right { width: ' + bw + 'px; display: flex; justify-content: flex-end; }' +
+    '.kurban-title { font-size: ' + titleSize + '; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; flex-shrink: 0; }' +
+    '.table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }' +
+    'table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }' +
+    'thead { display: table-header-group; }' +
+    'th { border: 2px solid #000; padding: 6px 10px; font-size: 16px; font-weight: 700; text-align: center; }' +
+    'tbody { display: table-row-group; }' +
+    'tbody tr { height: calc(100% / ' + satirSayisi + '); }' +
+    'td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 800; width: 50px; vertical-align: middle; }' +
+    'td.ad-cell { border: 2px solid #000; padding: 2px 10px; font-weight: 800; vertical-align: middle; text-align: center; white-space: nowrap; overflow: hidden; }' +
+    'td.tur-cell { border: 2px solid #000; text-align: center; font-size: 19px; font-weight: 700; width: 140px; vertical-align: middle; }' +
+    '@media print { html, body { margin: 0; padding: 0; } table { page-break-inside: avoid; } }';
 
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ${kurbanNo}</title>
-    <style>${printStyle}</style></head><body>
-    <div class="header">
-      <div class="header-left">${turkBayrakSVG}</div>
-      <div class="header-center"><img src="${logoSrc}" alt="Logo" onerror="this.style.visibility='hidden'"/></div>
-      <div class="header-right">${bayrakImg}</div>
-    </div>
-    <div class="kurban-title">Kurban : ${kurbanNo}</div>
-    <table>
-      <thead><tr>
-        <th style="width:60px;text-align:center">No</th>
-        <th>Ad Soyad</th>
-        <th style="width:140px;text-align:center">Kurban Türü</th>
-      </tr></thead>
-      <tbody>
-        <tr style="height:42px">
-          <td style="text-align:center;font-weight:700">1</td>
-          <td>${h && h.bagisci_adi ? h.bagisci_adi : ''}</td>
-          <td style="text-align:center">${hisseTuru}</td>
-        </tr>
-      </tbody>
-    </table>
-  </body></html>`;
-}
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
+    '<style>' + printStyle + '</style></head><body>' +
+    '<div class="page">' +
+    '<div class="header">' +
+    '<div class="header-left">' + turkBayrakSVG + '</div>' +
+    '<div class="header-center"><img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/></div>' +
+    '<div class="header-right">' + bayrakImg + '</div>' +
+    '</div>' +
+    '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
+    '<div class="table-wrap">' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th style="width:50px">No</th>' +
+    '<th style="text-align:center">Ad Soyad</th>' +
+    '<th style="width:140px">Kurban T\u00fcr\u00fc</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>' +
+    '</body></html>';
 // ═══════════════════════════════════════════════════════════════════════════
 // DENETİM MASASI
 // ═══════════════════════════════════════════════════════════════════════════

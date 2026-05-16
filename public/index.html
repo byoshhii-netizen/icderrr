@@ -236,11 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const main = document.getElementById('main-content');
   const sidebar = document.getElementById('sidebar');
 
-  // Destek butonu görünürlüğünü uygula
-  const destekGoster = localStorage.getItem('icder-destek-buton') !== '0';
-  const destekBtn = document.getElementById('floating-destek-btn');
-  if (destekBtn) destekBtn.style.display = destekGoster ? 'flex' : 'none';
-
   function handleWheel(e) {
     const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * 800 : e.deltaY;
 

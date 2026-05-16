@@ -161,10 +161,8 @@ async function modalAyarlar() {
             <div style="font-size:11px;color:var(--text3)">Ekranın sağ altındaki çağrı merkezi tuşu</div>
           </div>
         </div>
-        <div style="position:relative;width:44px;height:24px;flex-shrink:0">
-          <input type="checkbox" id="ayar-destek-buton" ${destekButonGoster ? 'checked' : ''} style="opacity:0;width:0;height:0;position:absolute"
-            onchange="toggleDestekButon(this.checked)"/>
-          <div id="destek-toggle-track" onclick="document.getElementById('ayar-destek-buton').click()" style="
+        <div style="position:relative;width:44px;height:24px;flex-shrink:0" onclick="var cb=document.getElementById('ayar-destek-buton');cb.checked=!cb.checked;toggleDestekButon(cb.checked)">
+          <div id="destek-toggle-track" style="
             position:absolute;inset:0;border-radius:12px;cursor:pointer;transition:background 0.3s;
             background:${destekButonGoster ? 'var(--accent)' : 'var(--border2)'};
           ">
@@ -174,6 +172,7 @@ async function modalAyarlar() {
               left:${destekButonGoster ? '23px' : '3px'};
             " id="destek-toggle-thumb"></div>
           </div>
+          <input type="checkbox" id="ayar-destek-buton" ${destekButonGoster ? 'checked' : ''} style="opacity:0;width:0;height:0;position:absolute"/>
         </div>
       </label>
     </div>
@@ -195,14 +194,15 @@ function toggleDestekButon(goster) {
   if (thumb) thumb.style.left = goster ? '23px' : '3px';
 }
 
-// Sayfa yüklenince destek butonu durumunu uygula
-(function initDestekButon() {
+// Sayfa yüklenince destek butonu durumunu uygula — DOMContentLoaded yerine direkt çalıştır
+function applyDestekButon() {
   const goster = localStorage.getItem('icder-destek-buton') !== '0';
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('floating-destek-btn');
-    if (btn) btn.style.display = goster ? 'flex' : 'none';
-  });
-})();
+  const btn = document.getElementById('floating-destek-btn');
+  if (btn) btn.style.display = goster ? 'flex' : 'none';
+}
+// Hem hemen hem DOM hazır olunca çalıştır
+applyDestekButon();
+document.addEventListener('DOMContentLoaded', applyDestekButon);
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const S = { page:'organizasyonlar', orgId:null, orgAd:'', orgYil:'' };

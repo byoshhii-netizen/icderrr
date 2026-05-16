@@ -129,8 +129,11 @@ async function modalAyarlar() {
     ? '<img src="' + _kullaniciAyarlar.bayrak_data + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>'
     : '<i class="fa-solid fa-flag" style="font-size:22px;color:var(--text3)"></i><div style="color:var(--text3);font-size:12px;margin-top:4px">Yüklenmedi</div>';
 
-  openModal('Yazdırma Ayarları', `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+  // Çağrı merkezi butonu ayarını oku
+  const destekButonGoster = localStorage.getItem('icder-destek-buton') !== '0';
+
+  openModal('Ayarlar', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="form-group">
         <label><i class="fa-solid fa-image"></i> Logonuz</label>
         <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-logo-input').click()">
@@ -146,12 +149,60 @@ async function modalAyarlar() {
         <input type="file" id="setup-bayrak-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'bayrak')"/>
       </div>
     </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">
+        <i class="fa-solid fa-sliders"></i> Arayüz Ayarları
+      </div>
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 12px;background:var(--bg4);border-radius:8px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <i class="fa-solid fa-headset" style="color:var(--accent);font-size:16px"></i>
+          <div>
+            <div style="font-size:13px;font-weight:600">Sağ Alt Destek Butonu</div>
+            <div style="font-size:11px;color:var(--text3)">Ekranın sağ altındaki çağrı merkezi tuşu</div>
+          </div>
+        </div>
+        <div style="position:relative;width:44px;height:24px;flex-shrink:0">
+          <input type="checkbox" id="ayar-destek-buton" ${destekButonGoster ? 'checked' : ''} style="opacity:0;width:0;height:0;position:absolute"
+            onchange="toggleDestekButon(this.checked)"/>
+          <div id="destek-toggle-track" onclick="document.getElementById('ayar-destek-buton').click()" style="
+            position:absolute;inset:0;border-radius:12px;cursor:pointer;transition:background 0.3s;
+            background:${destekButonGoster ? 'var(--accent)' : 'var(--border2)'};
+          ">
+            <div style="
+              position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+              transition:left 0.3s;box-shadow:0 1px 4px rgba(0,0,0,0.3);
+              left:${destekButonGoster ? '23px' : '3px'};
+            " id="destek-toggle-thumb"></div>
+          </div>
+        </div>
+      </label>
+    </div>
     <div class="form-actions">
       <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
       <button class="btn btn-primary" onclick="kurulumKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
     </div>
   `, true, 'gear');
 }
+
+function toggleDestekButon(goster) {
+  localStorage.setItem('icder-destek-buton', goster ? '1' : '0');
+  const btn = document.getElementById('floating-destek-btn');
+  if (btn) btn.style.display = goster ? 'flex' : 'none';
+  // Toggle görselini güncelle
+  const track = document.getElementById('destek-toggle-track');
+  const thumb = document.getElementById('destek-toggle-thumb');
+  if (track) track.style.background = goster ? 'var(--accent)' : 'var(--border2)';
+  if (thumb) thumb.style.left = goster ? '23px' : '3px';
+}
+
+// Sayfa yüklenince destek butonu durumunu uygula
+(function initDestekButon() {
+  const goster = localStorage.getItem('icder-destek-buton') !== '0';
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('floating-destek-btn');
+    if (btn) btn.style.display = goster ? 'flex' : 'none';
+  });
+})();
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const S = { page:'organizasyonlar', orgId:null, orgAd:'', orgYil:'' };

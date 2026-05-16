@@ -215,7 +215,7 @@
 <div class="toast-container" id="toast-container"></div>
 
 <!-- Sabit Destek Hattı Butonu -->
-<div class="floating-support-btn" onclick="showPage('destek')" title="Destek Hattı">
+<div class="floating-support-btn" id="floating-destek-btn" onclick="showPage('destek')" title="Destek Hattı">
   <i class="fa-solid fa-headset"></i>
 </div>
 
@@ -235,6 +235,11 @@
 document.addEventListener('DOMContentLoaded', function() {
   const main = document.getElementById('main-content');
   const sidebar = document.getElementById('sidebar');
+
+  // Destek butonu görünürlüğünü uygula
+  const destekGoster = localStorage.getItem('icder-destek-buton') !== '0';
+  const destekBtn = document.getElementById('floating-destek-btn');
+  if (destekBtn) destekBtn.style.display = destekGoster ? 'flex' : 'none';
 
   function handleWheel(e) {
     const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * 800 : e.deltaY;

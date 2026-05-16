@@ -1587,80 +1587,144 @@ function yazdirilabilirHTML(tip) {
 
 function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'portrait') {
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
-
   const minSatir = tur === 'buyukbas' ? 7 : 1;
-  let rows = '';
-  for (let i = 0; i < minSatir; i++) {
-    const h = hisseler[i];
-    rows += '<tr style="height:42px">';
-    rows += '<td style="text-align:center;font-weight:700;border:1.5px solid #000;padding:8px 6px;font-size:18px;width:60px">' + (i + 1) + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:18px;font-weight:600">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:18px;font-weight:600;width:160px;text-align:center">' + kurbanTuru + '</td>';
-    rows += '</tr>';
+
+  // ── BÜYÜKBAŞ DİKEY: tablo sayfayı dolduracak şekilde uzasın ──
+  if (tur === 'buyukbas') {
+    let rows = '';
+    for (let i = 0; i < minSatir; i++) {
+      const h = hisseler[i];
+      const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
+      rows += `<tr>
+        <td class="no-cell">${i + 1}</td>
+        <td class="ad-cell">${h && h.bagisci_adi ? h.bagisci_adi.toUpperCase() : ''}</td>
+        <td class="tur-cell">${hisseTuru}</td>
+      </tr>`;
+    }
+
+    const baseUrl = window.location.origin;
+    const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
+    const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
+    const bayrakImg = bayrakSrc
+      ? `<img src="${bayrakSrc}" alt="Bayrak" style="height:100px;width:150px;object-fit:contain" onerror="this.style.visibility='hidden'"/>`
+      : '';
+    const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="150" height="100">
+      <rect width="1200" height="800" fill="#E30A17"/>
+      <circle cx="425" cy="400" r="200" fill="white"/>
+      <circle cx="475" cy="400" r="160" fill="#E30A17"/>
+      <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
+    </svg>`;
+
+    const printStyle = `
+      @page { margin: 12mm 15mm; size: A4 portrait; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }
+      .page { display: flex; flex-direction: column; min-height: calc(297mm - 24mm); }
+      .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; margin-bottom: 16px; }
+      .header-left { width: 150px; }
+      .header-center { flex: 1; text-align: center; padding: 0 10px; }
+      .header-center img { height: 160px; max-width: 360px; object-fit: contain; }
+      .header-right { width: 150px; display: flex; justify-content: flex-end; }
+      .kurban-title { font-size: 38px; font-weight: 700; color: #1a2a50; text-align: center; margin: 14px 0 20px; }
+      .table-wrap { flex: 1; display: flex; flex-direction: column; }
+      table { width: 100%; border-collapse: collapse; border: 2px solid #000; flex: 1; }
+      thead tr { background: #fff; }
+      th { border: 2px solid #000; padding: 12px 14px; font-size: 17px; font-weight: 700; text-align: center; }
+      th.ad-th { text-align: left; }
+      tbody { }
+      tbody tr { height: calc((297mm - 24mm - 220px) / 7); }
+      td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 700; width: 56px; vertical-align: middle; }
+      td.ad-cell { border: 2px solid #000; padding: 0 18px; font-size: 20px; font-weight: 700; vertical-align: middle; letter-spacing: 0.3px; }
+      td.tur-cell { border: 2px solid #000; text-align: center; font-size: 20px; font-weight: 600; width: 150px; vertical-align: middle; }
+      @media print { html, body { margin: 0; padding: 0; } }
+    `;
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ${kurbanNo}</title>
+      <style>${printStyle}</style></head><body>
+      <div class="page">
+        <div class="header">
+          <div class="header-left">${turkBayrakSVG}</div>
+          <div class="header-center"><img src="${logoSrc}" alt="Logo" onerror="this.style.visibility='hidden'"/></div>
+          <div class="header-right">${bayrakImg}</div>
+        </div>
+        <div class="kurban-title">Kurban : ${kurbanNo}</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:56px">No</th>
+              <th class="ad-th">Ad Soyad</th>
+              <th style="width:150px">Kurban Türü</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </body></html>`;
   }
 
+  // ── TEKLİ (KÜÇÜKBAŞ) YATAY: tablo ortada, büyük, taşmasın ──
+  const h = hisseler[0];
+  const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
   const baseUrl = window.location.origin;
   const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
   const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
-
-  const logoHeight = orientation === 'landscape' ? '200px' : '180px';
-  const logoMaxWidth = orientation === 'landscape' ? '500px' : '400px';
-  const bayrakHeight = orientation === 'landscape' ? '120px' : '100px';
-  const bayrakWidth = orientation === 'landscape' ? '180px' : '150px';
-  const turkBayrakWidth = orientation === 'landscape' ? '180' : '150';
-  const turkBayrakHeight = orientation === 'landscape' ? '120' : '100';
-
-  const printStyle = `
-    @page { margin: 15mm; size: A4 ${orientation}; }
-    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; }
-    .header-left { width: ${bayrakWidth}; display: flex; align-items: center; }
-    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; padding: 0 10px; }
-    .header-center img { height: ${logoHeight}; max-width: ${logoMaxWidth}; object-fit: contain; }
-    .header-right { width: ${bayrakWidth}; display: flex; align-items: center; justify-content: flex-end; }
-    .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
-    .kurban-title { font-size: 36px; font-weight: 700; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; border: 1.5px solid #000; }
-    th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 18px; font-weight: 700; background: #fff; }
-    td { border: 1.5px solid #000; padding: 8px 12px; font-size: 18px; font-weight: 600; }
-    .footer { display: none; }
-    @media print { html, body { margin: 0; padding: 0; } }
-  `;
-
-  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="${turkBayrakWidth}" height="${turkBayrakHeight}">
+  const bayrakImg = bayrakSrc
+    ? `<img src="${bayrakSrc}" alt="Bayrak" style="height:120px;width:180px;object-fit:contain" onerror="this.style.visibility='hidden'"/>`
+    : '';
+  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="180" height="120">
     <rect width="1200" height="800" fill="#E30A17"/>
     <circle cx="425" cy="400" r="200" fill="white"/>
     <circle cx="475" cy="400" r="160" fill="#E30A17"/>
     <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
   </svg>`;
 
-  const bayrakImg = bayrakSrc
-    ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bayrakHeight + ';width:' + bayrakWidth + ';object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
-    : '';
+  const printStyle = `
+    @page { margin: 15mm 20mm; size: A4 landscape; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; height: 100%; }
+    .page { display: flex; flex-direction: column; align-items: center; min-height: calc(210mm - 30mm); }
+    .header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; margin-bottom: 20px; }
+    .header-left { width: 180px; }
+    .header-center { flex: 1; text-align: center; padding: 0 10px; }
+    .header-center img { height: 180px; max-width: 480px; object-fit: contain; }
+    .header-right { width: 180px; display: flex; justify-content: flex-end; }
+    .kurban-title { font-size: 42px; font-weight: 700; color: #1a2a50; text-align: center; margin: 16px 0 28px; }
+    .table-center { display: flex; justify-content: center; width: 100%; }
+    table { border-collapse: collapse; border: 2.5px solid #000; width: 70%; max-width: 600px; }
+    th { border: 2px solid #000; padding: 16px 20px; font-size: 20px; font-weight: 700; text-align: center; background: #fff; }
+    td { border: 2px solid #000; padding: 22px 24px; font-size: 24px; font-weight: 700; text-align: center; vertical-align: middle; }
+    td.ad-cell { text-align: left; padding-left: 28px; font-size: 26px; }
+    @media print { html, body { margin: 0; padding: 0; } }
+  `;
 
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
-    '<style>' + printStyle + '</style></head><body>' +
-    '<div class="header">' +
-    '<div class="header-left">' + turkBayrakSVG + '</div>' +
-    '<div class="header-center">' +
-    '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
-    '</div>' +
-    '<div class="header-right">' + bayrakImg + '</div>' +
-    '</div>' +
-    '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
-    '<table>' +
-    '<thead><tr>' +
-    '<th style="width:60px;text-align:center">No</th>' +
-    '<th>Ad Soyad</th>' +
-    '<th style="width:140px;text-align:center">Kurban Türü</th>' +
-    '</tr></thead>' +
-    '<tbody>' + rows + '</tbody>' +
-    '</table>' +
-    '<div class="footer">İÇDER</div>' +
-    '</body></html>';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ${kurbanNo}</title>
+    <style>${printStyle}</style></head><body>
+    <div class="page">
+      <div class="header">
+        <div class="header-left">${turkBayrakSVG}</div>
+        <div class="header-center"><img src="${logoSrc}" alt="Logo" onerror="this.style.visibility='hidden'"/></div>
+        <div class="header-right">${bayrakImg}</div>
+      </div>
+      <div class="kurban-title">Kurban : ${kurbanNo}</div>
+      <div class="table-center">
+        <table>
+          <thead><tr>
+            <th style="width:70px">No</th>
+            <th style="text-align:left;padding-left:28px">Ad Soyad</th>
+            <th style="width:180px">Kurban Türü</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td class="ad-cell">${h && h.bagisci_adi ? h.bagisci_adi.toUpperCase() : ''}</td>
+              <td>${hisseTuru}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body></html>`;
 }
-
 // ═══════════════════════════════════════════════════════════════════════════
 // DENETİM MASASI
 // ═══════════════════════════════════════════════════════════════════════════

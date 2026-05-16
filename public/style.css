@@ -167,6 +167,141 @@ body.theme-olive .modal {
   background: linear-gradient(135deg, var(--bg2), var(--bg3)); 
 }
 
+/* ── KOYU MAVİ TEMA ── */
+body.theme-dark-blue {
+  --bg:      #0a0f1e;
+  --bg2:     #0f1629;
+  --bg3:     #141d35;
+  --bg4:     #1a2540;
+  --bg5:     #202e4d;
+  --border:  #2a3a5c;
+  --border2: #354a70;
+  --accent:  #6366f1;
+  --accent2: #818cf8;
+  --purple:  #a78bfa;
+  --green:   #34d399;
+  --yellow:  #fbbf24;
+  --red:     #f87171;
+  --text:    #e2e8f0;
+  --text2:   #94a3b8;
+  --text3:   #6366f1;
+  --glow:    rgba(99,102,241,0.25);
+  --glow2:   rgba(99,102,241,0.1);
+  --r:       10px;
+  --r2:      16px;
+  --shadow:  0 8px 32px rgba(0,0,0,0.5);
+  --hover-bg: rgba(99,102,241,0.1);
+  --card-bg: var(--bg3);
+}
+
+/* ── MOR GECE TEMA ── */
+body.theme-dark-purple {
+  --bg:      #0d0a1e;
+  --bg2:     #130f28;
+  --bg3:     #1a1535;
+  --bg4:     #221c42;
+  --bg5:     #2a2350;
+  --border:  #3a2f6a;
+  --border2: #4a3d80;
+  --accent:  #a855f7;
+  --accent2: #c084fc;
+  --purple:  #e879f9;
+  --green:   #34d399;
+  --yellow:  #fbbf24;
+  --red:     #f87171;
+  --text:    #ede9fe;
+  --text2:   #c4b5fd;
+  --text3:   #a855f7;
+  --glow:    rgba(168,85,247,0.25);
+  --glow2:   rgba(168,85,247,0.1);
+  --r:       10px;
+  --r2:      16px;
+  --shadow:  0 8px 32px rgba(0,0,0,0.5);
+  --hover-bg: rgba(168,85,247,0.1);
+  --card-bg: var(--bg3);
+}
+
+/* ── KIRMIZI KOR TEMA ── */
+body.theme-dark-red {
+  --bg:      #1a0a0a;
+  --bg2:     #220f0f;
+  --bg3:     #2d1515;
+  --bg4:     #3a1c1c;
+  --bg5:     #472222;
+  --border:  #5c2a2a;
+  --border2: #703535;
+  --accent:  #ef4444;
+  --accent2: #f87171;
+  --purple:  #f472b6;
+  --green:   #34d399;
+  --yellow:  #fbbf24;
+  --red:     #ef4444;
+  --text:    #fee2e2;
+  --text2:   #fca5a5;
+  --text3:   #ef4444;
+  --glow:    rgba(239,68,68,0.25);
+  --glow2:   rgba(239,68,68,0.1);
+  --r:       10px;
+  --r2:      16px;
+  --shadow:  0 8px 32px rgba(0,0,0,0.5);
+  --hover-bg: rgba(239,68,68,0.1);
+  --card-bg: var(--bg3);
+}
+
+/* ── ALTIN ÇÖL TEMA ── */
+body.theme-dark-gold {
+  --bg:      #1a1200;
+  --bg2:     #221800;
+  --bg3:     #2d2000;
+  --bg4:     #3a2900;
+  --bg5:     #473300;
+  --border:  #5c4200;
+  --border2: #705200;
+  --accent:  #f59e0b;
+  --accent2: #fbbf24;
+  --purple:  #fb923c;
+  --green:   #34d399;
+  --yellow:  #f59e0b;
+  --red:     #ef4444;
+  --text:    #fef3c7;
+  --text2:   #fde68a;
+  --text3:   #f59e0b;
+  --glow:    rgba(245,158,11,0.25);
+  --glow2:   rgba(245,158,11,0.1);
+  --r:       10px;
+  --r2:      16px;
+  --shadow:  0 8px 32px rgba(0,0,0,0.5);
+  --hover-bg: rgba(245,158,11,0.1);
+  --card-bg: var(--bg3);
+}
+
+/* ── OKYANUS TEMA ── */
+body.theme-ocean {
+  --bg:      #0a1628;
+  --bg2:     #0f1e35;
+  --bg3:     #142540;
+  --bg4:     #1a2e4d;
+  --bg5:     #20385c;
+  --border:  #2a4a70;
+  --border2: #355a85;
+  --accent:  #0ea5e9;
+  --accent2: #38bdf8;
+  --purple:  #818cf8;
+  --green:   #34d399;
+  --yellow:  #fbbf24;
+  --red:     #f87171;
+  --text:    #e0f2fe;
+  --text2:   #7dd3fc;
+  --text3:   #0ea5e9;
+  --glow:    rgba(14,165,233,0.25);
+  --glow2:   rgba(14,165,233,0.1);
+  --r:       10px;
+  --r2:      16px;
+  --shadow:  0 8px 32px rgba(0,0,0,0.5);
+  --hover-bg: rgba(14,165,233,0.1);
+  --card-bg: var(--bg3);
+}
+
 /* ── TEMA TOGGLE ── */
 .theme-toggle {
   width: 36px; height: 36px;
@@ -201,8 +336,8 @@ body {
 .topbar {
   background: linear-gradient(90deg, var(--bg2), #0a1020);
   border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  height: 70px;
+  padding: 0 28px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -210,25 +345,25 @@ body {
   box-shadow: 0 2px 20px rgba(0,0,0,0.4);
 }
 .topbar-brand {
-  display:flex; align-items:center; gap:14px;
-  font-weight:800; font-size:18px; letter-spacing:1px;
+  display:flex; align-items:center; gap:18px;
+  font-weight:800; font-size:26px; letter-spacing:1.2px;
 }
 .topbar-brand .logo-icon {
-  width:42px; height:42px;
+  width:56px; height:56px;
   background: linear-gradient(135deg,#1a2a50,#0d1830);
-  border:2px solid var(--accent);
+  border:3px solid var(--accent);
   border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   overflow:hidden;
-  box-shadow: 0 0 16px var(--glow), 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 0 20px var(--glow), 0 6px 16px rgba(0,0,0,0.4);
   transition: all 0.3s ease;
 }
 .topbar-brand .logo-icon:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px var(--glow), 0 6px 16px rgba(0,0,0,0.4);
+  transform: scale(1.08);
+  box-shadow: 0 0 28px var(--glow), 0 8px 20px rgba(0,0,0,0.5);
 }
-.topbar-brand .logo-icon i { font-size:18px; color:var(--accent); }
-.topbar-brand .brand-text { color:var(--text); }
+.topbar-brand .logo-icon i { font-size:28px; color:var(--accent); }
+.topbar-brand .brand-text { color:var(--text); font-size:26px; }
 .topbar-brand .brand-text span { color:var(--accent); }
 
 /* Seçili Organizasyon Göstergesi */

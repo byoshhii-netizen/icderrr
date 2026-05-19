@@ -569,11 +569,21 @@ async function renderKurbanlar() {
             <i class="fa-solid fa-print"></i> Yazdırma Seçenekleri
             <i class="fa-solid fa-chevron-down" style="margin-left:6px;font-size:10px"></i>
           </button>
-          <div id="print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;z-index:1000">
+          <div id="print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:220px;z-index:1000">
+            <div style="padding:6px 14px;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);margin-bottom:4px">Yazdır</div>
+            <div onclick="tumKurbanlariYazdirFiltre('buyukbas')" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-cow" style="width:20px;color:var(--accent)"></i>
+              <span>Büyükbaşları Yazdır</span>
+            </div>
+            <div onclick="tumKurbanlariYazdirFiltre('kucukbas')" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-hippo" style="width:20px;color:var(--yellow)"></i>
+              <span>Küçükbaşları Yazdır</span>
+            </div>
             <div onclick="tumKurbanlariYazdir()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
               <i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>
-              <span>Tümünü Yazdır</span>
+              <span>Toplu Yazdır (Tümü)</span>
             </div>
+            <div style="padding:6px 14px;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:4px 0">Excel</div>
             <div onclick="tumKurbanlariExcel()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
               <i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>
               <span>Excel İndir</span>
@@ -2134,21 +2144,60 @@ async function excelKurbanSatir(kurbanId) {
 async function tumKurbanlariYazdir() {
   if (!S.orgId) return toast('Once organizasyon secin', 'error');
   if (!_kurbanlar.length) return toast('Kurban bulunamadi', 'error');
-  toast('Hazirlanıyor...');
-  let allHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:11px;margin:10px}@media print{.pb{page-break-after:always}}</style></head><body>';
-  for (const k of _kurbanlar) {
+  await tumKurbanlariYazdirFiltre('hepsi');
+}
+
+async function tumKurbanlariYazdirFiltre(filtre) {
+  if (!S.orgId) return toast('Once organizasyon secin', 'error');
+  const liste = filtre === 'hepsi' ? _kurbanlar
+    : _kurbanlar.filter(k => k.tur === filtre);
+  if (!liste.length) return toast('Bu türde kurban bulunamadı', 'error');
+  toast('Hazırlanıyor... (' + liste.length + ' kurban)');
+  document.getElementById('print-menu').style.display = 'none';
+
+  // Her kurban için kurbanYazdirHTML ile sayfa oluştur, hepsini birleştir
+  const pages = [];
+  for (const k of liste) {
     const hisseler = await api('GET', '/kurbanlar/' + k.id + '/hisseler');
-    const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
-    let rows = hisseler.map(h => '<tr><td>' + h.hisse_no + '</td><td>' + (h.bagisci_adi||'-') + '</td><td>' + (h.bagisci_telefon||'-') + '</td><td>' + (h.kimin_adina||'-') + '</td><td>' + (oLabel[h.odeme_durumu]||'-') + '</td><td>' + (h.video_ister?'Evet':'Hayir') + '</td></tr>').join('');
-    allHtml += '<div style="margin-bottom:20px">';
-    allHtml += '<div style="display:flex;justify-content:space-between;border-bottom:2px solid #1a2a50;padding-bottom:6px;margin-bottom:10px">';
-    allHtml += '<strong style="font-size:14px;color:#1a2a50">İÇDER &mdash; Kurban #' + k.kurban_no + '</strong>';
-    allHtml += '<span style="font-size:11px;color:#555">' + esc(S.orgAd) + ' | ' + S.orgYil + '</span></div>';
-    allHtml += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr style="background:#1a2a50;color:#fff"><th style="padding:5px">Hisse</th><th>Bagisci</th><th>Telefon</th><th>Kimin Adina</th><th>Odeme</th><th>Video</th></tr>' + rows + '</table>';
-    allHtml += '<div style="font-size:10px;color:#999;display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:4px"><span>İÇDER</span><span></span></div>';
-    allHtml += '</div><div class="pb"></div>';
+    const html = kurbanYazdirHTML(k.kurban_no, k.tur, hisseler, k, 'portrait');
+    // body içeriğini al
+    const bodyMatch = html.match(/<body>([\s\S]*)<\/body>/);
+    if (bodyMatch) pages.push(bodyMatch[1]);
   }
-  allHtml += '</body></html>';
+
+  const baseUrl = window.location.origin;
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
+  const bw = '150'; const bh = '100';
+  const turkBayrakSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="' + bw + '" height="' + bh + '"><rect width="1200" height="800" fill="#E30A17"/><circle cx="425" cy="400" r="200" fill="white"/><circle cx="475" cy="400" r="160" fill="#E30A17"/><polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/></svg>';
+  const bayrakImg = bayrakSrc ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bh + 'px;width:' + bw + 'px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>' : '';
+
+  const printStyle =
+    '@page { margin: 12mm 15mm; size: A4 portrait; }' +
+    '* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+    'html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }' +
+    '.page { display: flex; flex-direction: column; height: calc(297mm - 24mm); overflow: hidden; page-break-after: always; }' +
+    '.header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; flex-shrink: 0; }' +
+    '.header-left { width: 150px; }' +
+    '.header-center { flex: 1; text-align: center; padding: 0 10px; }' +
+    '.header-center img { height: 120px; max-width: 400px; object-fit: contain; }' +
+    '.header-right { width: 150px; display: flex; justify-content: flex-end; }' +
+    '.kurban-title { font-size: 32px; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; flex-shrink: 0; }' +
+    '.table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }' +
+    'table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }' +
+    'thead { display: table-header-group; }' +
+    'th { border: 2px solid #000; padding: 6px 10px; font-size: 16px; font-weight: 700; text-align: center; }' +
+    'tbody { display: table-row-group; }' +
+    'td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 800; width: 50px; vertical-align: middle; }' +
+    'td.ad-cell { border: 2px solid #000; padding: 2px 10px; font-weight: 800; vertical-align: middle; text-align: center; white-space: nowrap; overflow: hidden; }' +
+    'td.tur-cell { border: 2px solid #000; text-align: center; font-size: 19px; font-weight: 700; width: 140px; vertical-align: middle; }' +
+    '@media print { html, body { margin: 0; padding: 0; } .page:last-child { page-break-after: auto; } }';
+
+  const allHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurbanlar</title>' +
+    '<style>' + printStyle + '</style></head><body>' +
+    pages.join('') +
+    '</body></html>';
+
   printHTML(allHtml);
 }
 

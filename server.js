@@ -219,8 +219,8 @@ async function otoYedekBaslat() {
 }
 
 // Dışarıdan timer'ı yeniden başlatmak için export
-module.exports.otoYedekBaslat = otoYedekBaslat;
-module.exports.otoYedekCalistir = otoYedekCalistir;
+app.otoYedekBaslat = otoYedekBaslat;
+app.otoYedekCalistir = otoYedekCalistir;
 
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {

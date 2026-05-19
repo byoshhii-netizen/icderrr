@@ -1798,6 +1798,16 @@ async function renderDenetim() {
           <tr><td style="color:var(--text3);padding:7px 0">Site</td><td><a href="https://icder.org" target="_blank" style="color:var(--accent);text-decoration:none">icder.org</a></td></tr>
         </table>
       </div>
+      <div class="card" style="border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.04)">
+        <div class="card-title"><i class="fa-solid fa-palette" style="color:var(--purple)"></i> Tasarım</div>
+        <table style="font-size:13px;width:100%">
+          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Ajans</td><td style="font-weight:700;color:var(--purple)">CMS Ajans</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Kurucu</td><td style="font-weight:600">İsmail DEMİRCAN</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">E-posta</td><td><a href="mailto:cms.teamm@gmail.com" style="color:var(--accent);text-decoration:none">cms.teamm@gmail.com</a></td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">WhatsApp</td><td><a href="https://wa.me/905368351008" target="_blank" style="color:var(--green);text-decoration:none"><i class="fa-brands fa-whatsapp"></i> 0536 835 10 08</a></td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Yıl</td><td>2025</td></tr>
+        </table>
+      </div>
       <div class="card">
         <div class="card-title"><i class="fa-solid fa-database"></i> Veritabani</div>
         <table style="font-size:13px;width:100%">

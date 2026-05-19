@@ -179,6 +179,15 @@ router.put('/hisseler/:id/vekalet', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── VİDEO GÖNDERİLDİ TOGGLE ───────────────────────────────────────────────
+router.put('/hisseler/:id/video-gonderildi', async (req, res) => {
+  const db = await getDb();
+  const { video_gonderildi } = req.body;
+  db.prepare(`UPDATE hisseler SET video_gonderildi=? WHERE id=?`)
+    .run(video_gonderildi ? 1 : 0, req.params.id);
+  res.json({ ok: true });
+});
+
 // ─── BAĞIŞÇI ARAMA ─────────────────────────────────────────────────────────
 
 router.get('/bagiscilar/ara', async (req, res) => {

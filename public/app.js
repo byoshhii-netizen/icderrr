@@ -1127,6 +1127,8 @@ async function renderBagiscilar() {
           '<option value="">Video Durumu</option>' +
           '<option value="1">Video İster</option>' +
           '<option value="0">Video İstemez</option>' +
+          '<option value="gonderildi">Video Gönderildi</option>' +
+          '<option value="gonderilmedi">Video Gönderilmedi</option>' +
         '</select>' +
         '<select id="b-vekalet" onchange="filterBagiscilar()">' +
           '<option value="">Vekalet Durumu</option>' +
@@ -1219,7 +1221,21 @@ function renderBagisciTablosu(list) {
       <td>${h.kurban_turu?`<span class="badge badge-purple">${esc(h.kurban_turu)}</span>`:'-'}</td>
       <td><strong style="color:var(--green)">${fiyat.toLocaleString('tr-TR')} ₺</strong></td>
       <td><span class="badge ${oRenk[h.odeme_durumu]||'badge-gray'}">${oLabel[h.odeme_durumu]||h.odeme_durumu}</span></td>
-      <td>${h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-'}</td>
+      <td>${h.video_ister ? `
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>
+          <button onclick="toggleVideoGonderildi(${h.id},${h.video_gonderildi?0:1},event)" title="${h.video_gonderildi?'Gönderildi — tıkla geri al':'Gönderilmedi — tıkla gönderildi yap'}" style="
+            display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
+            background:${h.video_gonderildi?'linear-gradient(135deg,#10b981,#059669)':'var(--bg4)'};
+            color:${h.video_gonderildi?'#fff':'var(--text3)'};
+            border:${h.video_gonderildi?'none':'1px dashed var(--border2)'};
+            border-radius:12px;cursor:pointer;font-size:11px;font-weight:600;
+            box-shadow:${h.video_gonderildi?'0 2px 6px rgba(16,185,129,0.4)':'none'};
+            transition:all 0.2s">
+            <i class="fa-solid fa-${h.video_gonderildi?'check':'paper-plane'}"></i>
+            ${h.video_gonderildi?'Gönderildi':'Gönderilmedi'}
+          </button>
+        </div>` : '<span style="color:var(--text3);font-size:12px">-</span>'}</td>
       <td>${vekaletBtn}</td>
       <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id},${fiyat})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
     </tr>`;
@@ -1230,10 +1246,20 @@ async function toggleVekalet(hisseId, yeniDurum, event) {
   event.stopPropagation();
   try {
     await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: yeniDurum });
-    // Listedeki kaydı güncelle
     const h = _tumBagiscilar.find(x => x.id === hisseId);
     if (h) h.vekalet_onay = yeniDurum;
     toast(yeniDurum ? '✅ Vekalet alındı olarak işaretlendi' : 'Vekalet kaldırıldı');
+    filterBagiscilar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function toggleVideoGonderildi(hisseId, yeniDurum, event) {
+  event.stopPropagation();
+  try {
+    await api('PUT', `/hisseler/${hisseId}/video-gonderildi`, { video_gonderildi: yeniDurum });
+    const h = _tumBagiscilar.find(x => x.id === hisseId);
+    if (h) h.video_gonderildi = yeniDurum;
+    toast(yeniDurum ? '📹 Video gönderildi olarak işaretlendi' : 'Video gönderilmedi olarak işaretlendi');
     filterBagiscilar();
   } catch(e) { toast(e.message, 'error'); }
 }
@@ -5421,7 +5447,13 @@ async function filterBagiscilar() {
     if (kategori && h.bagisci_kategori !== kategori) return false;
     if (odeme && h.odeme_durumu !== odeme) return false;
     if (video !== '') {
-      if (h.video_ister !== (video === '1')) return false;
+      if (video === 'gonderildi') {
+        if (!h.video_ister || !h.video_gonderildi) return false;
+      } else if (video === 'gonderilmedi') {
+        if (!h.video_ister || h.video_gonderildi) return false;
+      } else {
+        if (h.video_ister !== (video === '1')) return false;
+      }
     }
     if (vekalet !== '') {
       const vekaletIster = vekalet === '1';

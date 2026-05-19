@@ -302,6 +302,10 @@ function showPage(page) {
   else if (page==='proje-yonetimi') renderProjeYonetimi();
   else if (page==='diger-organizasyonlar') renderDigerOrganizasyonlar();
   else if (page==='partner-kurum-listesi') renderPartnerKurumListesi();
+  else if (page==='sms-at') renderSmsAt();
+  else if (page==='sms-sablonlar') renderSmsSablonlar();
+  else if (page==='sms-loglar') renderSmsLoglar();
+  else if (page==='sms-ayarlar') renderSmsAyarlar();
 }
 
 function toggleBagisMenu() {
@@ -5743,4 +5747,420 @@ async function gelirGiderHesapla() {
 
 function formatMoney(amount) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMS SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── SMS AYARLARI ────────────────────────────────────────────────────────────
+async function renderSmsAyarlar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-gear"></i></div>SMS Ayarları</div>
+    </div>
+    <div class="card" style="max-width:600px">
+      <div class="card-title"><i class="fa-solid fa-tower-broadcast" style="color:var(--accent)"></i> Netgsm API Bilgileri</div>
+      <div id="sms-ayar-wrap"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+    </div>`;
+  try {
+    const ayar = await api('GET', '/sms/ayarlar');
+    document.getElementById('sms-ayar-wrap').innerHTML = `
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1">
+          <label><i class="fa-solid fa-user"></i> Kullanıcı Kodu (Müşteri No)</label>
+          <input id="sms-kullanici" value="${esc(ayar.kullanici_kodu||'')}" placeholder="Netgsm müşteri numaranız"/>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label><i class="fa-solid fa-key"></i> API Şifresi</label>
+          <input id="sms-sifre" type="password" value="${esc(ayar.api_sifre||'')}" placeholder="Netgsm API şifreniz"/>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label><i class="fa-solid fa-tag"></i> Mesaj Başlığı (Gönderici Adı)</label>
+          <input id="sms-baslik" value="${esc(ayar.mesaj_basligi||'')}" placeholder="Örn: ICDER (max 11 karakter)"/>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Netgsm panelinde onaylı başlık olmalı</div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="smsAyarKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+        <button class="btn btn-secondary" onclick="smsBakiyeSorgula()"><i class="fa-solid fa-coins"></i> Bakiye Sorgula</button>
+      </div>`;
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function smsAyarKaydet() {
+  const kullanici_kodu = document.getElementById('sms-kullanici').value.trim();
+  const api_sifre = document.getElementById('sms-sifre').value.trim();
+  const mesaj_basligi = document.getElementById('sms-baslik').value.trim();
+  if (!kullanici_kodu || !api_sifre) return toast('Kullanıcı kodu ve şifre zorunlu', 'error');
+  try {
+    await api('POST', '/sms/ayarlar', { kullanici_kodu, api_sifre, mesaj_basligi });
+    toast('SMS ayarları kaydedildi');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function smsBakiyeSorgula() {
+  toast('Bakiye sorgulanıyor...');
+  try {
+    const r = await api('GET', '/sms/bakiye');
+    toast('Bakiye: ' + r.bakiye + ' SMS');
+  } catch(e) { toast('Bakiye sorgulanamadı: ' + e.message, 'error'); }
+}
+
+// ─── SMS ŞABLONLARI ──────────────────────────────────────────────────────────
+async function renderSmsSablonlar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-file-lines"></i></div>SMS Şablonları</div>
+      <button class="btn btn-primary" onclick="modalYeniSablon()"><i class="fa-solid fa-plus"></i> Yeni Şablon</button>
+    </div>
+    <div class="card">
+      <div id="sablon-listesi"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+    </div>`;
+  yukleSmsSablonlar();
+}
+
+async function yukleSmsSablonlar() {
+  const el = document.getElementById('sablon-listesi');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/sms/sablonlar');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-file-lines"></i><p>Henüz şablon yok. Yeni şablon ekleyin.</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(s => `
+      <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:var(--bg3)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:14px;font-weight:700;color:var(--accent)"><i class="fa-solid fa-tag"></i> ${esc(s.baslik)}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="modalDuzenleSablon(${s.id})"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="silSablon(${s.id})"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--text2);background:var(--bg4);border-radius:6px;padding:10px;line-height:1.6">${esc(s.icerik)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">${new Date(s.olusturma).toLocaleString('tr-TR')} — ${s.icerik.length} karakter</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<div class="empty-state"><p>Yüklenemedi</p></div>'; }
+}
+
+function modalYeniSablon() {
+  openModal('Yeni SMS Şablonu', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Şablon Başlığı *</label>
+        <input id="sablon-baslik" placeholder="Örn: Video Hazır Bildirimi"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>SMS İçeriği *</label>
+        <textarea id="sablon-icerik" rows="5" placeholder="SMS metni buraya..."></textarea>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">160 karaktere kadar 1 SMS, üzeri 2 SMS sayılır</div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetSablon()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'file-lines');
+}
+
+async function modalDuzenleSablon(id) {
+  const list = await api('GET', '/sms/sablonlar');
+  const s = list.find(x => x.id === id); if (!s) return;
+  openModal('Şablonu Düzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Şablon Başlığı *</label>
+        <input id="sablon-baslik" value="${esc(s.baslik)}"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>SMS İçeriği *</label>
+        <textarea id="sablon-icerik" rows="5">${esc(s.icerik)}</textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="guncelleSablon(${id})"><i class="fa-solid fa-floppy-disk"></i> Güncelle</button>
+    </div>`, false, 'pen');
+}
+
+async function kaydetSablon() {
+  const baslik = document.getElementById('sablon-baslik').value.trim();
+  const icerik = document.getElementById('sablon-icerik').value.trim();
+  if (!baslik || !icerik) return toast('Başlık ve içerik zorunlu', 'error');
+  try {
+    await api('POST', '/sms/sablon', { baslik, icerik });
+    closeModal(); toast('Şablon kaydedildi'); yukleSmsSablonlar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function guncelleSablon(id) {
+  const baslik = document.getElementById('sablon-baslik').value.trim();
+  const icerik = document.getElementById('sablon-icerik').value.trim();
+  if (!baslik || !icerik) return toast('Başlık ve içerik zorunlu', 'error');
+  try {
+    await api('PUT', `/sms/sablon/${id}`, { baslik, icerik });
+    closeModal(); toast('Şablon güncellendi'); yukleSmsSablonlar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function silSablon(id) {
+  if (!confirm('Bu şablonu silmek istediğinizden emin misiniz?')) return;
+  try {
+    await api('DELETE', `/sms/sablon/${id}`);
+    toast('Şablon silindi'); yukleSmsSablonlar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── SMS AT ──────────────────────────────────────────────────────────────────
+let _smsBagiscilar = [];
+
+async function renderSmsAt() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-paper-plane"></i></div>SMS At</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <!-- Sol: Alıcı Seçimi -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-users"></i> Alıcı Seç</div>
+        <div style="margin-bottom:12px;display:flex;gap:8px">
+          <input id="sms-ara" placeholder="İsim veya telefon ara..." oninput="smsBagisciAra()" style="flex:1"/>
+          <button class="btn btn-secondary btn-sm" onclick="smsTumunuSec()">Tümünü Seç</button>
+          <button class="btn btn-secondary btn-sm" onclick="smsSecimiTemizle()">Temizle</button>
+        </div>
+        <div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="smsFiltrele('hepsi')">Tümü</button>
+          <button class="btn btn-secondary btn-sm" onclick="smsFiltrele('video')">Video İsteyenler</button>
+          <button class="btn btn-secondary btn-sm" onclick="smsFiltrele('odenmedi')">Ödeme Bekleyenler</button>
+        </div>
+        <div id="sms-alici-liste" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+          <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+        </div>
+        <div id="sms-secili-sayac" style="margin-top:8px;font-size:13px;color:var(--text3)">0 kişi seçili</div>
+      </div>
+      <!-- Sağ: Mesaj -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-message"></i> Mesaj</div>
+        <div class="form-group">
+          <label>Şablon Seç <span style="color:var(--text3);font-weight:400">(opsiyonel)</span></label>
+          <select id="sms-sablon-sec" onchange="smsSablonSec()">
+            <option value="">— Şablon seçin —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>SMS Metni *</label>
+          <textarea id="sms-metin" rows="7" placeholder="Göndermek istediğiniz SMS metnini yazın..." oninput="smsKarakterSay()"></textarea>
+          <div style="display:flex;justify-content:space-between;margin-top:4px">
+            <span id="sms-karakter" style="font-size:11px;color:var(--text3)">0 karakter</span>
+            <span id="sms-adet" style="font-size:11px;color:var(--text3)">1 SMS</span>
+          </div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--text3)">
+          <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+          Seçili kişi sayısı: <strong id="sms-gonderilecek-sayi" style="color:var(--accent)">0</strong>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="smsSingleGonder()" style="flex:1">
+            <i class="fa-solid fa-paper-plane"></i> SMS Gönder
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  // Bağışçıları yükle
+  await smsYukleBagiscilar();
+  // Şablonları yükle
+  try {
+    const sablonlar = await api('GET', '/sms/sablonlar');
+    const sel = document.getElementById('sms-sablon-sec');
+    if (sel) sablonlar.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.icerik;
+      opt.textContent = s.baslik;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function smsYukleBagiscilar() {
+  if (!S.orgId) {
+    document.getElementById('sms-alici-liste').innerHTML = '<div class="empty-state"><p>Önce bir organizasyon seçin</p></div>';
+    return;
+  }
+  try {
+    _smsBagiscilar = await api('GET', `/bagiscilar/ara?q=&orgId=${S.orgId}&tumunu=1`);
+    smsRenderAlicilar(_smsBagiscilar);
+  } catch(e) {
+    document.getElementById('sms-alici-liste').innerHTML = '<div class="empty-state"><p>Yüklenemedi</p></div>';
+  }
+}
+
+function smsRenderAlicilar(liste) {
+  const el = document.getElementById('sms-alici-liste');
+  if (!el) return;
+  if (!liste.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:20px"><p>Sonuç bulunamadı</p></div>';
+    return;
+  }
+  el.innerHTML = liste.map(h => `
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+      <input type="checkbox" class="sms-alici-cb" data-id="${h.id}" data-ad="${esc(h.bagisci_adi)}" data-tel="${esc(h.bagisci_telefon||'')}" onchange="smsSecimGuncelle()" style="width:16px;height:16px;cursor:pointer"/>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.bagisci_adi)}</div>
+        <div style="font-size:11px;color:var(--text3)">${h.bagisci_telefon||'<span style="color:var(--red)">Telefon yok</span>'} &nbsp;|&nbsp; Kurban #${h.kurban_no}</div>
+      </div>
+      ${!h.bagisci_telefon ? '<span style="font-size:10px;color:var(--red);background:rgba(239,68,68,0.1);padding:2px 6px;border-radius:4px">Tel yok</span>' : ''}
+    </label>`).join('');
+}
+
+function smsBagisciAra() {
+  const q = (document.getElementById('sms-ara')?.value || '').toLowerCase();
+  const filtered = _smsBagiscilar.filter(h =>
+    h.bagisci_adi.toLowerCase().includes(q) ||
+    (h.bagisci_telefon || '').includes(q)
+  );
+  smsRenderAlicilar(filtered);
+}
+
+function smsFiltrele(tip) {
+  let filtered = _smsBagiscilar;
+  if (tip === 'video') filtered = _smsBagiscilar.filter(h => h.video_ister);
+  else if (tip === 'odenmedi') filtered = _smsBagiscilar.filter(h => h.odeme_durumu === 'bekliyor');
+  smsRenderAlicilar(filtered);
+}
+
+function smsTumunuSec() {
+  document.querySelectorAll('.sms-alici-cb').forEach(cb => cb.checked = true);
+  smsSecimGuncelle();
+}
+
+function smsSecimiTemizle() {
+  document.querySelectorAll('.sms-alici-cb').forEach(cb => cb.checked = false);
+  smsSecimGuncelle();
+}
+
+function smsSecimGuncelle() {
+  const secili = document.querySelectorAll('.sms-alici-cb:checked').length;
+  const sayacEl = document.getElementById('sms-secili-sayac');
+  const gonderilecekEl = document.getElementById('sms-gonderilecek-sayi');
+  if (sayacEl) sayacEl.textContent = secili + ' kişi seçili';
+  if (gonderilecekEl) gonderilecekEl.textContent = secili;
+}
+
+function smsSablonSec() {
+  const sel = document.getElementById('sms-sablon-sec');
+  const metin = document.getElementById('sms-metin');
+  if (sel && metin && sel.value) {
+    metin.value = sel.value;
+    smsKarakterSay();
+  }
+}
+
+function smsKarakterSay() {
+  const metin = document.getElementById('sms-metin')?.value || '';
+  const len = metin.length;
+  const adet = len <= 160 ? 1 : Math.ceil(len / 153);
+  const karEl = document.getElementById('sms-karakter');
+  const adetEl = document.getElementById('sms-adet');
+  if (karEl) karEl.textContent = len + ' karakter';
+  if (adetEl) {
+    adetEl.textContent = adet + ' SMS';
+    adetEl.style.color = adet > 1 ? 'var(--yellow)' : 'var(--text3)';
+  }
+}
+
+async function smsSingleGonder() {
+  const metin = document.getElementById('sms-metin')?.value.trim();
+  if (!metin) return toast('SMS metni boş olamaz', 'error');
+
+  const seciliCbs = document.querySelectorAll('.sms-alici-cb:checked');
+  if (!seciliCbs.length) return toast('En az bir alıcı seçin', 'error');
+
+  const alicilar = Array.from(seciliCbs).map(cb => ({
+    ad: cb.dataset.ad,
+    tel: cb.dataset.tel,
+    hisse_id: cb.dataset.id
+  })).filter(a => a.tel);
+
+  const telsiz = Array.from(seciliCbs).filter(cb => !cb.dataset.tel).length;
+  if (telsiz > 0) toast(`${telsiz} kişinin telefonu yok, atlandı`, 'info');
+  if (!alicilar.length) return toast('Telefonu olan alıcı yok', 'error');
+
+  if (!confirm(`${alicilar.length} kişiye SMS gönderilecek. Onaylıyor musunuz?`)) return;
+
+  toast('SMS gönderiliyor...');
+  try {
+    const r = await api('POST', '/sms/toplu-gonder', { alicilar, mesaj: metin });
+    toast(`${r.basarili}/${r.toplam} SMS başarıyla gönderildi`);
+    if (r.basarili < r.toplam) {
+      const hatalar = r.sonuclar.filter(s => s.durum === 'hata');
+      console.log('SMS hataları:', hatalar);
+    }
+  } catch(e) { toast('Gönderim hatası: ' + e.message, 'error'); }
+}
+
+// ─── SMS LOGLARI ─────────────────────────────────────────────────────────────
+async function renderSmsLoglar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-clock-rotate-left"></i></div>Son Atılan SMS'ler</div>
+      <button class="btn btn-secondary" onclick="renderSmsLoglar()"><i class="fa-solid fa-rotate"></i> Yenile</button>
+    </div>
+    <div class="card">
+      <div id="sms-log-wrap"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i></div></div>
+    </div>`;
+  try {
+    const list = await api('GET', '/sms/loglar?limit=200');
+    const el = document.getElementById('sms-log-wrap');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-inbox"></i><p>Henüz SMS gönderilmedi</p></div>';
+      return;
+    }
+    // İstatistikler
+    const gonderildi = list.filter(l => l.durum === 'gonderildi').length;
+    const hata = list.filter(l => l.durum === 'hata').length;
+    el.innerHTML = `
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px 16px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--green)">${gonderildi}</div>
+          <div style="font-size:11px;color:var(--text3)">Gönderildi</div>
+        </div>
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px 16px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--red)">${hata}</div>
+          <div style="font-size:11px;color:var(--text3)">Hata</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:var(--accent)">${list.length}</div>
+          <div style="font-size:11px;color:var(--text3)">Toplam</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Tarih</th><th>Alıcı</th><th>Telefon</th><th>Mesaj</th><th>Durum</th>
+          </tr></thead>
+          <tbody>
+            ${list.map((l, i) => `
+              <tr>
+                <td style="color:var(--text3);font-size:12px">${list.length - i}</td>
+                <td style="font-size:12px;white-space:nowrap">${new Date(l.gonderim_tarihi).toLocaleString('tr-TR')}</td>
+                <td><strong>${esc(l.alici_ad || '-')}</strong></td>
+                <td style="font-size:12px">${esc(l.alici_tel || '-')}</td>
+                <td style="font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(l.mesaj)}">${esc(l.mesaj)}</td>
+                <td>
+                  ${l.durum === 'gonderildi'
+                    ? '<span class="badge badge-green"><i class="fa-solid fa-check"></i> Gönderildi</span>'
+                    : `<span class="badge badge-red" title="${esc(l.hata_mesaj||'')}"><i class="fa-solid fa-xmark"></i> Hata</span>`}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    document.getElementById('sms-log-wrap').innerHTML = '<div class="empty-state"><p>Yüklenemedi: ' + e.message + '</p></div>';
+  }
 }

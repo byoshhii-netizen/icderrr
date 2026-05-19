@@ -202,6 +202,10 @@ async function getDb() {
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN video_gonderildi INTEGER DEFAULT 0"); } catch(e) {}
   // oto_yedek_loglar tablosu
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS oto_yedek_loglar (id INTEGER PRIMARY KEY AUTOINCREMENT, dosya_adi TEXT NOT NULL, boyut INTEGER DEFAULT 0, tarih DATETIME DEFAULT CURRENT_TIMESTAMP, durum TEXT DEFAULT 'basarili')"); } catch(e) {}
+  // SMS tabloları
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS sms_ayarlar (id INTEGER PRIMARY KEY AUTOINCREMENT, kullanici_kodu TEXT, api_sifre TEXT, mesaj_basligi TEXT, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS sms_sablonlar (id INTEGER PRIMARY KEY AUTOINCREMENT, baslik TEXT NOT NULL, icerik TEXT NOT NULL, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS sms_loglar (id INTEGER PRIMARY KEY AUTOINCREMENT, alici_ad TEXT, alici_tel TEXT, mesaj TEXT, durum TEXT DEFAULT 'bekliyor', hata_mesaj TEXT, gonderim_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP, hisse_id INTEGER)"); } catch(e) {}
   // ozel_kategoriler tablosu - admin panelinden yönetilebilir kategoriler
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_kategoriler (id INTEGER PRIMARY KEY AUTOINCREMENT, kategori_adi TEXT UNIQUE NOT NULL, kategori_tipi TEXT DEFAULT 'bagisci', aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   // ozel_filtreler tablosu - admin panelinden yönetilebilir filtreler

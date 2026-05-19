@@ -990,4 +990,177 @@ router.post('/organizasyonlar/:orgId/kurbanlar/:kurbanId/bagiscilar', async (req
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SMS SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+// SMS Ayarları
+router.get('/sms/ayarlar', async (req, res) => {
+  const db = await getDb();
+  const ayar = db.prepare('SELECT * FROM sms_ayarlar ORDER BY id DESC LIMIT 1').get();
+  res.json(ayar || {});
+});
+
+router.post('/sms/ayarlar', async (req, res) => {
+  const db = await getDb();
+  const { kullanici_kodu, api_sifre, mesaj_basligi } = req.body;
+  const mevcut = db.prepare('SELECT id FROM sms_ayarlar LIMIT 1').get();
+  if (mevcut) {
+    db.prepare('UPDATE sms_ayarlar SET kullanici_kodu=?, api_sifre=?, mesaj_basligi=? WHERE id=?')
+      .run(kullanici_kodu, api_sifre, mesaj_basligi, mevcut.id);
+  } else {
+    db.prepare('INSERT INTO sms_ayarlar (kullanici_kodu, api_sifre, mesaj_basligi) VALUES (?,?,?)')
+      .run(kullanici_kodu, api_sifre, mesaj_basligi);
+  }
+  res.json({ ok: true });
+});
+
+// SMS Şablonları
+router.get('/sms/sablonlar', async (req, res) => {
+  const db = await getDb();
+  res.json(db.prepare('SELECT * FROM sms_sablonlar ORDER BY olusturma DESC').all());
+});
+
+router.post('/sms/sablon', async (req, res) => {
+  const db = await getDb();
+  const { baslik, icerik } = req.body;
+  if (!baslik || !icerik) return res.status(400).json({ hata: 'Başlık ve içerik zorunlu' });
+  const r = db.prepare('INSERT INTO sms_sablonlar (baslik, icerik) VALUES (?,?)').run(baslik, icerik);
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+
+router.put('/sms/sablon/:id', async (req, res) => {
+  const db = await getDb();
+  const { baslik, icerik } = req.body;
+  db.prepare('UPDATE sms_sablonlar SET baslik=?, icerik=? WHERE id=?').run(baslik, icerik, req.params.id);
+  res.json({ ok: true });
+});
+
+router.delete('/sms/sablon/:id', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM sms_sablonlar WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// SMS Logları
+router.get('/sms/loglar', async (req, res) => {
+  const db = await getDb();
+  const limit = parseInt(req.query.limit) || 100;
+  res.json(db.prepare('SELECT * FROM sms_loglar ORDER BY gonderim_tarihi DESC LIMIT ?').all(limit));
+});
+
+// SMS Gönder
+router.post('/sms/gonder', async (req, res) => {
+  const db = await getDb();
+  const { alici_ad, alici_tel, mesaj, hisse_id } = req.body;
+  if (!alici_tel || !mesaj) return res.status(400).json({ hata: 'Telefon ve mesaj zorunlu' });
+
+  const ayar = db.prepare('SELECT * FROM sms_ayarlar ORDER BY id DESC LIMIT 1').get();
+  if (!ayar || !ayar.kullanici_kodu || !ayar.api_sifre) {
+    return res.status(400).json({ hata: 'SMS ayarları yapılmamış. Lütfen önce API bilgilerini girin.' });
+  }
+
+  // Telefon numarasını düzenle (başındaki 0 veya +90 kaldır)
+  let tel = alici_tel.replace(/\s/g, '').replace(/^\+90/, '').replace(/^0/, '');
+  if (tel.length !== 10) return res.status(400).json({ hata: 'Geçersiz telefon numarası: ' + alici_tel });
+
+  try {
+    const https = require('https');
+    const querystring = require('querystring');
+    const params = querystring.stringify({
+      usercode: ayar.kullanici_kodu,
+      password: ayar.api_sifre,
+      gsmno: tel,
+      message: mesaj,
+      msgheader: ayar.mesaj_basligi || 'ICDER',
+      dil: 'TR'
+    });
+
+    const result = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.netgsm.com.tr',
+        path: '/sms/send/get/?' + params,
+        method: 'GET'
+      };
+      const req2 = https.request(options, (r2) => {
+        let data = '';
+        r2.on('data', chunk => data += chunk);
+        r2.on('end', () => resolve(data.trim()));
+      });
+      req2.on('error', reject);
+      req2.end();
+    });
+
+    // Netgsm başarı kodları: 00, 01, 02
+    const basarili = result.startsWith('00') || result.startsWith('01') || result.startsWith('02');
+    const durum = basarili ? 'gonderildi' : 'hata';
+    const hata_mesaj = basarili ? null : 'Netgsm kodu: ' + result;
+
+    db.prepare('INSERT INTO sms_loglar (alici_ad, alici_tel, mesaj, durum, hata_mesaj, hisse_id) VALUES (?,?,?,?,?,?)')
+      .run(alici_ad || null, alici_tel, mesaj, durum, hata_mesaj, hisse_id || null);
+
+    if (basarili) {
+      res.json({ ok: true, mesaj: 'SMS gönderildi' });
+    } else {
+      res.status(400).json({ hata: 'SMS gönderilemedi: ' + result });
+    }
+  } catch (e) {
+    db.prepare('INSERT INTO sms_loglar (alici_ad, alici_tel, mesaj, durum, hata_mesaj, hisse_id) VALUES (?,?,?,?,?,?)')
+      .run(alici_ad || null, alici_tel, mesaj, 'hata', e.message, hisse_id || null);
+    res.status(500).json({ hata: 'Bağlantı hatası: ' + e.message });
+  }
+});
+
+// Toplu SMS Gönder
+router.post('/sms/toplu-gonder', async (req, res) => {
+  const db = await getDb();
+  const { alicilar, mesaj } = req.body; // alicilar: [{ad, tel, hisse_id}]
+  if (!alicilar || !alicilar.length || !mesaj) return res.status(400).json({ hata: 'Alıcı ve mesaj zorunlu' });
+
+  const ayar = db.prepare('SELECT * FROM sms_ayarlar ORDER BY id DESC LIMIT 1').get();
+  if (!ayar || !ayar.kullanici_kodu || !ayar.api_sifre) {
+    return res.status(400).json({ hata: 'SMS ayarları yapılmamış.' });
+  }
+
+  const sonuclar = [];
+  for (const alici of alicilar) {
+    let tel = (alici.tel || '').replace(/\s/g, '').replace(/^\+90/, '').replace(/^0/, '');
+    if (tel.length !== 10) {
+      sonuclar.push({ ad: alici.ad, tel: alici.tel, durum: 'hata', hata: 'Geçersiz numara' });
+      db.prepare('INSERT INTO sms_loglar (alici_ad, alici_tel, mesaj, durum, hata_mesaj, hisse_id) VALUES (?,?,?,?,?,?)')
+        .run(alici.ad || null, alici.tel, mesaj, 'hata', 'Geçersiz numara', alici.hisse_id || null);
+      continue;
+    }
+    try {
+      const https = require('https');
+      const querystring = require('querystring');
+      const params = querystring.stringify({
+        usercode: ayar.kullanici_kodu,
+        password: ayar.api_sifre,
+        gsmno: tel,
+        message: mesaj,
+        msgheader: ayar.mesaj_basligi || 'ICDER',
+        dil: 'TR'
+      });
+      const result = await new Promise((resolve, reject) => {
+        const req2 = https.request({ hostname: 'api.netgsm.com.tr', path: '/sms/send/get/?' + params, method: 'GET' }, (r2) => {
+          let data = ''; r2.on('data', c => data += c); r2.on('end', () => resolve(data.trim()));
+        });
+        req2.on('error', reject); req2.end();
+      });
+      const basarili = result.startsWith('00') || result.startsWith('01') || result.startsWith('02');
+      const durum = basarili ? 'gonderildi' : 'hata';
+      db.prepare('INSERT INTO sms_loglar (alici_ad, alici_tel, mesaj, durum, hata_mesaj, hisse_id) VALUES (?,?,?,?,?,?)')
+        .run(alici.ad || null, alici.tel, mesaj, durum, basarili ? null : result, alici.hisse_id || null);
+      sonuclar.push({ ad: alici.ad, tel: alici.tel, durum });
+    } catch(e) {
+      db.prepare('INSERT INTO sms_loglar (alici_ad, alici_tel, mesaj, durum, hata_mesaj, hisse_id) VALUES (?,?,?,?,?,?)')
+        .run(alici.ad || null, alici.tel, mesaj, 'hata', e.message, alici.hisse_id || null);
+      sonuclar.push({ ad: alici.ad, tel: alici.tel, durum: 'hata', hata: e.message });
+    }
+  }
+  const basarili = sonuclar.filter(s => s.durum === 'gonderildi').length;
+  res.json({ ok: true, toplam: sonuclar.length, basarili, sonuclar });
+});
+
 module.exports = router;

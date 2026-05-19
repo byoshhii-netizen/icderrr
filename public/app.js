@@ -1248,11 +1248,47 @@ function renderBagisciTablosu(list) {
 
 async function toggleVekalet(hisseId, yeniDurum, event) {
   event.stopPropagation();
+  // Vekalet kaldırma — direkt yap
+  if (!yeniDurum) {
+    try {
+      await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: 0 });
+      const h = _tumBagiscilar.find(x => x.id === hisseId);
+      if (h) h.vekalet_onay = 0;
+      toast('Vekalet kaldırıldı');
+      filterBagiscilar();
+    } catch(e) { toast(e.message, 'error'); }
+    return;
+  }
+  // Vekalet onaylama — iki aşamalı modal
+  const h = _tumBagiscilar.find(x => x.id === hisseId);
+  const adSoyad = h ? esc(h.bagisci_adi) : 'Bu kişi';
+  openModal('Vekalet Onayı', `
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:48px;margin-bottom:16px">🤝</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">${adSoyad}</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:24px">
+        Bu kişiden <strong>kurban vekaleti</strong> alındığını onaylıyor musunuz?<br>
+        <span style="font-size:12px;color:var(--text3)">Bu işlem geri alınabilir.</span>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button class="btn btn-secondary" onclick="closeModal()" style="min-width:120px;padding:12px 20px;font-size:15px">
+          <i class="fa-solid fa-xmark"></i> İptal
+        </button>
+        <button class="btn btn-primary" onclick="vekaletOnayla(${hisseId})" style="min-width:160px;padding:12px 20px;font-size:15px;background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 12px rgba(16,185,129,0.4)">
+          <i class="fa-solid fa-handshake"></i> Evet, Vekalet Alındı
+        </button>
+      </div>
+    </div>
+  `, false, 'handshake');
+}
+
+async function vekaletOnayla(hisseId) {
   try {
-    await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: yeniDurum });
+    await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: 1 });
     const h = _tumBagiscilar.find(x => x.id === hisseId);
-    if (h) h.vekalet_onay = yeniDurum;
-    toast(yeniDurum ? '✅ Vekalet alındı olarak işaretlendi' : 'Vekalet kaldırıldı');
+    if (h) h.vekalet_onay = 1;
+    closeModal();
+    toast('✅ Vekalet alındı olarak işaretlendi');
     filterBagiscilar();
   } catch(e) { toast(e.message, 'error'); }
 }

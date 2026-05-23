@@ -1,33 +1,63 @@
 # İÇDER Kurban Programı — PRD
 
-## Problem Statement
-"icderrr adlı uygulamamıza medya depolamasında sorun var düzelt ve pushla lütfen"
-Sonra: "VEKALET TUŞUNA BASTIĞIMIZDA EKRANA BİR YAZI GELSİN VEKALET ALINDI ALINMADI EKRANI BÖYLE GÜZEL YAP"
+## Problem Statements (running log)
+1. "icderrr adlı uygulamamıza medya depolamasında sorun var düzelt ve pushla lütfen"
+2. "VEKALET TUŞUNA BASTIĞIMIZDA EKRANA BİR YAZI GELSİN VEKALET ALINDI ALINMADI EKRANI BÖYLE GÜZEL YAP"
+3. "gardaş sol üstte bizim içder logosu olması lazım … admin panelindeki bakım kapalı gibi sistem durumlarının çalışabilmesi lazım"
 
 ## Architecture
 - Backend: Node.js + Express (`server.js`, port 4500)
-- Frontend: Vanilla JS (`public/app.js`, `public/index.html`, `public/style.css`)
+- Frontend: Vanilla JS (`public/app.js`, `public/index.html`, `public/style.css`, `public/admin-app.js`, `public/admin.html`)
 - Storage: SQLite (`sql.js`) lokal + Cloudinary (medya)
 - Distribution: Electron (`electron.js`) — Windows .exe (electron-builder)
 - Railway web modu da destekli
 
-## Implemented in this session (Jan 2026)
+## Implemented in this session
 
 ### 1) Medya listeleme bug fix (Cloudinary)
-- `src/cloudinary.js` → `/api/medya/list` artık `cloudinary.api.resources({ prefix, ... })` (image+video paralel, sayfalı, 500 dosyaya kadar) kullanarak alt klasörleri de tarar. Eskiden `search.expression('folder:X')` yalnızca tam o klasörü tarıyordu, hisse alt klasörlerine yüklenen medyalar (`defterdar/hisse-1/...`) listede görünmüyordu.
-- `public/app.js` `medyaKart()` → video kartlarında Cloudinary'nin otomatik poster (`/upload/so_auto/...jpg`) önizlemesi + alt klasör (`kurban-X/hisse-Y`) bilgisi gösteriliyor.
-- Uçtan uca test ✅ (upload → list → delete; video poster JPEG 200).
+- `/api/medya/list` artık `resources({ prefix })` ile alt klasör (`hisse/kurban/...`) dahil tüm dosyaları listeler.
+- Video kartlarında Cloudinary'nin gerçek poster (`so_auto/...jpg`) önizlemesi + alt klasör yolu rozeti.
 
-### 2) Vekalet onay ekranı (UX iyileştirme)
-- `vekaletModalAc()` → ana modal'ın üzerine binebilen bağımsız overlay; el sıkışma ikonu (animasyonlu halo), bağışçı + kurban/hisse bilgisi, iki büyük buton (yeşil "VEKALET ALINDI" / kırmızı "VEKALET ALINMADI"), mevcut durum aktif olarak vurgulanır, önceki onay tarihi pill içinde, dış tıklayıp kapatma.
-- Seçim sonrası tam ekran başarı animasyonu (ring + pop + slide-in), 1.2 sn sonra kapanır → callback çağrılır.
-- **Çağrı yerleri:**
-  - Bağışçı Yönetimi tablosundaki vekalet butonu → `toggleVekalet()` modal'ı açar, seçim sonrası `PUT /hisseler/:id/vekalet` çağrısı.
-  - Hisse formundaki "Vekalet Onayı" alanı → checkbox kaldırıldı, yerine stillenmiş tıklanabilir buton (`hisseVekaletAc()`), modal'ı açar, seçim hidden input + buton görünümünü canlı günceller, form kaydedilince DB'ye yazılır.
-- CSS: `.vekalet-modal-wrap`, `.vekalet-hero`, `.vekalet-bilgi`, `.vekalet-secimler`, `.vekalet-btn--alindi/alinmadi(.aktif)`, `.vekalet-sonuc-overlay` + `vekaletHalo`, `sonucPop`, `sonucRing`, `sonucSlide`, `sonucFadeIn` animasyonları.
-- Görsel doğrulama ✅ (screenshot ile her iki durum + başarı animasyonu).
+### 2) Vekalet onay ekranı
+- `vekaletModalAc()` — bağımsız overlay, animasyonlu halo'lu el sıkışma ikonu, bağışçı + Kurban#/Hisse, iki büyük buton (yeşil/kırmızı), aktif durum vurgusu, önceki onay tarihi pill.
+- Seçim sonrası **tam ekran başarı animasyonu** (ring + pop + slide) → 1.2 sn'de kapanır.
+- **Çağrı yerleri:** Bağışçı Yönetimi tablosu (`toggleVekalet`) + Hisse formu (`hisseVekaletAc` — checkbox yerine stillenmiş buton).
+
+### 3) Üst bar logosu
+- Kullanıcının sağladığı İÇDER logosu `/app/public/icder.png` olarak eklendi.
+- Backend (`admin-routes.js`):
+  - `GET  /api/admin/ui-logo-bilgi` → `{ var, boyut_kb, v }` (cache-busting sürüm)
+  - `POST /api/admin/ui-logo`       → admin-protected multipart upload (max 5 MB, png/jpg/webp/gif)
+  - `DELETE /api/admin/ui-logo`     → admin-protected silme
+  - Dosya hem `/app/public/icder.png` olarak yazılır hem `sistem_ayarlari.ui_logo_b64` olarak DB'ye kaydedilir.
+  - Sunucu başlangıcında dosya yoksa DB'den geri yazılır (Railway ephemeral disk için).
+- Admin paneli: **"Üst Bar Logosu"** yeni menü → mevcut logo önizleme + boyut + sürüm + **Logoyu Sil** butonu + drag&drop yükleme + progress bar.
+- Frontend (`app.js` `uiLogoYenile`) sayfa açıldığında `?v=<sürüm>` query string ile logoyu cache-bypass yapar.
+
+### 4) Sistem modu (Bakım / Kapalı) — sıkı blokaj
+- `server.js` → `/api/*` öncesi `sistemModuApiBlokaj` middleware:
+  - Admin oturumu varsa geçirir.
+  - `/api/auth/*` ve `/api/admin/sistem-modu` istisna (giriş + polling).
+  - Mod = `bakim`|`kapali` ise: `req.session.icderGiris` silinir, **HTTP 503 + `{bloke:true, sistem_modu, sistem_notu}`** döner.
+- Frontend (`app.js`):
+  - `sistemModuKontrol()` her 10 sn'de bir `/api/admin/sistem-modu` poll'lar.
+  - Mod değiştiğinde `sistemModuBlokeAtla()` → tam ekran bakım katmanı (renkli ikon, başlık, Yönetici Notu, 3 sn sayaç) → `/icder-giris`'e yönlendirir (orası da bakım ekranı gösterir).
+  - `api()` fonksiyonu 503 + `bloke=true` yakaladığında otomatik bakım katmanı açar.
+
+## Verified end-to-end (lokal test)
+- ✅ Medya: upload → list (alt klasör dahil) → delete; video poster JPG 200.
+- ✅ Vekalet modal'ı: alındı/alınmadı vurgusu + başarı animasyonu (Playwright screenshots).
+- ✅ Logo upload (multipart) → 200 + sürüm, dosya gerçekten değişiyor; delete → file removed + DB cleared; re-upload (525 KB) → 200.
+- ✅ Sistem modu API:
+  - acik → user 200 ✓
+  - bakim → user 503 bloke ✓, admin 200 ✓
+  - kapali → user 503 bloke ✓
+  - acik → user re-login + 200 ✓
+- ✅ Sistem modu otomatik atılma (kullanıcı oturumdayken bakım'a geçirildi → tam ekran bakım katmanı çıktı → 3 sn sayaç).
+- ✅ Admin panel "Üst Bar Logosu" sayfası görsel olarak doğru (önizleme, sil butonu, drag&drop).
 
 ## Backlog / Next
-- (P2) Vekalet modalı klavye desteği (Enter = mevcut durum, Esc = iptal)
-- (P2) Medya: klasör ağacı dropdown'u dinamik + toplu silme
-- (P2) Gerçek upload progress (XHR onprogress)
+- (P2) Vekalet modal klavye desteği (Enter onayla, Esc iptal)
+- (P2) Sistem modu için "izin verilen IP listesi" (admin dışı belirli kullanıcılar geçebilsin)
+- (P2) Logo CDN'e (Cloudinary) yedeklenebilir
+- (P2) Medya: dinamik klasör ağacı + toplu silme

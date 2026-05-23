@@ -105,6 +105,73 @@ router.post('/sistem-modu', adminKontrol, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── UI LOGO (sol üst) — yükle/sil/durum ───────────────────────────────────
+const fs = require('fs');
+const path = require('path');
+const LOGO_PATH = path.join(__dirname, '..', 'public', 'icder.png');
+
+function logoBoyutKb() {
+  try { return Math.round(fs.statSync(LOGO_PATH).size / 1024); } catch(e) { return 0; }
+}
+
+// Sunucu başlangıcında: DB'de logo varsa ama dosya yoksa, dosyayı geri yaz (Railway gibi ephemeral disk için)
+async function logoyuDosyayaGeriYaz() {
+  try {
+    const db = await getDb();
+    if (fs.existsSync(LOGO_PATH)) return;
+    const row = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='ui_logo_b64'").get();
+    if (row?.deger) {
+      const buf = Buffer.from(row.deger, 'base64');
+      fs.writeFileSync(LOGO_PATH, buf);
+      console.log('[LOGO] DB\'den dosyaya geri yazıldı:', LOGO_PATH);
+    }
+  } catch(e) { console.error('[LOGO] geri yazma hatası:', e.message); }
+}
+logoyuDosyayaGeriYaz();
+
+router.get('/ui-logo-bilgi', async (req, res) => {
+  const v = (await getDb()).prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='ui_logo_v'").get();
+  res.json({
+    var: fs.existsSync(LOGO_PATH),
+    boyut_kb: logoBoyutKb(),
+    v: v?.deger || '0',
+  });
+});
+
+router.post('/ui-logo', adminKontrol, upload.single('logo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ hata: 'Dosya bulunamadı' });
+  const mt = req.file.mimetype || '';
+  if (!['image/png','image/jpeg','image/webp','image/gif'].includes(mt)) {
+    return res.status(400).json({ hata: 'Geçersiz dosya türü (PNG, JPG, WEBP, GIF)' });
+  }
+  if (req.file.size > 5 * 1024 * 1024) {
+    return res.status(400).json({ hata: 'Dosya 5MB\'dan büyük olamaz' });
+  }
+  try {
+    fs.writeFileSync(LOGO_PATH, req.file.buffer);
+    const db = await getDb();
+    const b64 = req.file.buffer.toString('base64');
+    const v = Date.now().toString();
+    db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('ui_logo_b64', ?)").run(b64);
+    db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('ui_logo_v', ?)").run(v);
+    res.json({ ok: true, boyut_kb: Math.round(req.file.size/1024), v });
+  } catch(e) {
+    res.status(500).json({ hata: e.message });
+  }
+});
+
+router.delete('/ui-logo', adminKontrol, async (req, res) => {
+  try {
+    if (fs.existsSync(LOGO_PATH)) fs.unlinkSync(LOGO_PATH);
+    const db = await getDb();
+    db.prepare("DELETE FROM sistem_ayarlari WHERE anahtar IN ('ui_logo_b64','ui_logo_v')").run();
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ hata: e.message });
+  }
+});
+
+
 // ─── ŞİFRE YÖNETİMİ ─────────────────────────────────────────────────────────
 router.post('/sifre-degistir', adminKontrol, async (req, res) => {
   const { tur, yeni_sifre } = req.body;

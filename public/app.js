@@ -235,9 +235,95 @@ async function api(method, url, body) {
   const opts = { method, headers:{'Content-Type':'application/json'} };
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch('/api' + url, opts);
-  const d = await r.json();
+  const d = await r.json().catch(() => ({}));
+  // Sistem bakım/kapalı modu: 503 + bloke → zorla sayfayı yenile (middleware bakım ekranına atar)
+  if (r.status === 503 && d.bloke) {
+    sistemModuBlokeAtla(d.sistem_modu, d.sistem_notu);
+    throw new Error(d.hata || 'Sistem şu anda erişime kapalı');
+  }
   if (!r.ok) throw new Error(d.hata || 'Hata olustu');
   return d;
+}
+
+// ─── SİSTEM MODU OTOMATİK KONTROLÜ ───────────────────────────────────────────
+// Bakım/Kapalı moduna geçildiyse açık olan kullanıcıyı bakım ekranına at.
+let _sistemModuTimer = null;
+let _sistemModuRedirecting = false;
+
+function sistemModuBlokeAtla(mod, not) {
+  if (_sistemModuRedirecting) return;
+  _sistemModuRedirecting = true;
+  const modText = mod === 'bakim' ? '🔧 Sistem Bakımda' : '🔒 Sistem Kapalı';
+  const renk = mod === 'bakim' ? '#f59e0b' : '#ef4444';
+  // Mevcut sayfayı kapatıp tam ekran bakım katmanı göster
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:fixed;inset:0;z-index:99999;background:#0a1410;color:#e8f5ee;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:'Segoe UI',sans-serif`;
+  wrap.innerHTML = `
+    <div style="max-width:520px;width:100%">
+      <div style="font-size:96px;margin-bottom:24px;color:${renk}"><i class="fa-solid ${mod === 'bakim' ? 'fa-wrench' : 'fa-lock'}"></i></div>
+      <h1 style="font-size:32px;font-weight:800;color:${renk};margin-bottom:14px">${modText}</h1>
+      <p style="font-size:15px;color:#a8c9b8;line-height:1.7;margin-bottom:22px">${mod === 'bakim' ? 'Sistem şu anda bakım modunda. Kısa süre içinde tekrar erişilebilir olacak.' : 'Sistem şu anda kapalı. Lütfen daha sonra tekrar deneyin.'}</p>
+      ${not ? `<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;font-size:14px;color:#e8f5ee;margin-bottom:22px"><strong style="color:${renk}">Yönetici Notu:</strong><br><br>${esc(not)}</div>` : ''}
+      <div style="font-size:12px;color:#6a8a7a">3 saniye içinde giriş ekranına yönlendiriliyorsunuz...</div>
+    </div>`;
+  document.body.appendChild(wrap);
+  setTimeout(() => { window.location.href = '/icder-giris'; }, 3000);
+}
+
+async function sistemModuKontrol() {
+  if (_sistemModuRedirecting) return;
+  try {
+    const r = await fetch('/api/admin/sistem-modu', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.mod === 'bakim' || d.mod === 'kapali') {
+      sistemModuBlokeAtla(d.mod, d.not);
+    }
+  } catch(e) { /* network hatası — yoksay */ }
+}
+
+function sistemModuPollingBaslat() {
+  if (_sistemModuTimer) return;
+  // İlk kontrol 3 sn sonra, sonra her 10 sn'de bir
+  setTimeout(sistemModuKontrol, 3000);
+  _sistemModuTimer = setInterval(sistemModuKontrol, 10000);
+}
+
+// Sayfa yüklenir yüklenmez polling başlat
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', sistemModuPollingBaslat);
+  } else {
+    sistemModuPollingBaslat();
+  }
+}
+
+// ─── UI LOGO CACHE-BUSTING ───────────────────────────────────────────────────
+async function uiLogoYenile() {
+  try {
+    const r = await fetch('/api/admin/ui-logo-bilgi', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    document.querySelectorAll('img[src^="icder.png"], img[src="icder.png"]').forEach(img => {
+      if (d.var) {
+        img.src = `icder.png?v=${d.v || Date.now()}`;
+        img.style.display = '';
+        const fb = img.nextElementSibling;
+        if (fb && fb.tagName === 'I') fb.style.display = 'none';
+      } else {
+        img.style.display = 'none';
+        const fb = img.nextElementSibling;
+        if (fb && fb.tagName === 'I') fb.style.display = 'block';
+      }
+    });
+  } catch(e) {}
+}
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', uiLogoYenile);
+  } else {
+    uiLogoYenile();
+  }
 }
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────

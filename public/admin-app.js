@@ -58,6 +58,7 @@ function showAdminPage(page) {
   else if (page === 'kategoriler') renderKategoriler();
   else if (page === 'filtreler') renderFiltreler();
   else if (page === 'giris-logosu') renderGirisLogosu();
+  else if (page === 'ust-logo') renderUstLogo();
   else if (page === 'yazdirma-ayarlari') renderYazdirmaAyarlari();
   else if (page === 'yedek') renderYedek();
 }
@@ -1500,6 +1501,148 @@ async function silGirisLogosu(id) {
     await adminApi('DELETE', '/giris-logosu-sil/' + id);
     toast('Logo silindi');
     yukleGirisLogolari();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ÜST BAR LOGOSU (sol üst köşedeki ana logo)
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderUstLogo() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-image"></i></div>
+        Üst Bar Logosu
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-circle-info"></i> Bilgi</div>
+      <p style="color:var(--text2);font-size:13px;line-height:1.7;margin-bottom:8px">
+        Bu logo uygulamanın <strong>sol üst köşesinde</strong> (kullanıcı arayüzünün üst barında) görünür.
+        Yüklediğiniz logo tüm kullanıcılara anında yansır.
+      </p>
+      <p style="color:var(--text3);font-size:12px;line-height:1.6">
+        <i class="fa-solid fa-lightbulb" style="color:#f59e0b"></i>
+        Önerilen: kare format (örn. 256×256 px), PNG, şeffaf arka plan, maksimum 5 MB.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-eye"></i> Mevcut Logo</div>
+      <div id="ust-logo-onizleme" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+        <div class="empty-state" style="margin:0"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-cloud-arrow-up"></i> Yeni Logo Yükle</div>
+      <div class="upload-zone" id="ust-logo-zone" onclick="document.getElementById('ust-logo-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="ustLogoDrop(event)" style="cursor:pointer">
+        <i class="fa-solid fa-cloud-arrow-up" style="font-size:32px;color:var(--accent)"></i>
+        <p>Logoyu buraya sürükle veya tıkla</p>
+        <small>PNG, JPG, WEBP, GIF — maks. 5 MB</small>
+      </div>
+      <input type="file" id="ust-logo-input" accept="image/png,image/jpeg,image/webp,image/gif"
+             style="display:none" onchange="ustLogoYukleSec(this.files[0])"/>
+      <div id="ust-logo-progress" style="display:none;margin-top:12px">
+        <div style="background:var(--bg4);border-radius:8px;height:6px;overflow:hidden">
+          <div id="ust-logo-progress-fill" style="background:var(--accent);height:100%;width:0%;transition:width .2s"></div>
+        </div>
+      </div>
+      <div id="ust-logo-sonuc" style="margin-top:12px"></div>
+    </div>`;
+  await ustLogoYukle();
+}
+
+async function ustLogoYukle() {
+  try {
+    const d = await adminApi('GET', '/ui-logo-bilgi');
+    const wrap = document.getElementById('ust-logo-onizleme');
+    if (!wrap) return;
+    if (d.var) {
+      wrap.innerHTML = `
+        <div style="width:120px;height:120px;border-radius:50%;border:3px solid var(--accent);
+                    background:linear-gradient(135deg,#1a2a50,#0d1830);overflow:hidden;
+                    display:flex;align-items:center;justify-content:center;
+                    box-shadow:0 0 20px var(--glow),0 6px 16px rgba(0,0,0,0.3)">
+          <img src="/icder.png?v=${encodeURIComponent(d.v)}" alt="logo"
+               style="width:100%;height:100%;object-fit:cover"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:200px">
+          <div style="font-size:14px;color:var(--text)"><strong>Logo aktif</strong></div>
+          <div style="font-size:12px;color:var(--text3)">Boyut: ${d.boyut_kb} KB</div>
+          <div style="font-size:11px;color:var(--text3)">Sürüm: ${d.v}</div>
+          <button class="btn btn-danger btn-sm" onclick="ustLogoSil()" style="align-self:flex-start;margin-top:8px">
+            <i class="fa-solid fa-trash"></i> Logoyu Sil
+          </button>
+        </div>`;
+    } else {
+      wrap.innerHTML = `
+        <div style="width:120px;height:120px;border-radius:50%;border:3px dashed var(--border2);
+                    background:var(--bg4);display:flex;align-items:center;justify-content:center;color:var(--text3)">
+          <i class="fa-solid fa-image-portrait" style="font-size:40px;opacity:.4"></i>
+        </div>
+        <div style="font-size:13px;color:var(--text3)">
+          Henüz logo yüklenmemiş. Aşağıdan bir logo yükleyin.
+        </div>`;
+    }
+  } catch (e) {
+    const wrap = document.getElementById('ust-logo-onizleme');
+    if (wrap) wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>${e.message}</p></div>`;
+  }
+}
+
+function ustLogoDrop(e) {
+  e.preventDefault();
+  document.getElementById('ust-logo-zone')?.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) ustLogoYukleSec(f);
+}
+
+async function ustLogoYukleSec(file) {
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) return toast('Dosya 5MB\'dan büyük olamaz', 'error');
+  if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) return toast('Sadece PNG, JPG, WEBP, GIF', 'error');
+
+  const prog = document.getElementById('ust-logo-progress');
+  const fill = document.getElementById('ust-logo-progress-fill');
+  const sonuc = document.getElementById('ust-logo-sonuc');
+  if (prog) prog.style.display = 'block';
+  if (fill) fill.style.width = '15%';
+
+  const fd = new FormData();
+  fd.append('logo', file);
+
+  try {
+    if (fill) fill.style.width = '50%';
+    const r = await fetch('/api/admin/ui-logo', { method: 'POST', body: fd });
+    if (fill) fill.style.width = '90%';
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.hata || 'Yükleme başarısız');
+    if (fill) fill.style.width = '100%';
+    if (sonuc) sonuc.innerHTML = `
+      <div class="badge badge-green" style="padding:8px 14px">
+        <i class="fa-solid fa-circle-check"></i> Logo yüklendi (${d.boyut_kb} KB)
+      </div>`;
+    toast('Logo yüklendi — açık olan tüm sayfalarda güncelleniyor');
+    setTimeout(() => { ustLogoYukle(); if (prog) prog.style.display = 'none'; }, 500);
+  } catch (e) {
+    if (sonuc) sonuc.innerHTML = `<div class="badge badge-red" style="padding:8px 14px"><i class="fa-solid fa-circle-xmark"></i> ${e.message}</div>`;
+    toast(e.message, 'error');
+    if (prog) prog.style.display = 'none';
+  }
+}
+
+async function ustLogoSil() {
+  if (!confirm('Üst bar logosunu silmek istediğinizden emin misiniz?')) return;
+  try {
+    await adminApi('DELETE', '/ui-logo');
+    toast('Logo silindi');
+    ustLogoYukle();
   } catch (e) {
     toast(e.message, 'error');
   }

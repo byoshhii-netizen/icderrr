@@ -1298,4 +1298,5 @@ tbody tr:last-child { border-bottom:none; }
   to   { transform: translateY(0); opacity: 1; }
 }
 
-#modal-box.modal { position: relative; overflow: hidden; }
+/* Vekalet sonuç overlay'i absolute olarak yerleşebilsin diye position:relative — overflow KORUNMALI ki uzun modaller scroll edebilsin */
+#modal-box.modal { position: relative; }

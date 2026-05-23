@@ -21,10 +21,45 @@ app.use(session({
 }));
 
 app.use('/api/auth', require('./src/auth'));
+app.use('/api/admin', require('./src/admin-routes'));
+
+// ─── SİSTEM MODU API BLOKAJI ────────────────────────────────────────────────
+// Bakım/Kapalı modda admin dışındaki kullanıcıların TÜM /api/* isteklerini engelle
+// (sadece sistem-modu sorgulama ve auth endpoints geçer)
+async function sistemModuApiBlokaj(req, res, next) {
+  // Admin oturumu varsa geçir
+  if (req.session.adminGiris) return next();
+  // İstisnalar: sistem modu sorgulama (frontend polling), auth (giriş/çıkış)
+  if (req.path.startsWith('/admin/sistem-modu') ||
+      req.path.startsWith('/auth/')) {
+    return next();
+  }
+  try {
+    const { getDb } = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
+      ? require('./src/database-web')
+      : require('./src/database');
+    const db = await getDb();
+    const modRow = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='sistem_modu'").get();
+    const notRow = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='sistem_notu'").get();
+    const mod = modRow?.deger || 'acik';
+    if (mod === 'bakim' || mod === 'kapali') {
+      // İçder oturumu da silinsin → sonraki sayfa yüklemesinde bakım ekranına atılsın
+      delete req.session.icderGiris;
+      return res.status(503).json({
+        hata: mod === 'bakim' ? 'Sistem bakım modunda' : 'Sistem kapalı',
+        sistem_modu: mod,
+        sistem_notu: notRow?.deger || '',
+        bloke: true,
+      });
+    }
+  } catch(e) { /* DB hatası olursa devam et */ }
+  next();
+}
+app.use('/api', sistemModuApiBlokaj);
+
 app.use('/api', require('./src/routes'));
 app.use('/api/medya', require('./src/cloudinary'));
 app.use('/api/destek', require('./src/destek-routes'));
-app.use('/api/admin', require('./src/admin-routes'));
 
 app.get('/giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'giris.html')));
 app.get('/kayit', (req, res) => res.sendFile(path.join(__dirname, 'public', 'giris.html')));

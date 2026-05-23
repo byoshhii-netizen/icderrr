@@ -74,28 +74,35 @@ router.delete('/delete', async (req, res) => {
   }
 });
 
-// Klasördeki dosyaları listele
+// Klasördeki dosyaları listele (alt klasörler dahil)
 router.get('/list', async (req, res) => {
   const folder = req.query.folder || 'defterdar';
   try {
-    // Önce search API dene, hata alırsa resources API kullan
-    let resources = [];
-    try {
-      const result = await cloudinary.search
-        .expression(`folder:${folder}`)
-        .sort_by('created_at', 'desc')
-        .max_results(100)
-        .execute();
-      resources = result.resources || [];
-    } catch(searchErr) {
-      // Fallback: resources API
-      const [imgResult, vidResult] = await Promise.all([
-        cloudinary.api.resources({ type: 'upload', prefix: folder, resource_type: 'image', max_results: 100 }).catch(() => ({ resources: [] })),
-        cloudinary.api.resources({ type: 'upload', prefix: folder, resource_type: 'video', max_results: 100 }).catch(() => ({ resources: [] }))
-      ]);
-      resources = [...(imgResult.resources || []), ...(vidResult.resources || [])];
-      resources.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    }
+    // resources API + prefix kullan: belirtilen klasör ve TÜM alt klasörlerini döner.
+    // (search API'nin "folder:" ifadesi alt klasörleri kapsamadığı için hisse/kurban
+    //  alt klasörlerine yüklenen medyalar görünmez oluyordu.)
+    const fetchAll = async (resource_type) => {
+      let all = [];
+      let next_cursor = null;
+      // Sayfalama: maksimum 5 sayfa (500 dosya)
+      for (let i = 0; i < 5; i++) {
+        const params = { type: 'upload', prefix: folder, resource_type, max_results: 100 };
+        if (next_cursor) params.next_cursor = next_cursor;
+        let r;
+        try { r = await cloudinary.api.resources(params); } catch(e) { break; }
+        all = all.concat(r.resources || []);
+        if (!r.next_cursor) break;
+        next_cursor = r.next_cursor;
+      }
+      return all;
+    };
+
+    const [images, videos] = await Promise.all([
+      fetchAll('image'),
+      fetchAll('video'),
+    ]);
+    const resources = [...images, ...videos]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     res.json(resources);
   } catch (e) {
     res.status(500).json({ hata: e.message });

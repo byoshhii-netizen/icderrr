@@ -2936,17 +2936,28 @@ function medyaKart(item) {
   const isVideo = item.resource_type === 'video';
   const kb = Math.round(item.bytes / 1024);
   const boyut = kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb + ' KB';
+  // Video için Cloudinary'nin otomatik poster (jpg) URL'i: secure_url'i .jpg ile değiştir
+  const videoPoster = isVideo && item.secure_url
+    ? item.secure_url.replace(/\/upload\//, '/upload/so_auto,w_400,h_300,c_fill/').replace(/\.[a-z0-9]+$/i, '.jpg')
+    : '';
   const thumb = isVideo
-    ? `<div class="medya-video-thumb"><i class="fa-solid fa-circle-play"></i></div>`
+    ? `<div class="medya-video-thumb" style="position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden">
+         ${videoPoster ? `<img src="${videoPoster}" alt="video" loading="lazy" style="width:100%;height:100%;object-fit:cover;opacity:.85" onerror="this.style.display='none'"/>` : ''}
+         <i class="fa-solid fa-circle-play" style="position:absolute;color:#fff;font-size:32px;text-shadow:0 2px 6px rgba(0,0,0,.6)"></i>
+       </div>`
     : `<img src="${item.secure_url}" alt="medya" loading="lazy"/>`;
   const safeUrl = (item.secure_url || '').replace(/'/g, "\\'");
   const safeFormat = (item.format || '').replace(/'/g, "\\'");
+  // Klasör/alt yol bilgisi (örn. "kurban-1/hisse-2")
+  const altYol = (item.public_id || '').split('/').slice(1, -1).join('/');
+  const altYolHtml = altYol ? `<div class="medya-size" style="font-size:10px;opacity:.7" title="${esc(altYol)}"><i class="fa-solid fa-folder"></i> ${esc(altYol)}</div>` : '';
   return `
-    <div class="medya-item" onclick="medyaOnizle('${item.secure_url}','${item.resource_type}')">
+    <div class="medya-item" onclick="medyaOnizle('${safeUrl}','${item.resource_type}')">
       ${thumb}
       <div class="medya-info">
         <div class="medya-type">${isVideo ? 'Video' : 'Fotograf'} &bull; ${item.format||''}</div>
         <div class="medya-size">${boyut}</div>
+        ${altYolHtml}
       </div>
       <button class="medya-del" onclick="event.stopPropagation();medyaSil('${item.public_id}','${item.resource_type}','${safeUrl}','${safeFormat}',${item.bytes||0})" title="Sil">
         <i class="fa-solid fa-xmark"></i>

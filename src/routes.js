@@ -1,4 +1,4 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const { getDb } = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
   ? require('./database-web')
   : require('./database');
@@ -687,6 +687,27 @@ router.delete('/cop-kutusu', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── MEDYA ÇÖP KUTUSU ──────────────────────────────────────────────────────
+router.get('/medya-cop', async (req, res) => {
+  const db = await getDb();
+  try {
+    const list = db.prepare('SELECT * FROM medya_cop ORDER BY silme_tarihi DESC LIMIT 200').all();
+    res.json(list);
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.delete('/medya-cop/:id', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM medya_cop WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+router.delete('/medya-cop', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM medya_cop').run();
+  res.json({ ok: true });
+});
+
 // ─── SİSTEM IP ─────────────────────────────────────────────────────────────
 
 router.get('/sistem/ip', (req, res) => {
@@ -992,6 +1013,50 @@ router.post('/organizasyonlar/:orgId/kurbanlar/:kurbanId/bagiscilar', async (req
     eklenen: eklenenSayi,
     mesaj: `${eklenenSayi} bağışçı kurban #${kurban.kurban_no}'a eklendi`
   });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAYRAK YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+router.get('/bayraklar', async (req, res) => {
+  const db = await getDb();
+  try {
+    db.exec("CREATE TABLE IF NOT EXISTS bayraklar (id INTEGER PRIMARY KEY AUTOINCREMENT, ad TEXT NOT NULL, resim_data TEXT NOT NULL, aktif INTEGER DEFAULT 0, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)");
+    res.json(db.prepare('SELECT id, ad, aktif, olusturma FROM bayraklar ORDER BY olusturma DESC').all());
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.get('/bayraklar/:id/resim', async (req, res) => {
+  const db = await getDb();
+  const b = db.prepare('SELECT resim_data FROM bayraklar WHERE id=?').get(req.params.id);
+  if (!b) return res.status(404).json({ hata: 'Bulunamadı' });
+  res.json({ resim_data: b.resim_data });
+});
+
+router.post('/bayraklar', async (req, res) => {
+  const db = await getDb();
+  const { ad, resim_data } = req.body;
+  if (!ad || !resim_data) return res.status(400).json({ hata: 'Ad ve resim zorunlu' });
+  const r = db.prepare('INSERT INTO bayraklar (ad, resim_data, aktif) VALUES (?,?,0)').run(ad, resim_data);
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+
+router.put('/bayraklar/:id', async (req, res) => {
+  const db = await getDb();
+  const { ad, resim_data } = req.body;
+  if (resim_data) {
+    db.prepare('UPDATE bayraklar SET ad=?, resim_data=? WHERE id=?').run(ad, resim_data, req.params.id);
+  } else {
+    db.prepare('UPDATE bayraklar SET ad=? WHERE id=?').run(ad, req.params.id);
+  }
+  res.json({ ok: true });
+});
+
+router.delete('/bayraklar/:id', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM bayraklar WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

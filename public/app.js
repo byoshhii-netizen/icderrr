@@ -1,4 +1,4 @@
-﻿// ─── AUTH KONTROL KALDIRILDI (EXE İÇİN) ─────────────────────────────────────
+﻿﻿// ─── AUTH KONTROL KALDIRILDI (EXE İÇİN) ─────────────────────────────────────
 // Kullanıcı ayarları global
 let _kullaniciAyarlar = { logo_data: null, bayrak_data: null, kurulum_tamamlandi: 0 };
 let _kullaniciAdi = 'İÇDER';
@@ -150,6 +150,15 @@ async function modalAyarlar() {
       </div>
     </div>
     <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">
+          <i class="fa-solid fa-flag"></i> Bayrak Kütüphanesi
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="modalYeniBayrak()"><i class="fa-solid fa-plus"></i> Bayrak Ekle</button>
+      </div>
+      <div id="bayrak-listesi-ayar"><div style="color:var(--text3);font-size:13px">Yükleniyor...</div></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
       <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">
         <i class="fa-solid fa-sliders"></i> Arayüz Ayarları
       </div>
@@ -181,6 +190,8 @@ async function modalAyarlar() {
       <button class="btn btn-primary" onclick="kurulumKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
     </div>
   `, true, 'gear');
+  // Bayrak listesini yükle
+  yukleBayraklarAyar();
 }
 
 function toggleDestekButon(goster) {
@@ -1750,52 +1761,107 @@ async function renderCopKutusu() {
   const m = document.getElementById('main-content');
   m.innerHTML =
     '<div class="page-header">' +
-      '<div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-trash-can"></i></div>Cop Kutusu</div>' +
-      '<button class="btn btn-danger" onclick="copBosalt()"><i class="fa-solid fa-trash"></i> Tamamini Sil</button>' +
+      '<div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-trash-can"></i></div>Çöp Kutusu</div>' +
+      '<button class="btn btn-danger" onclick="copBosalt()"><i class="fa-solid fa-trash"></i> Tamamını Sil</button>' +
     '</div>' +
-    '<div class="card" id="cop-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></div>';
-  await yuklecopKutusu();
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+      '<button class="btn btn-secondary btn-sm" id="cop-tab-veri" onclick="copTabSec(\'veri\')" style="border-bottom:2px solid var(--accent)">Organizasyon & Kurban</button>' +
+      '<button class="btn btn-secondary btn-sm" id="cop-tab-medya" onclick="copTabSec(\'medya\')">Medya Dosyaları</button>' +
+    '</div>' +
+    '<div class="card" id="cop-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div></div>';
+  await yuklecopKutusu('veri');
 }
 
-async function yuklecopKutusu() {
-  const list = await api('GET', '/cop-kutusu');
+let _copAktifTab = 'veri';
+async function copTabSec(tab) {
+  _copAktifTab = tab;
+  const tabVeri = document.getElementById('cop-tab-veri');
+  const tabMedya = document.getElementById('cop-tab-medya');
+  if (tabVeri) tabVeri.style.borderBottom = tab === 'veri' ? '2px solid var(--accent)' : 'none';
+  if (tabMedya) tabMedya.style.borderBottom = tab === 'medya' ? '2px solid var(--accent)' : 'none';
+  await yuklecopKutusu(tab);
+}
+
+async function yuklecopKutusu(tab) {
+  tab = tab || _copAktifTab || 'veri';
   const el = document.getElementById('cop-icerik');
+  if (!el) return;
+  if (tab === 'medya') { await yuklecopMedya(el); return; }
+  const list = await api('GET', '/cop-kutusu');
   if (!list.length) {
-    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-trash-can" style="opacity:.3"></i><p>Cop kutusu bos.</p></div>';
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-trash-can" style="opacity:.3"></i><p>Çöp kutusu boş.</p></div>';
     return;
   }
-  const turIcon = { organizasyon: 'fa-layer-group', kurban: 'fa-cow', medya: 'fa-photo-film' };
-  const turRenk = { organizasyon: 'badge-blue', kurban: 'badge-yellow', medya: 'badge-purple' };
+  const turIcon = { organizasyon: 'fa-layer-group', kurban: 'fa-cow' };
+  const turRenk = { organizasyon: 'badge-blue', kurban: 'badge-yellow' };
   let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
-  html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' oge silindi</span>';
-  html += '<button class="btn btn-success btn-sm" onclick="copTumunuGeriYukle()"><i class="fa-solid fa-rotate-left"></i> Tamamini Geri Yukle</button>';
+  html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' öğe silindi</span>';
+  html += '<button class="btn btn-success btn-sm" onclick="copTumunuGeriYukle()"><i class="fa-solid fa-rotate-left"></i> Tamamını Geri Yükle</button>';
   html += '</div>';
-  html += '<div class="table-wrap"><table><thead><tr><th>Tur</th><th>Icerik</th><th>Onizleme</th><th>Silinme Tarihi</th><th>Islem</th></tr></thead><tbody>';
+  html += '<div class="table-wrap"><table><thead><tr><th>Tür</th><th>İçerik</th><th>Silinme Tarihi</th><th>İşlem</th></tr></thead><tbody>';
   list.forEach(item => {
     const tarih = new Date(item.silme_tarihi).toLocaleString('tr-TR');
-    const onizleme = item.tur === 'medya' && item.ekstra
-      ? (item.ekstra.isVideo
-          ? '<span style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-film"></i> Video</span>'
-          : (item.ekstra.secure_url
-              ? '<img src="' + esc(item.ekstra.secure_url) + '" style="width:48px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="medyaOnizle(\'' + esc(item.ekstra.secure_url) + '\',\'image\')" title="Onizle"/>'
-              : '<span style="font-size:11px;color:var(--text3)">-</span>'))
-      : '<span style="font-size:11px;color:var(--text3)">-</span>';
-    const geriYukleBtn = item.tur === 'medya'
-      ? '<button class="btn btn-secondary btn-sm" disabled title="Medya Cloudinary\'den kalici silindi, geri yuklenemez"><i class="fa-solid fa-ban"></i> Geri Yuklenemez</button>'
-      : '<button class="btn btn-success btn-sm" onclick="copGeriYukle(' + item.id + ')"><i class="fa-solid fa-rotate-left"></i> Geri Yukle</button>';
     html += '<tr>';
     html += '<td><span class="badge ' + (turRenk[item.tur]||'badge-gray') + '"><i class="fa-solid ' + (turIcon[item.tur]||'fa-file') + '"></i> ' + item.tur + '</span></td>';
     html += '<td><strong>' + esc(item.baslik) + '</strong></td>';
-    html += '<td>' + onizleme + '</td>';
     html += '<td style="font-size:12px;color:var(--text3)">' + tarih + '</td>';
     html += '<td><div style="display:flex;gap:6px">';
-    html += geriYukleBtn;
+    html += '<button class="btn btn-success btn-sm" onclick="copGeriYukle(' + item.id + ')"><i class="fa-solid fa-rotate-left"></i> Geri Yükle</button>';
     html += '<button class="btn btn-danger btn-sm btn-icon" onclick="copSil(' + item.id + ')"><i class="fa-solid fa-trash"></i></button>';
     html += '</div></td>';
     html += '</tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+}
+
+async function yuklecopMedya(el) {
+  try {
+    const list = await api('GET', '/medya-cop');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-photo-film" style="opacity:.3"></i><p>Silinmiş medya yok.</p></div>';
+      return;
+    }
+    let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+    html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' medya silindi</span>';
+    html += '<button class="btn btn-danger btn-sm" onclick="medyaCopBosalt()"><i class="fa-solid fa-trash"></i> Medya Çöpünü Temizle</button>';
+    html += '</div>';
+    html += '<div class="table-wrap"><table><thead><tr><th>Tür</th><th>Dosya Adı</th><th>Public ID</th><th>Silinme Tarihi</th><th>İşlem</th></tr></thead><tbody>';
+    list.forEach(item => {
+      const tarih = new Date(item.silme_tarihi).toLocaleString('tr-TR');
+      const turBadge = item.tur === 'video'
+        ? '<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Video</span>'
+        : '<span class="badge badge-blue"><i class="fa-solid fa-image"></i> Resim</span>';
+      html += '<tr>';
+      html += '<td>' + turBadge + '</td>';
+      html += '<td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(item.dosya_adi || '-') + '</td>';
+      html += '<td style="font-size:11px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(item.public_id || '-') + '</td>';
+      html += '<td style="font-size:12px;color:var(--text3);white-space:nowrap">' + tarih + '</td>';
+      html += '<td><button class="btn btn-danger btn-sm btn-icon" onclick="medyaCopSil(' + item.id + ')"><i class="fa-solid fa-trash"></i></button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state"><p>Yüklenemedi: ' + e.message + '</p></div>';
+  }
+}
+
+async function medyaCopSil(id) {
+  try {
+    await api('DELETE', '/medya-cop/' + id);
+    toast('Kayıt silindi');
+    await yuklecopMedya(document.getElementById('cop-icerik'));
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function medyaCopBosalt() {
+  if (!confirm('Tüm medya çöp kayıtları silinecek. Emin misiniz?')) return;
+  try {
+    await api('DELETE', '/medya-cop');
+    toast('Medya çöp kutusu temizlendi');
+    await yuklecopMedya(document.getElementById('cop-icerik'));
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function copGeriYukle(id) {
@@ -2794,7 +2860,14 @@ function medyaOnizle(url, type) {
 async function medyaSil(publicId, resourceType, secureUrl, format, bytes) {
   if (!confirm('Bu dosyayi silmek istediginizden emin misiniz?')) return;
   try {
-    await api('DELETE', '/medya/delete', { public_id: publicId, resource_type: resourceType, secure_url: secureUrl || null, format: format || null, bytes: bytes || 0 });
+    // dosya_adi: public_id'nin son kısmı
+    const dosyaAdi = publicId ? publicId.split('/').pop() : '';
+    await api('DELETE', '/medya/delete', {
+      public_id: publicId,
+      resource_type: resourceType,
+      url: secureUrl || null,
+      dosya_adi: dosyaAdi + (format ? '.' + format : ''),
+    });
     toast('Dosya silindi');
     await loadMedyaListesi();
   } catch(e) { toast(e.message, 'error'); }
@@ -5702,4 +5775,157 @@ async function gelirGiderHesapla() {
 
 function formatMoney(amount) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAYRAK YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function yukleBayraklarAyar() {
+  const el = document.getElementById('bayrak-listesi-ayar');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/bayraklar');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">Henuz bayrak eklenmedi</div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">' +
+      list.map(b =>
+        '<div style="border:2px solid ' + (b.aktif ? 'var(--accent)' : 'var(--border)') + ';border-radius:10px;overflow:hidden;background:var(--bg4)">' +
+          '<div id="bayrak-img-' + b.id + '" style="height:65px;display:flex;align-items:center;justify-content:center;background:var(--bg5)">' +
+            '<i class="fa-solid fa-spinner fa-spin" style="color:var(--text3)"></i>' +
+          '</div>' +
+          '<div style="padding:6px 8px">' +
+            '<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(b.ad) + '</div>' +
+            '<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">' +
+              (b.aktif ? '<span class="badge badge-green" style="font-size:10px">Aktif</span>' : '') +
+              '<button onclick="modalDuzenleBayrak(' + b.id + ',\'' + esc(b.ad) + '\')" style="font-size:10px;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;cursor:pointer;color:var(--text2)"><i class="fa-solid fa-pen"></i></button>' +
+              '<button onclick="silBayrak(' + b.id + ')" style="font-size:10px;padding:2px 6px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:4px;cursor:pointer;color:var(--red)"><i class="fa-solid fa-trash"></i></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      ).join('') +
+    '</div>';
+    list.forEach(b => {
+      api('GET', '/bayraklar/' + b.id + '/resim').then(r => {
+        const imgEl = document.getElementById('bayrak-img-' + b.id);
+        if (imgEl && r.resim_data) {
+          imgEl.innerHTML = '<img src="' + r.resim_data + '" style="max-height:61px;max-width:100%;object-fit:contain;padding:4px"/>';
+        }
+      }).catch(() => {});
+    });
+  } catch(e) {
+    if (el) el.innerHTML = '<div style="color:var(--text3);font-size:13px">Yuklenemedi</div>';
+  }
+}
+
+function modalYeniBayrak() {
+  _yeniBayrakData = null;
+  openModal('Yeni Bayrak Ekle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Adi *</label>
+        <input id="yeni-bayrak-ad" placeholder="Orn: Tanzanya Bayragi, Turk Bayragi..."/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Resmi *</label>
+        <div class="upload-zone" style="padding:20px;text-align:center;cursor:pointer;min-height:100px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('yeni-bayrak-input').click()">
+          <div id="yeni-bayrak-preview">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:28px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:6px">Resim yukle</div>
+          </div>
+        </div>
+        <input type="file" id="yeni-bayrak-input" accept="image/*" style="display:none" onchange="onYeniBayrakResim(this)"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="kaydetYeniBayrak()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'flag');
+}
+
+let _yeniBayrakData = null;
+function onYeniBayrakResim(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _yeniBayrakData = e.target.result;
+    document.getElementById('yeni-bayrak-preview').innerHTML =
+      '<img src="' + _yeniBayrakData + '" style="max-height:90px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function kaydetYeniBayrak() {
+  const ad = document.getElementById('yeni-bayrak-ad').value.trim();
+  if (!ad) return toast('Bayrak adi zorunlu', 'error');
+  if (!_yeniBayrakData) return toast('Resim secin', 'error');
+  try {
+    await api('POST', '/bayraklar', { ad, resim_data: _yeniBayrakData });
+    _yeniBayrakData = null;
+    closeModal();
+    toast('Bayrak eklendi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+let _duzenleBayrakData = null;
+function modalDuzenleBayrak(id, mevcutAd) {
+  _duzenleBayrakData = null;
+  openModal('Bayragi Duzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Adi *</label>
+        <input id="duzenle-bayrak-ad" value="${esc(mevcutAd)}"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Yeni Resim <span style="color:var(--text3);font-weight:400">(degistirmek icin sec)</span></label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:80px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('duzenle-bayrak-input').click()">
+          <div id="duzenle-bayrak-preview">
+            <i class="fa-solid fa-image" style="font-size:22px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Degistirmek icin tikla</div>
+          </div>
+        </div>
+        <input type="file" id="duzenle-bayrak-input" accept="image/*" style="display:none" onchange="onDuzenleBayrakResim(this)"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="guncelleBayrak(${id})"><i class="fa-solid fa-floppy-disk"></i> Guncelle</button>
+    </div>`, false, 'pen');
+}
+
+function onDuzenleBayrakResim(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _duzenleBayrakData = e.target.result;
+    document.getElementById('duzenle-bayrak-preview').innerHTML =
+      '<img src="' + _duzenleBayrakData + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function guncelleBayrak(id) {
+  const ad = document.getElementById('duzenle-bayrak-ad').value.trim();
+  if (!ad) return toast('Bayrak adi zorunlu', 'error');
+  try {
+    const body = { ad };
+    if (_duzenleBayrakData) body.resim_data = _duzenleBayrakData;
+    await api('PUT', '/bayraklar/' + id, body);
+    _duzenleBayrakData = null;
+    closeModal();
+    toast('Bayrak guncellendi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function silBayrak(id) {
+  if (!confirm('Bu bayragi silmek istediginizden emin misiniz?')) return;
+  try {
+    await api('DELETE', '/bayraklar/' + id);
+    toast('Bayrak silindi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
 }

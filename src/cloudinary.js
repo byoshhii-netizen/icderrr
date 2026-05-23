@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary').v2;
+﻿const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const router = require('express').Router();
 
@@ -53,28 +53,21 @@ router.post('/upload', upload.single('dosya'), async (req, res) => {
 
 // Sil
 router.delete('/delete', async (req, res) => {
-  const { public_id, resource_type, secure_url, format, bytes } = req.body;
+  const { public_id, resource_type, dosya_adi, url } = req.body;
   if (!public_id) return res.status(400).json({ hata: 'public_id gerekli' });
   try {
-    // Silmeden önce çöp kutusuna kaydet
+    const result = await cloudinary.uploader.destroy(public_id, { resource_type: resource_type || 'image' });
     try {
       const { getDb } = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
         ? require('./database-web')
         : require('./database');
       const db = await getDb();
-      const medyaVeri = {
-        public_id,
-        resource_type: resource_type || 'image',
-        secure_url: secure_url || null,
-        format: format || null,
-        bytes: bytes || 0,
-      };
-      db.prepare('INSERT INTO cop_kutusu (tur, veri) VALUES (?,?)').run('medya', JSON.stringify(medyaVeri));
-    } catch (dbErr) {
-      console.error('[Medya Çöp Kutusu] DB hatası:', dbErr.message);
-    }
-
-    const result = await cloudinary.uploader.destroy(public_id, { resource_type: resource_type || 'image' });
+      db.prepare("INSERT INTO medya_cop (dosya_adi, public_id, url, tur) VALUES (?,?,?,?)").run(
+        dosya_adi || public_id.split('/').pop() || public_id,
+        public_id, url || null,
+        resource_type === 'video' ? 'video' : 'resim'
+      );
+    } catch(e) {}
     res.json({ ok: true, result });
   } catch (e) {
     res.status(500).json({ hata: e.message });
@@ -85,12 +78,25 @@ router.delete('/delete', async (req, res) => {
 router.get('/list', async (req, res) => {
   const folder = req.query.folder || 'defterdar';
   try {
-    const result = await cloudinary.search
-      .expression(`folder:${folder}`)
-      .sort_by('created_at', 'desc')
-      .max_results(100)
-      .execute();
-    res.json(result.resources);
+    // Önce search API dene, hata alırsa resources API kullan
+    let resources = [];
+    try {
+      const result = await cloudinary.search
+        .expression(`folder:${folder}`)
+        .sort_by('created_at', 'desc')
+        .max_results(100)
+        .execute();
+      resources = result.resources || [];
+    } catch(searchErr) {
+      // Fallback: resources API
+      const [imgResult, vidResult] = await Promise.all([
+        cloudinary.api.resources({ type: 'upload', prefix: folder, resource_type: 'image', max_results: 100 }).catch(() => ({ resources: [] })),
+        cloudinary.api.resources({ type: 'upload', prefix: folder, resource_type: 'video', max_results: 100 }).catch(() => ({ resources: [] }))
+      ]);
+      resources = [...(imgResult.resources || []), ...(vidResult.resources || [])];
+      resources.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+    res.json(resources);
   } catch (e) {
     res.status(500).json({ hata: e.message });
   }

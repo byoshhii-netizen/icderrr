@@ -1001,11 +1001,32 @@ async function modalBagisciDuzenle(hisseId, kurbanId, mevcutFiyatParam) {
         </select>
       </div>
       <div class="form-group" style="grid-column:1/-1">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="fh-vekalet" ${h.vekalet_onay?'checked':''} style="width:18px;height:18px;cursor:pointer"/>
-          <span><i class="fa-solid fa-handshake"></i> Vekalet Onayı Alındı</span>
-        </label>
-        ${h.vekalet_tarihi ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;margin-left:26px">Onay Tarihi: ${new Date(h.vekalet_tarihi).toLocaleString('tr-TR')}</div>` : ''}
+        <label style="margin-bottom:8px">Vekalet Onayı</label>
+        <input type="hidden" id="fh-vekalet" value="${h.vekalet_onay ? '1' : '0'}"/>
+        <button type="button" id="fh-vekalet-btn" onclick="hisseVekaletAc(${hisseId})"
+          style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:12px;cursor:pointer;
+                 background:${h.vekalet_onay ? 'linear-gradient(135deg, rgba(16,185,129,0.16), rgba(5,150,105,0.08))' : 'var(--bg3)'};
+                 border:2px solid ${h.vekalet_onay ? '#10b981' : 'var(--border)'};
+                 color:${h.vekalet_onay ? '#10b981' : 'var(--text2)'};
+                 font-weight:700;font-family:inherit;text-align:left;transition:all .18s"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,0.14)'"
+          onmouseout="this.style.transform='';this.style.boxShadow=''">
+          <span style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                       background:${h.vekalet_onay ? '#10b981' : 'var(--bg4)'};color:${h.vekalet_onay ? '#fff' : 'var(--text3)'};
+                       font-size:16px;flex-shrink:0">
+            <i class="fa-solid ${h.vekalet_onay ? 'fa-handshake' : 'fa-handshake-slash'}"></i>
+          </span>
+          <span style="flex:1;display:flex;flex-direction:column;gap:2px">
+            <span id="fh-vekalet-baslik" style="font-size:14px;letter-spacing:.2px">
+              ${h.vekalet_onay ? 'VEKALET ALINDI' : 'VEKALET ALINMADI'}
+            </span>
+            <span style="font-size:11px;color:var(--text3);font-weight:500">
+              Değiştirmek için tıkla
+            </span>
+          </span>
+          <i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:12px"></i>
+        </button>
+        ${h.vekalet_tarihi ? `<div id="fh-vekalet-tarih" style="font-size:11px;color:var(--text3);margin-top:6px"><i class="fa-solid fa-clock"></i> Onay Tarihi: ${new Date(h.vekalet_tarihi).toLocaleString('tr-TR')}</div>` : '<div id="fh-vekalet-tarih"></div>'}
       </div>
       <div class="form-group" style="grid-column:1/-1">
         <label>Not</label>
@@ -1029,7 +1050,7 @@ async function kaydetBagisci(hisseId, kurbanId) {
   const kimin_adina_telefon = document.getElementById('fh-adina-tel').value.trim();
   const odeme_durumu = document.getElementById('fh-odeme').value;
   const video_ister = document.getElementById('fh-video').value==='1';
-  const vekalet_onay = document.getElementById('fh-vekalet')?.checked || false;
+  const vekalet_onay = (document.getElementById('fh-vekalet')?.value === '1');
   const aciklama = document.getElementById('fh-not').value.trim();
   const fiyat = parseFloat(document.getElementById('fh-fiyat')?.value) || 0;
   if (!bagisci_adi) return toast('Bagisci adi zorunlu','error');
@@ -1228,16 +1249,169 @@ function renderBagisciTablosu(list) {
   }).join('');
 }
 
-async function toggleVekalet(hisseId, yeniDurum, event) {
-  event.stopPropagation();
-  try {
-    await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: yeniDurum });
-    // Listedeki kaydı güncelle
-    const h = _tumBagiscilar.find(x => x.id === hisseId);
-    if (h) h.vekalet_onay = yeniDurum;
-    toast(yeniDurum ? '✅ Vekalet alındı olarak işaretlendi' : 'Vekalet kaldırıldı');
-    filterBagiscilar();
-  } catch(e) { toast(e.message, 'error'); }
+// ─── VEKALET ONAY MODAL ─────────────────────────────────────────────────────
+// opts: { bagisciAdi, kurbanNo, hisseNo, mevcutDurum, vekaletTarihi, onSec(yeniDurum) }
+// Bağımsız bir overlay olarak çalışır — ana modal (örn. hisse formu) açıkken üstüne biner.
+function vekaletModalAc(opts) {
+  const {
+    bagisciAdi = '',
+    kurbanNo = '',
+    hisseNo = '',
+    mevcutDurum = false,
+    vekaletTarihi = null,
+    onSec,
+  } = opts || {};
+
+  // Var olan vekalet overlay'i varsa kaldır
+  document.getElementById('vekalet-overlay')?.remove();
+
+  const altSatir = [];
+  if (kurbanNo) altSatir.push(`Kurban #${esc(String(kurbanNo))}`);
+  if (hisseNo)  altSatir.push(`${esc(String(hisseNo))}. Hisse`);
+  const altHtml = altSatir.length
+    ? altSatir.map((t,i) => (i>0?`<span class="dot"></span>`:'') + `<span>${t}</span>`).join('')
+    : '';
+
+  const tarihHtml = (mevcutDurum && vekaletTarihi)
+    ? `<div class="vekalet-onay-tarihi"><i class="fa-solid fa-clock"></i> Önceki onay: ${new Date(vekaletTarihi).toLocaleString('tr-TR')}</div>`
+    : '';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'vekalet-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:20px;animation:sonucFadeIn .2s ease-out';
+  overlay.innerHTML = `
+    <div id="vekalet-box" class="modal" style="position:relative;overflow:hidden;max-width:560px;width:100%;animation:modalIn .25s cubic-bezier(.34,1.56,.64,1)">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-handshake"></i> Vekalet Onayı</div>
+        <button class="modal-close" onclick="vekaletModalKapat()" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="vekalet-modal-wrap">
+          <div class="vekalet-hero"><i class="fa-solid fa-handshake"></i></div>
+          <div class="vekalet-bilgi">
+            <div class="ad">${bagisciAdi ? esc(bagisciAdi) : 'Bağışçı'}</div>
+            ${altHtml ? `<div class="alt">${altHtml}</div>` : ''}
+            ${tarihHtml}
+          </div>
+          <div class="vekalet-secimler">
+            <button type="button" class="vekalet-btn vekalet-btn--alindi ${mevcutDurum ? 'aktif' : ''}" onclick="vekaletSec(1)">
+              <div class="ikon"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="baslik">VEKALET ALINDI</div>
+              <div class="aciklama">Bağışçı vekaleti verdi</div>
+            </button>
+            <button type="button" class="vekalet-btn vekalet-btn--alinmadi ${!mevcutDurum ? 'aktif' : ''}" onclick="vekaletSec(0)">
+              <div class="ikon"><i class="fa-solid fa-circle-xmark"></i></div>
+              <div class="baslik">VEKALET ALINMADI</div>
+              <div class="aciklama">Henüz onay yok</div>
+            </button>
+          </div>
+          <div class="vekalet-mevcut-rozet">
+            <i class="fa-solid fa-circle-info"></i>
+            Mevcut durum:
+            <strong style="color:${mevcutDurum ? '#10b981' : 'var(--text3)'}">${mevcutDurum ? 'Alındı' : 'Alınmadı'}</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  // Dışarı tıklayınca kapat
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) vekaletModalKapat(); });
+  document.body.appendChild(overlay);
+
+  window._vekaletOnSec = (yeniDurum) => {
+    vekaletSonucGoster(!!yeniDurum, () => {
+      if (onSec) onSec(yeniDurum);
+    });
+  };
+}
+
+function vekaletModalKapat() {
+  document.getElementById('vekalet-overlay')?.remove();
+  window._vekaletOnSec = null;
+}
+
+function vekaletSec(yeniDurum) {
+  if (window._vekaletOnSec) window._vekaletOnSec(yeniDurum);
+}
+
+function vekaletSonucGoster(basarili, tamamlandiCb) {
+  const box = document.getElementById('vekalet-box');
+  if (!box) { vekaletModalKapat(); if (tamamlandiCb) tamamlandiCb(); return; }
+  const overlay = document.createElement('div');
+  overlay.className = 'vekalet-sonuc-overlay';
+  overlay.innerHTML = `
+    <div class="vekalet-sonuc-ikon ${basarili ? 'basari' : 'iptal'}">
+      <i class="fa-solid ${basarili ? 'fa-check' : 'fa-xmark'}"></i>
+    </div>
+    <div class="vekalet-sonuc-baslik">${basarili ? 'Vekalet Alındı' : 'Vekalet Kaldırıldı'}</div>
+    <div class="vekalet-sonuc-alt">${basarili ? 'Onay başarıyla kaydedildi' : 'Vekalet durumu temizlendi'}</div>`;
+  box.appendChild(overlay);
+  setTimeout(() => {
+    vekaletModalKapat();
+    if (tamamlandiCb) tamamlandiCb();
+  }, 1200);
+}
+
+// Hisse formundan çağrılır — modal'da seçim sonrası form üzerindeki hidden input + buton görünümü güncellenir
+function hisseVekaletAc(hisseId) {
+  const cur = document.getElementById('fh-vekalet')?.value === '1';
+  // Bağışçı adı / kurban / hisse no form alanlarından okunabiliyorsa al
+  const bagisciAdi = document.getElementById('fh-ad')?.value?.trim() || '';
+  vekaletModalAc({
+    bagisciAdi,
+    mevcutDurum: cur,
+    onSec: (yeniDurum) => {
+      const onay = !!yeniDurum;
+      const hidden = document.getElementById('fh-vekalet');
+      if (hidden) hidden.value = onay ? '1' : '0';
+      // Buton görünümünü güncelle
+      const btn = document.getElementById('fh-vekalet-btn');
+      if (btn) {
+        btn.style.background = onay
+          ? 'linear-gradient(135deg, rgba(16,185,129,0.16), rgba(5,150,105,0.08))'
+          : 'var(--bg3)';
+        btn.style.borderColor = onay ? '#10b981' : 'var(--border)';
+        btn.style.color = onay ? '#10b981' : 'var(--text2)';
+        const ikon = btn.querySelector('span:first-child');
+        if (ikon) {
+          ikon.style.background = onay ? '#10b981' : 'var(--bg4)';
+          ikon.style.color = onay ? '#fff' : 'var(--text3)';
+          const i = ikon.querySelector('i');
+          if (i) i.className = onay ? 'fa-solid fa-handshake' : 'fa-solid fa-handshake-slash';
+        }
+        const baslik = document.getElementById('fh-vekalet-baslik');
+        if (baslik) baslik.textContent = onay ? 'VEKALET ALINDI' : 'VEKALET ALINMADI';
+      }
+      // Tarih bilgisi
+      const tarih = document.getElementById('fh-vekalet-tarih');
+      if (tarih) {
+        tarih.innerHTML = onay
+          ? `<i class="fa-solid fa-clock"></i> Onay Tarihi: ${new Date().toLocaleString('tr-TR')} <span style="color:var(--text3);font-style:italic">(kaydet'e basınca kalıcı olur)</span>`
+          : '';
+      }
+    },
+  });
+}
+
+async function toggleVekalet(hisseId, yeniDurumIgnored, event) {
+  if (event) event.stopPropagation();
+  const h = _tumBagiscilar.find(x => x.id === hisseId);
+  if (!h) return;
+  vekaletModalAc({
+    bagisciAdi: h.bagisci_adi,
+    kurbanNo: h.kurban_no,
+    hisseNo: h.hisse_no,
+    mevcutDurum: !!h.vekalet_onay,
+    vekaletTarihi: h.vekalet_tarihi,
+    onSec: async (yeniDurum) => {
+      try {
+        await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: yeniDurum });
+        h.vekalet_onay = yeniDurum;
+        if (yeniDurum) h.vekalet_tarihi = new Date().toISOString();
+        filterBagiscilar();
+      } catch(e) { toast(e.message, 'error'); }
+    },
+  });
 }
 
 async function modalYeniBagisci() {

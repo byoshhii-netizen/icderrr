@@ -40,3 +40,10 @@ YAZDIR-SISTEMI-GUNCELLENDI.md
 YEDEK-SISTEM-TAMAMLANDI.md
 nixpacks.toml
 Procfile
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials

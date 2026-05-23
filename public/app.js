@@ -1532,20 +1532,126 @@ async function yazdirKurban(kurbanId, kurbanNo, tur) {
 }
 
 // ─── YAZDIR SEÇİM MODALI ────────────────────────────────────────────────────
-function modalYazdirSecim(kurbanId, kurbanNo, tur) {
-  openModal('Yazdırma Yönü Seçin', `
-    <div style="text-align:center;padding:20px 0">
-      <p style="color:var(--text2);margin-bottom:30px;font-size:15px">Kurban ${kurbanNo} için yazdırma yönünü seçin:</p>
-      <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="yazdirKurbanSatir(${kurbanId});closeModal()" style="min-width:160px;padding:16px 24px;font-size:16px">
-          <i class="fa-solid fa-print"></i> Yatay Yazdır
+async function modalYazdirSecim(kurbanId, kurbanNo, tur) {
+  // Bayrak listesini çek
+  let bayraklar = [];
+  try { bayraklar = await api('GET', '/bayraklar'); } catch(e) {}
+
+  // Bayrak seçenekleri HTML'i
+  const bayrakSecenekleri = bayraklar.length
+    ? bayraklar.map(b => `<div id="bayrak-secim-${b.id}" onclick="bayrakSecimToggle(${b.id})" style="
+        cursor:pointer;border:2px solid var(--border);border-radius:10px;overflow:hidden;
+        background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+      " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.classList.contains('secili'))this.style.borderColor='var(--border)'">
+        <div id="bayrak-img-secim-${b.id}" style="height:50px;display:flex;align-items:center;justify-content:center">
+          <i class="fa-solid fa-spinner fa-spin" style="color:var(--text3)"></i>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.ad)}</div>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">Bayrak kütüphanesi boş — Ayarlar\'dan bayrak ekleyebilirsiniz</div>';
+
+  openModal('Yazdırma Seçenekleri', `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+        <i class="fa-solid fa-flag"></i> Sağ Üst Bayrak Seçin
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:8px">
+        <div id="bayrak-secim-varsayilan" onclick="bayrakSecimToggle('varsayilan')" class="secili" style="
+          cursor:pointer;border:2px solid var(--accent);border-radius:10px;overflow:hidden;
+          background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+        ">
+          <div style="height:50px;display:flex;align-items:center;justify-content:center">
+            ${_kullaniciAyarlar.bayrak_data
+              ? `<img src="${_kullaniciAyarlar.bayrak_data}" style="max-height:46px;max-width:90px;object-fit:contain"/>`
+              : '<span style="font-size:11px;color:var(--text3)">Yok</span>'}
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--accent);margin-top:4px">Varsayılan</div>
+        </div>
+        <div id="bayrak-secim-yok" onclick="bayrakSecimToggle('yok')" style="
+          cursor:pointer;border:2px solid var(--border);border-radius:10px;overflow:hidden;
+          background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+        " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.classList.contains('secili'))this.style.borderColor='var(--border)'">
+          <div style="height:50px;display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-ban" style="font-size:24px;color:var(--text3)"></i>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:4px">Bayrak Yok</div>
+        </div>
+        ${bayrakSecenekleri}
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+        <i class="fa-solid fa-print"></i> Yazdırma Yönü
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button class="btn btn-primary" onclick="yazdirKurbanSecimle(${kurbanId}, ${kurbanNo}, '${tur}', 'landscape')" style="min-width:140px;padding:14px 20px;font-size:15px">
+          <i class="fa-solid fa-print"></i> Yatay
         </button>
-        <button class="btn btn-green" onclick="yazdirKurbanDikey(${kurbanId}, ${kurbanNo}, '${tur}');closeModal()" style="min-width:160px;padding:16px 24px;font-size:16px">
-          <i class="fa-solid fa-print"></i> Dikey Yazdır
+        <button class="btn btn-green" onclick="yazdirKurbanSecimle(${kurbanId}, ${kurbanNo}, '${tur}', 'portrait')" style="min-width:140px;padding:14px 20px;font-size:15px">
+          <i class="fa-solid fa-print"></i> Dikey
         </button>
       </div>
     </div>
   `, false, 'print');
+
+  // Bayrak resimlerini yükle
+  bayraklar.forEach(b => {
+    api('GET', '/bayraklar/' + b.id + '/resim').then(r => {
+      const el = document.getElementById('bayrak-img-secim-' + b.id);
+      if (el && r.resim_data) {
+        el.innerHTML = '<img src="' + r.resim_data + '" style="max-height:46px;max-width:90px;object-fit:contain"/>';
+        // data'yı element'e sakla
+        el.closest('[id^="bayrak-secim-"]').dataset.resim = r.resim_data;
+      }
+    }).catch(() => {});
+  });
+}
+
+let _secilenBayrakData = 'varsayilan'; // 'varsayilan', 'yok', veya base64 data
+
+function bayrakSecimToggle(id) {
+  // Tüm seçimleri kaldır
+  document.querySelectorAll('[id^="bayrak-secim-"]').forEach(el => {
+    el.classList.remove('secili');
+    el.style.borderColor = 'var(--border)';
+  });
+  // Seçileni işaretle
+  const secilen = document.getElementById('bayrak-secim-' + id);
+  if (secilen) {
+    secilen.classList.add('secili');
+    secilen.style.borderColor = 'var(--accent)';
+  }
+  if (id === 'varsayilan') {
+    _secilenBayrakData = 'varsayilan';
+  } else if (id === 'yok') {
+    _secilenBayrakData = 'yok';
+  } else {
+    // Bayrak resim datasını al
+    const imgEl = document.getElementById('bayrak-img-secim-' + id);
+    const img = imgEl ? imgEl.querySelector('img') : null;
+    _secilenBayrakData = img ? img.src : 'varsayilan';
+  }
+}
+
+async function yazdirKurbanSecimle(kurbanId, kurbanNo, tur, orientation) {
+  closeModal();
+  toast('Yazdırma hazırlanıyor...');
+  const hisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
+  const kurbanData = _kurbanlar.find(k => k.id === kurbanId) || {};
+
+  // Bayrak datasını belirle
+  let bayrakData;
+  if (_secilenBayrakData === 'varsayilan') {
+    bayrakData = _kullaniciAyarlar.bayrak_data || '';
+  } else if (_secilenBayrakData === 'yok') {
+    bayrakData = '';
+  } else {
+    bayrakData = _secilenBayrakData;
+  }
+
+  const html = kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakData);
+  printHTML(html);
+  _secilenBayrakData = 'varsayilan'; // sıfırla
 }
 
 async function yazdirKurbanDikey(kurbanId, kurbanNo, tur) {
@@ -1598,11 +1704,15 @@ function yazdirilabilirHTML(tip) {
 
 
 function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation) {
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
+  return kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakSrc);
+}
+
+function kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakSrc) {
   orientation = orientation || 'portrait';
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
   const baseUrl = window.location.origin;
   const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
-  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
 
   const isLandscape = orientation === 'landscape';
   const bw = isLandscape ? '180' : '150';

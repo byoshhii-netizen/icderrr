@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>İletişim – İÇDER</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .contact-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 50px; align-items: start; }
+    .contact-info-card { background: linear-gradient(135deg, #1b5e20, #2e7d32); border-radius: 16px; padding: 36px; color: #fff; }
+    .contact-info-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .contact-info-card > p { opacity: .85; font-size: 15px; margin-bottom: 30px; }
+    .contact-item { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+    .contact-item-icon { width: 44px; height: 44px; background: rgba(255,255,255,.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .contact-item-text h4 { font-size: 14px; font-weight: 700; opacity: .7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .contact-item-text p, .contact-item-text a { font-size: 15px; color: #fff; }
+    .contact-social { display: flex; gap: 10px; margin-top: 30px; }
+    .contact-social a { width: 40px; height: 40px; background: rgba(255,255,255,.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; transition: background .2s; }
+    .contact-social a:hover { background: rgba(255,255,255,.3); }
+    .contact-form { background: #fff; border-radius: 16px; padding: 36px; box-shadow: 0 8px 32px rgba(0,0,0,.08); }
+    .contact-form h3 { font-size: 22px; font-weight: 800; color: #1b5e20; margin-bottom: 24px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; transition: border .2s; font-family: inherit; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #2e7d32; }
+    .form-group textarea { resize: vertical; min-height: 120px; }
+    .btn-submit { background: #2e7d32; color: #fff; padding: 14px 32px; border-radius: 25px; font-weight: 700; font-size: 16px; transition: background .2s; width: 100%; }
+    .btn-submit:hover { background: #1b5e20; }
+    @media (max-width: 768px) { .contact-grid { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <a href="tel:+908503051855"><i class="fa fa-phone"></i> 0850 305 18 55</a>
+        <a href="mailto:bilgi@icder.org"><i class="fa fa-envelope"></i> bilgi@icder.org</a>
+      </div>
+      <div class="topbar-right">
+        <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+        <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="logo"><img src="icderyazi.png" alt="İÇDER Logo" /></a>
+      <nav class="nav-links">
+        <div class="nav-item dropdown">
+          <a href="kurumsal.html">KURUMSAL <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="hakkimizda.html">Hakkımızda</a>
+            <a href="misyon.html">Misyonumuz</a>
+            <a href="vizyon.html">Vizyonumuz</a>
+            <a href="yonetim.html">Yönetim Kurulu</a>
+            <a href="hesap-numaralari.html">Hesap Numaraları</a>
+          </div>
+        </div>
+        <div class="nav-item dropdown">
+          <a href="projeler.html">PROJELER <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="kurban.html">Kurban Bayramı</a>
+            <a href="gazze.html">Gazze Yardım</a>
+            <a href="cocuklar-gulsun.html">Çocuklar Gülsün</a>
+          </div>
+        </div>
+        <a href="faaliyetler.html" class="nav-item">FAALİYETLER</a>
+        <a href="haberler.html" class="nav-item">HABERLER</a>
+        <a href="iletisim.html" class="nav-item">İLETİŞİM</a>
+      </nav>
+      <a href="bagis.html" class="btn-donate">BAĞIŞ YAP</a>
+      <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="kurumsal.html">Kurumsal</a>
+    <a href="projeler.html">Projeler</a>
+    <a href="faaliyetler.html">Faaliyetler</a>
+    <a href="haberler.html">Haberler</a>
+    <a href="iletisim.html">İletişim</a>
+    <a href="bagis.html" class="btn-donate-mobile">Bağış Yap</a>
+  </div>
+
+  <section class="page-hero">
+    <div class="container">
+      <h1>İletişim</h1>
+      <p>Bize ulaşın, sorularınızı yanıtlayalım</p>
+      <div class="breadcrumb">
+        <a href="index.html">Ana Sayfa</a>
+        <span>/</span>
+        <span>İletişim</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:80px 0; background:#f9fbe7;">
+    <div class="container">
+      <div class="contact-grid">
+        <div>
+          <div class="contact-info-card">
+            <h3>Bize Ulaşın</h3>
+            <p>Her türlü soru ve öneriniz için buradayız.</p>
+
+            <div class="contact-item">
+              <div class="contact-item-icon"><i class="fa fa-location-dot"></i></div>
+              <div class="contact-item-text">
+                <h4>Adres</h4>
+                <p>Hasköy Mah. Bozkır Sokak No:49<br/>Canik / Samsun</p>
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-item-icon"><i class="fa fa-phone"></i></div>
+              <div class="contact-item-text">
+                <h4>Telefon</h4>
+                <a href="tel:+908503051855">0850 305 18 55</a>
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-item-icon"><i class="fa fa-envelope"></i></div>
+              <div class="contact-item-text">
+                <h4>E-posta</h4>
+                <a href="mailto:bilgi@icder.org">bilgi@icder.org</a>
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-item-icon"><i class="fab fa-whatsapp"></i></div>
+              <div class="contact-item-text">
+                <h4>WhatsApp</h4>
+                <a href="https://wa.me/905403051855">0540 305 18 55</a>
+              </div>
+            </div>
+
+            <div class="contact-social">
+              <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+              <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+              <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+              <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-form">
+          <h3>Mesaj Gönderin</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ad</label>
+              <input type="text" placeholder="Adınız" />
+            </div>
+            <div class="form-group">
+              <label>Soyad</label>
+              <input type="text" placeholder="Soyadınız" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>E-posta</label>
+              <input type="email" placeholder="ornek@mail.com" />
+            </div>
+            <div class="form-group">
+              <label>Telefon</label>
+              <input type="tel" placeholder="05XX XXX XX XX" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Konu</label>
+            <select>
+              <option>Bağış Hakkında</option>
+              <option>Proje Bilgisi</option>
+              <option>Gönüllülük</option>
+              <option>Medya & Basın</option>
+              <option>Diğer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mesajınız</label>
+            <textarea placeholder="Mesajınızı buraya yazın..."></textarea>
+          </div>
+          <button class="btn-submit">Gönder <i class="fa fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAP PLACEHOLDER -->
+  <div style="background:#e8f5e9; height:300px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
+    <i class="fa fa-map-location-dot" style="font-size:48px; color:#2e7d32;"></i>
+    <p style="color:#1b5e20; font-weight:600; font-size:16px;">Hasköy Mah. Bozkır Sokak No:49, Canik / Samsun</p>
+    <a href="https://maps.google.com/?q=Canik+Samsun" target="_blank" style="background:#2e7d32; color:#fff; padding:10px 22px; border-radius:20px; font-weight:600; font-size:14px;">Google Maps'te Aç</a>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-brand">
+        <img src="icderyazi.png" alt="İÇDER Logo" class="footer-logo" />
+        <p>İÇDER, köklü bir çınar gibi sağlam durarak Allah'ın rızasını kazanacak işler yapan bir kuruluştur.</p>
+        <div class="footer-social">
+          <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>KURUMSAL</h5>
+        <ul>
+          <li><a href="hakkimizda.html">Hakkımızda</a></li>
+          <li><a href="misyon.html">Misyonumuz</a></li>
+          <li><a href="vizyon.html">Vizyonumuz</a></li>
+          <li><a href="yonetim.html">Yönetim Kurulu</a></li>
+          <li><a href="hesap-numaralari.html">Hesap Numaraları</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>PROJELER</h5>
+        <ul>
+          <li><a href="kurban.html">Kurban Bayramı</a></li>
+          <li><a href="gazze.html">Gazze Yardım</a></li>
+          <li><a href="cocuklar-gulsun.html">Çocuklar Gülsün</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>İLETİŞİM</h5>
+        <ul class="footer-contact">
+          <li><i class="fa fa-location-dot"></i> Hasköy Mah. Bozkır Sokak No:49 Canik / Samsun</li>
+          <li><i class="fa fa-phone"></i> <a href="tel:+908503051855">0850 305 18 55</a></li>
+          <li><i class="fa fa-envelope"></i> <a href="mailto:bilgi@icder.org">bilgi@icder.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© 2026 Tüm Hakları Saklıdır | İslam Çınarı Derneği</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bağışlarım – İÇDER</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/sepet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .bagislarim-wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+    .auth-card { background:#fff; border-radius:16px; padding:40px; box-shadow:0 8px 32px rgba(0,0,0,.1); max-width:440px; margin:60px auto; }
+    .auth-card h2 { color:#1b5e20; font-size:1.5rem; font-weight:800; margin-bottom:6px; }
+    .auth-card p { color:#777; font-size:14px; margin-bottom:24px; }
+    .auth-tabs { display:flex; gap:0; margin-bottom:24px; border-radius:10px; overflow:hidden; border:2px solid #e8f5e9; }
+    .auth-tab { flex:1; padding:11px; text-align:center; font-size:14px; font-weight:700; color:#555; background:#fff; cursor:pointer; border:none; transition:all .2s; }
+    .auth-tab.active { background:#2e7d32; color:#fff; }
+    .auth-input { width:100%; padding:13px 16px; border:2px solid #e0e0e0; border-radius:10px; font-size:14px; outline:none; margin-bottom:12px; box-sizing:border-box; transition:border .2s; font-family:inherit; }
+    .auth-input:focus { border-color:#2e7d32; }
+    .auth-btn { width:100%; background:#2e7d32; color:#fff; padding:14px; border-radius:10px; font-weight:800; font-size:15px; border:none; cursor:pointer; transition:background .2s; }
+    .auth-btn:hover { background:#1b5e20; }
+    .auth-hata { background:#ffebee; color:#c62828; padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:12px; display:none; }
+    .auth-bilgi { background:#e8f5e9; color:#1b5e20; padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:12px; }
+
+    /* DASHBOARD */
+    .dash-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+    .dash-header h2 { font-size:1.5rem; font-weight:800; color:#1b5e20; }
+    .dash-user { display:flex; align-items:center; gap:10px; background:#e8f5e9; padding:10px 16px; border-radius:25px; }
+    .dash-avatar { width:36px; height:36px; background:#2e7d32; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:14px; }
+    .dash-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+    .dash-stat { background:#fff; border-radius:12px; padding:20px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.06); border:2px solid #e8f5e9; }
+    .dash-stat .val { font-size:22px; font-weight:800; color:#1b5e20; }
+    .dash-stat .lbl { font-size:12px; color:#888; margin-top:3px; }
+    .bagis-list { display:flex; flex-direction:column; gap:14px; }
+    .bagis-item { background:#fff; border-radius:14px; padding:20px 24px; box-shadow:0 2px 12px rgba(0,0,0,.07); border:2px solid #e8f5e9; }
+    .bagis-item-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .bagis-item-left { display:flex; align-items:center; gap:14px; }
+    .bagis-item-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; background:#e8f5e9; color:#2e7d32; flex-shrink:0; }
+    .bagis-item-info h4 { font-size:15px; font-weight:700; color:#1b5e20; margin-bottom:3px; }
+    .bagis-item-info .meta { font-size:12px; color:#888; display:flex; gap:12px; flex-wrap:wrap; }
+    .bagis-item-right { text-align:right; }
+    .bagis-item-tutar { font-size:20px; font-weight:800; color:#1b5e20; }
+    .durum-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; margin-top:4px; }
+    .durum-badge.bekliyor { background:#fff8e1; color:#f57f17; }
+    .durum-badge.tamamlandi { background:#e8f5e9; color:#2e7d32; }
+    .bagis-not { background:#f9fbe7; border-left:3px solid #2e7d32; border-radius:0 8px 8px 0; padding:12px 16px; margin-top:12px; font-size:13px; color:#555; }
+    .bagis-not.bekliyor { background:#fff8e1; border-left-color:#f57f17; }
+    .timeline { margin-top:14px; }
+    .tl-step { display:flex; align-items:flex-start; gap:12px; padding:6px 0; }
+    .tl-dot { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:2px; }
+    .tl-dot.done { background:#2e7d32; color:#fff; }
+    .tl-dot.active { background:#f57f17; color:#fff; }
+    .tl-dot.pending { background:#e0e0e0; color:#aaa; }
+    .tl-text h5 { font-size:13px; font-weight:700; color:#333; margin-bottom:2px; }
+    .tl-text p { font-size:12px; color:#888; }
+    .empty-state { text-align:center; padding:60px 20px; color:#aaa; }
+    .empty-state i { font-size:48px; margin-bottom:16px; display:block; }
+    @media(max-width:600px){ .dash-stats{grid-template-columns:1fr 1fr;} }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <a href="tel:+908503051855"><i class="fa fa-phone"></i> 0850 305 18 55</a>
+        <a href="mailto:bilgi@icder.org"><i class="fa fa-envelope"></i> bilgi@icder.org</a>
+      </div>
+      <div class="topbar-right">
+        <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+        <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="/" class="logo"><img src="icderyazi.png" alt="İÇDER Logo" /></a>
+      <nav class="nav-links">
+        <div class="nav-item dropdown">
+          <a href="/kurumsal">KURUMSAL <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="/hakkimizda">Hakkımızda</a>
+            <a href="/hesaplar">Hesap Numaraları</a>
+          </div>
+        </div>
+        <a href="/projeler" class="nav-item">PROJELER</a>
+        <a href="/faaliyetler" class="nav-item">FAALİYETLER</a>
+        <a href="/haberler" class="nav-item">HABERLER</a>
+        <a href="/iletisim" class="nav-item">İLETİŞİM</a>
+        <a href="/bagislarim" class="nav-item">BAĞIŞLARIM</a>
+      </nav>
+      <div class="navbar-actions">
+        <button class="btn-sepet" id="navSepetBtn" onclick="window.sepet && window.sepet.openSepet()" title="Sepetim">
+          <i class="fa fa-cart-shopping"></i>
+          <span class="btn-sepet-count" id="navSepetCount" style="display:none;">0</span>
+        </button>
+        <a href="/bagis" class="btn-donate">BAĞIŞ YAP</a>
+      </div>
+      <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="/projeler">Projeler</a>
+    <a href="/faaliyetler">Faaliyetler</a>
+    <a href="/haberler">Haberler</a>
+    <a href="/iletisim">İletişim</a>
+    <a href="/bagislarim">Bağışlarım</a>
+    <a href="/bagis" class="btn-donate-mobile">Bağış Yap</a>
+  </div>
+
+  <section class="page-hero">
+    <div class="container">
+      <h1>Bağışlarım</h1>
+      <p>Bağışlarınızı takip edin</p>
+      <div class="breadcrumb">
+        <a href="/">Ana Sayfa</a><span>/</span><span>Bağışlarım</span>
+      </div>
+    </div>
+  </section>
+
+  <div style="background:#f9fbe7; min-height:60vh; padding:40px 0;">
+    <div class="bagislarim-wrap" id="bagislarimWrap"></div>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-brand">
+        <img src="icderyazi.png" alt="İÇDER Logo" class="footer-logo" />
+        <p>İÇDER, köklü bir çınar gibi sağlam durarak Allah'ın rızasını kazanacak işler yapan bir kuruluştur.</p>
+        <div class="footer-social">
+          <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>HIZLI ERİŞİM</h5>
+        <ul>
+          <li><a href="/bagis">Bağış Yap</a></li>
+          <li><a href="/bagislarim">Bağışlarım</a></li>
+          <li><a href="/hesaplar">Hesap Numaraları</a></li>
+          <li><a href="/iletisim">İletişim</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>İLETİŞİM</h5>
+        <ul class="footer-contact">
+          <li><i class="fa fa-location-dot"></i> Hasköy Mah. Bozkır Sokak No:49 Canik / Samsun</li>
+          <li><i class="fa fa-phone"></i> <a href="tel:+908503051855">0850 305 18 55</a></li>
+          <li><i class="fa fa-envelope"></i> <a href="mailto:bilgi@icder.org">bilgi@icder.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© 2026 Tüm Hakları Saklıdır | İslam Çınarı Derneği</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/bagis-db.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/sepet.js"></script>
+  <script>
+  const wrap = document.getElementById('bagislarimWrap');
+
+  // ---- GİRİŞ / KAYIT FORMU ----
+  function renderAuth(tab, hata) {
+    tab = tab || 'giris';
+    wrap.innerHTML = `
+      <div class="auth-card">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="width:64px;height:64px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px;color:#2e7d32;">
+            <i class="fa fa-user"></i>
+          </div>
+          <h2>Bağışlarım</h2>
+          <p>Bağışlarınızı takip etmek için giriş yapın</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab ${tab==='giris'?'active':''}" onclick="renderAuth('giris')">Giriş Yap</button>
+          <button class="auth-tab ${tab==='kayit'?'active':''}" onclick="renderAuth('kayit')">Hesap Oluştur</button>
+        </div>
+
+        ${hata ? `<div class="auth-hata" style="display:block;">${hata}</div>` : ''}
+
+        ${tab === 'giris' ? `
+          <input class="auth-input" id="girisKadi" type="text" placeholder="Kullanıcı adınız" />
+          <input class="auth-input" id="girisSifre" type="password" placeholder="Şifreniz"
+            onkeydown="if(event.key==='Enter') girisYap()" />
+          <button class="auth-btn" onclick="girisYap()">
+            <i class="fa fa-arrow-right-to-bracket"></i> Giriş Yap
+          </button>
+          <p style="text-align:center;font-size:12px;color:#aaa;margin-top:14px;">
+            Henüz hesabınız yok mu? <a href="#" onclick="renderAuth('kayit')" style="color:#2e7d32;font-weight:600;">Hesap Oluştur</a>
+          </p>
+        ` : `
+          <div class="auth-bilgi"><i class="fa fa-info-circle"></i> Bağış yaparken otomatik hesap oluşturulur. Buradan da oluşturabilirsiniz.</div>
+          <input class="auth-input" id="kayitAd" type="text" placeholder="Adınız" />
+          <input class="auth-input" id="kayitSoyad" type="text" placeholder="Soyadınız" />
+          <input class="auth-input" id="kayitTel" type="tel" placeholder="Telefon: 05XX XXX XX XX" />
+          <input class="auth-input" id="kayitEmail" type="email" placeholder="E-posta (opsiyonel)" />
+          <input class="auth-input" id="kayitSifre" type="password" placeholder="Şifre (en az 6 karakter)"
+            onkeydown="if(event.key==='Enter') kayitOl()" />
+          <button class="auth-btn" onclick="kayitOl()">
+            <i class="fa fa-user-plus"></i> Hesap Oluştur
+          </button>
+        `}
+      </div>
+    `;
+  }
+
+  async function girisYap() {
+    const kadi = document.getElementById('girisKadi')?.value?.trim();
+    const sifre = document.getElementById('girisSifre')?.value?.trim();
+    if (!kadi || !sifre) { renderAuth('giris', 'Kullanıcı adı ve şifre zorunludur.'); return; }
+    const sonuc = await BagisDB.girisYap(kadi, sifre);
+    if (sonuc.ok) {
+      renderDashboard(sonuc.user);
+    } else {
+      renderAuth('giris', sonuc.hata || 'Giriş başarısız.');
+    }
+  }
+
+  async function kayitOl() {
+    const ad = document.getElementById('kayitAd')?.value?.trim();
+    const soyad = document.getElementById('kayitSoyad')?.value?.trim();
+    const tel = document.getElementById('kayitTel')?.value?.trim();
+    const email = document.getElementById('kayitEmail')?.value?.trim();
+    const sifre = document.getElementById('kayitSifre')?.value?.trim();
+    if (!ad || !soyad) { renderAuth('kayit', 'Ad ve soyad zorunludur.'); return; }
+    if (!sifre || sifre.length < 6) { renderAuth('kayit', 'Şifre en az 6 karakter olmalıdır.'); return; }
+    const sonuc = await BagisDB.kayitOl(ad, soyad, tel, email, sifre);
+    if (sonuc.ok) {
+      renderDashboard(sonuc.user);
+    } else {
+      renderAuth('kayit', sonuc.hata || 'Kayıt başarısız.');
+    }
+  }
+
+  // ---- DASHBOARD ----
+  async function renderDashboard(user) {
+    const bagislar = await BagisDB.kullaniciBagislari(user.kullaniciAdi);
+    const toplam = bagislar.reduce((s,b) => s + (parseFloat(b.tutar)||0), 0);
+    const bekleyen = bagislar.filter(b => b.durum === 'bekliyor').length;
+
+    wrap.innerHTML = `
+      <div class="dash-header">
+        <h2><i class="fa fa-basket-shopping" style="color:#2e7d32;margin-right:10px;"></i>Bağışlarım</h2>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="dash-user">
+            <div class="dash-avatar">${(user.ad||'?')[0].toUpperCase()}</div>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#1b5e20;">${user.ad} ${user.soyad||''}</div>
+              <div style="font-size:11px;color:#888;">@${user.kullaniciAdi}</div>
+            </div>
+          </div>
+          <button onclick="cikisYap()" style="background:none;border:1px solid #e0e0e0;color:#888;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;">
+            <i class="fa fa-right-from-bracket"></i> Çıkış
+          </button>
+        </div>
+      </div>
+
+      <div class="dash-stats">
+        <div class="dash-stat">
+          <i class="fa fa-hand-holding-heart" style="font-size:24px;color:#2e7d32;margin-bottom:8px;"></i>
+          <div class="val">${bagislar.length}</div>
+          <div class="lbl">Toplam Bağış</div>
+        </div>
+        <div class="dash-stat">
+          <i class="fa fa-turkish-lira-sign" style="font-size:24px;color:#2e7d32;margin-bottom:8px;"></i>
+          <div class="val">${toplam.toLocaleString('tr-TR')} ₺</div>
+          <div class="lbl">Toplam Tutar</div>
+        </div>
+        <div class="dash-stat">
+          <i class="fa fa-clock" style="font-size:24px;color:#f57f17;margin-bottom:8px;"></i>
+          <div class="val">${bekleyen}</div>
+          <div class="lbl">Bekleyen</div>
+        </div>
+      </div>
+
+      ${bagislar.length === 0 ? `
+        <div class="empty-state">
+          <i class="fa fa-basket-shopping"></i>
+          <p>Henüz bağışınız bulunmuyor.</p>
+          <a href="/bagis" class="btn-project" style="display:inline-block;margin-top:16px;">Bağış Yap</a>
+        </div>
+      ` : `
+        <div class="bagis-list">
+          ${bagislar.slice().reverse().map(b => {
+            const isKurban = (b.tur||'').includes('Kurban') || (b.baslik||'').includes('Kurban');
+            const kesildi = b.durum === 'tamamlandi';
+            return `
+              <div class="bagis-item">
+                <div class="bagis-item-header">
+                  <div class="bagis-item-left">
+                    <div class="bagis-item-icon">
+                      <i class="fa ${isKurban ? 'fa-moon' : 'fa-hand-holding-heart'}"></i>
+                    </div>
+                    <div class="bagis-item-info">
+                      <h4>${b.baslik || b.tur || 'Bağış'}</h4>
+                      <div class="meta">
+                        <span><i class="fa fa-calendar"></i> ${new Date(b.tarih).toLocaleDateString('tr-TR')}</span>
+                        <span><i class="fa fa-tag"></i> ${b.tur || '-'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="bagis-item-right">
+                    <div class="bagis-item-tutar">${parseFloat(b.tutar||0).toLocaleString('tr-TR')} ₺</div>
+                    <div style="font-size:11px;color:#aaa;">#${b.id}</div>
+                    <span class="durum-badge ${kesildi ? 'tamamlandi' : 'bekliyor'}">
+                      ${kesildi ? '✓ Kesildi' : '⏳ Bekliyor'}
+                    </span>
+                  </div>
+                </div>
+
+                ${isKurban ? `
+                  <div class="timeline">
+                    <div class="tl-step">
+                      <div class="tl-dot done"><i class="fa fa-check"></i></div>
+                      <div class="tl-text"><h5>Bağış Alındı</h5><p>${new Date(b.tarih).toLocaleDateString('tr-TR')}</p></div>
+                    </div>
+                    <div class="tl-step">
+                      <div class="tl-dot done"><i class="fa fa-check"></i></div>
+                      <div class="tl-text"><h5>İşleme Alındı</h5><p>Ekibimiz hazırlıyor</p></div>
+                    </div>
+                    <div class="tl-step">
+                      <div class="tl-dot ${kesildi ? 'done' : 'active'}">
+                        ${kesildi ? '<i class="fa fa-check"></i>' : '<i class="fa fa-clock"></i>'}
+                      </div>
+                      <div class="tl-text">
+                        <h5>${kesildi ? 'Kurban Kesildi' : 'Kesim Bekleniyor'}</h5>
+                        <p>${kesildi ? 'Kurbanınız kesilmiştir. Allah kabul etsin.' : 'Kurban Bayramı haftasında kesilecektir.'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ` : ''}
+
+                ${(b.not || b.ekNot) ? `
+                  <div class="bagis-not ${kesildi ? '' : 'bekliyor'}">
+                    <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:4px;">
+                      <i class="fa fa-comment-dots"></i> Yönetici Notu
+                    </div>
+                    ${b.not || ''}
+                    ${b.ekNot ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08);"><strong>Ek Not:</strong> ${b.ekNot}</div>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    `;
+  }
+
+  function cikisYap() {
+    BagisDB.cikisYap();
+    renderAuth('giris');
+  }
+
+  // ---- INIT ----
+  const aktif = BagisDB.aktifKullanici();
+  if (aktif) {
+    renderDashboard(aktif);
+  } else {
+    renderAuth('giris');
+  }
+
+  // Yönetimden gelen güncellemeleri dinle
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'icder_bagislar') {
+      const aktifUser = BagisDB.aktifKullanici();
+      if (aktifUser) renderDashboard(aktifUser);
+    }
+  });
+  </script>
+</body>
+</html>

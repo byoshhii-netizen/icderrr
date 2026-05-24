@@ -1,0 +1,403 @@
+/* ============================================
+   İÇDER – Bağış Sayfası Stilleri
+   ============================================ */
+
+/* ---- TAB BAR ---- */
+.bagis-tabbar-wrap {
+  background: #fff;
+  border-bottom: 2px solid #e8f5e9;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  position: sticky;
+  top: 76px;
+  z-index: 900;
+  overflow: hidden;
+}
+
+.bagis-tabbar {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.bagis-tabbar::-webkit-scrollbar { display: none; }
+
+.bagis-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 15px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #777;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border-bottom: 3px solid transparent;
+  transition: color .2s, background .2s, border-color .2s;
+  text-decoration: none;
+  border-right: 1px solid #f0f0f0;
+}
+
+.bagis-tab:last-child { border-right: none; }
+
+.bagis-tab i {
+  font-size: 15px;
+  color: #bbb;
+  transition: color .2s;
+}
+
+.bagis-tab:hover {
+  color: #1b5e20;
+  background: #f9fbe7;
+}
+
+.bagis-tab:hover i { color: #2e7d32; }
+
+.bagis-tab.active {
+  color: #1b5e20;
+  border-bottom-color: #1b5e20;
+  background: #f9fbe7;
+}
+
+.bagis-tab.active i { color: #2e7d32; }
+
+/* ---- CONTENT AREA ---- */
+.bagis-content {
+  min-height: 600px;
+  background: #f9fbe7;
+  padding: 50px 0;
+}
+
+/* ---- DONATION GRID ---- */
+.bagis-inner {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 40px;
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ---- CARDS GRID ---- */
+.bagis-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.bagis-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,.07);
+  transition: transform .25s, box-shadow .25s, border-color .2s;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.bagis-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,.12);
+  border-color: #2e7d32;
+}
+
+.bagis-card.selected {
+  border-color: #1b5e20;
+  box-shadow: 0 0 0 3px rgba(46,125,50,.15);
+}
+
+.bagis-card-img {
+  height: 160px;
+  background: linear-gradient(135deg, #1b5e20, #43a047);
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 14px;
+}
+
+.bagis-card-img.kurban-bg { background: linear-gradient(135deg, #1b5e20, #388e3c); }
+.bagis-card-img.su-bg     { background: linear-gradient(135deg, #0277bd, #29b6f6); }
+.bagis-card-img.acil-bg   { background: linear-gradient(135deg, #b71c1c, #e53935); }
+.bagis-card-img.egitim-bg { background: linear-gradient(135deg, #e65100, #ff9800); }
+.bagis-card-img.saglik-bg { background: linear-gradient(135deg, #880e4f, #e91e63); }
+.bagis-card-img.genel-bg  { background: linear-gradient(135deg, #2e7d32, #66bb6a); }
+.bagis-card-img.proje-bg  { background: linear-gradient(135deg, #4a148c, #9c27b0); }
+
+.bagis-card-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255,255,255,.9);
+  color: #1b5e20;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bagis-card-badge.acil { color: #c62828; }
+
+.bagis-card-title-overlay {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-shadow: 0 1px 4px rgba(0,0,0,.4);
+  line-height: 1.3;
+}
+
+.bagis-card-body { padding: 16px; }
+
+.bagis-card-body p {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.bagis-card-progress { margin-bottom: 10px; }
+
+.bagis-card-progress-bar {
+  background: #e8f5e9;
+  border-radius: 10px;
+  height: 6px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.bagis-card-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2e7d32, #66bb6a);
+  border-radius: 10px;
+}
+
+.bagis-card-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #888;
+}
+
+.bagis-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.bagis-card-price {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1b5e20;
+}
+
+.bagis-card-btn {
+  background: #2e7d32;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background .2s;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bagis-card-btn:hover { background: #1b5e20; }
+
+/* ---- STICKY WIDGET ---- */
+.bagis-widget-sticky {
+  position: sticky;
+  top: 140px;
+}
+
+.bagis-widget {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.1);
+  border: 2px solid #e8f5e9;
+}
+
+.bagis-widget h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1b5e20;
+  margin-bottom: 4px;
+}
+
+.bagis-widget .widget-sub {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 20px;
+}
+
+.widget-selected-item {
+  background: #f9fbe7;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+  border-left: 3px solid #2e7d32;
+}
+
+.widget-selected-item .item-name {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.widget-selected-item .item-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.widget-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.widget-amount-btn {
+  padding: 10px 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2e7d32;
+  background: #e8f5e9;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+}
+
+.widget-amount-btn:hover,
+.widget-amount-btn.active {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #2e7d32;
+}
+
+.widget-input-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.widget-input-wrap .currency {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #2e7d32;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.widget-input-wrap input {
+  width: 100%;
+  padding: 12px 14px 12px 32px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  transition: border .2s;
+}
+
+.widget-input-wrap input:focus { border-color: #2e7d32; }
+
+.widget-form-group { margin-bottom: 12px; }
+
+.widget-form-group input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border .2s;
+}
+
+.widget-form-group input:focus { border-color: #2e7d32; }
+
+.widget-submit {
+  display: block;
+  width: 100%;
+  background: #2e7d32;
+  color: #fff;
+  text-align: center;
+  padding: 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  transition: background .2s;
+  border: none;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.widget-submit:hover { background: #1b5e20; }
+
+.widget-note {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  margin-top: 10px;
+}
+
+.widget-note i { color: #2e7d32; margin-right: 4px; }
+
+/* ---- CATEGORY HEADER ---- */
+.bagis-cat-header { margin-bottom: 28px; }
+
+.bagis-cat-header h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1b5e20;
+  margin-bottom: 6px;
+}
+
+.bagis-cat-header p { color: #666; font-size: 15px; }
+
+/* ---- LOADING ---- */
+.bagis-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  flex-direction: column;
+  gap: 16px;
+  color: #2e7d32;
+}
+
+.bagis-loading i {
+  font-size: 36px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 1024px) {
+  .bagis-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .bagis-inner { grid-template-columns: 1fr; }
+  .bagis-widget-sticky { position: static; }
+}
+
+@media (max-width: 600px) {
+  .bagis-cards { grid-template-columns: 1fr; }
+  .bagis-tab { padding: 12px 12px; font-size: 10px; gap: 4px; }
+  .bagis-tab i { font-size: 13px; }
+}

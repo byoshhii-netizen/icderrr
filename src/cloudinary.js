@@ -62,6 +62,7 @@ router.delete('/delete', async (req, res) => {
         ? require('./database-web')
         : require('./database');
       const db = await getDb();
+      try { db.exec("CREATE TABLE IF NOT EXISTS medya_cop (id INTEGER PRIMARY KEY AUTOINCREMENT, dosya_adi TEXT, public_id TEXT, url TEXT, tur TEXT DEFAULT 'resim', silme_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e2) {}
       db.prepare("INSERT INTO medya_cop (dosya_adi, public_id, url, tur) VALUES (?,?,?,?)").run(
         dosya_adi || public_id.split('/').pop() || public_id,
         public_id, url || null,

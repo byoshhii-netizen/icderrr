@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', applyDestekButon);
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const S = { page:'organizasyonlar', orgId:null, orgAd:'', orgYil:'' };
 
-const KURBAN_TURLERI = ['Udhiye','Adak','Akika','Vacip','Hedy','Sukur','Kiran','Temmettu','Ceza','Ihsar','Sadaka','Nafile','Olu','Kefaret','Sifa','Hacet','Fidye','Zekat','Nesike','Vesile','Atire','Hayır'];
+const KURBAN_TURLERI = ['Udhiye','Adak','Akika','Vacip','Hedy','Sukur','Kiran','Temmettu','Ceza','Ihsar','Sadaka','Nafile','Olu','Kefaret','Sifa','Hacet','Fidye','Zekat','Nesike','Vesile','Atire','Hayır','Ruhuna Kurbanı'];
 
 const BAGISCI_KATEGORILERI = ['Genel Bağışçı','VIP Bağışçı','Kurumsal','Sponsor','Düzenli Bağışçı','Yeni Bağışçı','Eski Bağışçı','Özel Kategori'];
 

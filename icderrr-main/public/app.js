@@ -1,4 +1,4 @@
-﻿// ─── AUTH KONTROL KALDIRILDI (EXE İÇİN) ─────────────────────────────────────
+﻿﻿// ─── AUTH KONTROL KALDIRILDI (EXE İÇİN) ─────────────────────────────────────
 // Kullanıcı ayarları global
 let _kullaniciAyarlar = { logo_data: null, bayrak_data: null, kurulum_tamamlandi: 0 };
 let _kullaniciAdi = 'İÇDER';
@@ -129,8 +129,11 @@ async function modalAyarlar() {
     ? '<img src="' + _kullaniciAyarlar.bayrak_data + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>'
     : '<i class="fa-solid fa-flag" style="font-size:22px;color:var(--text3)"></i><div style="color:var(--text3);font-size:12px;margin-top:4px">Yüklenmedi</div>';
 
-  openModal('Yazdırma Ayarları', `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+  // Çağrı merkezi butonu ayarını oku
+  const destekButonGoster = localStorage.getItem('icder-destek-buton') !== '0';
+
+  openModal('Ayarlar', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="form-group">
         <label><i class="fa-solid fa-image"></i> Logonuz</label>
         <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-logo-input').click()">
@@ -146,17 +149,76 @@ async function modalAyarlar() {
         <input type="file" id="setup-bayrak-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'bayrak')"/>
       </div>
     </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">
+          <i class="fa-solid fa-flag"></i> Bayrak Kütüphanesi
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="modalYeniBayrak()"><i class="fa-solid fa-plus"></i> Bayrak Ekle</button>
+      </div>
+      <div id="bayrak-listesi-ayar"><div style="color:var(--text3);font-size:13px">Yükleniyor...</div></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">
+        <i class="fa-solid fa-sliders"></i> Arayüz Ayarları
+      </div>
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 12px;background:var(--bg4);border-radius:8px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <i class="fa-solid fa-headset" style="color:var(--accent);font-size:16px"></i>
+          <div>
+            <div style="font-size:13px;font-weight:600">Sağ Alt Destek Butonu</div>
+            <div style="font-size:11px;color:var(--text3)">Ekranın sağ altındaki çağrı merkezi tuşu</div>
+          </div>
+        </div>
+        <div style="position:relative;width:44px;height:24px;flex-shrink:0" onclick="var cb=document.getElementById('ayar-destek-buton');cb.checked=!cb.checked;toggleDestekButon(cb.checked)">
+          <div id="destek-toggle-track" style="
+            position:absolute;inset:0;border-radius:12px;cursor:pointer;transition:background 0.3s;
+            background:${destekButonGoster ? 'var(--accent)' : 'var(--border2)'};
+          ">
+            <div style="
+              position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+              transition:left 0.3s;box-shadow:0 1px 4px rgba(0,0,0,0.3);
+              left:${destekButonGoster ? '23px' : '3px'};
+            " id="destek-toggle-thumb"></div>
+          </div>
+          <input type="checkbox" id="ayar-destek-buton" ${destekButonGoster ? 'checked' : ''} style="opacity:0;width:0;height:0;position:absolute"/>
+        </div>
+      </label>
+    </div>
     <div class="form-actions">
       <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
       <button class="btn btn-primary" onclick="kurulumKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
     </div>
   `, true, 'gear');
+  // Bayrak listesini yükle
+  yukleBayraklarAyar();
 }
+
+function toggleDestekButon(goster) {
+  localStorage.setItem('icder-destek-buton', goster ? '1' : '0');
+  const btn = document.getElementById('floating-destek-btn');
+  if (btn) btn.style.display = goster ? 'flex' : 'none';
+  // Toggle görselini güncelle
+  const track = document.getElementById('destek-toggle-track');
+  const thumb = document.getElementById('destek-toggle-thumb');
+  if (track) track.style.background = goster ? 'var(--accent)' : 'var(--border2)';
+  if (thumb) thumb.style.left = goster ? '23px' : '3px';
+}
+
+// Sayfa yüklenince destek butonu durumunu uygula — DOMContentLoaded yerine direkt çalıştır
+function applyDestekButon() {
+  const goster = localStorage.getItem('icder-destek-buton') !== '0';
+  const btn = document.getElementById('floating-destek-btn');
+  if (btn) btn.style.display = goster ? 'flex' : 'none';
+}
+// Hem hemen hem DOM hazır olunca çalıştır
+applyDestekButon();
+document.addEventListener('DOMContentLoaded', applyDestekButon);
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const S = { page:'organizasyonlar', orgId:null, orgAd:'', orgYil:'' };
 
-const KURBAN_TURLERI = ['Udhiye','Adak','Akika','Vacip','Hedy','Sukur','Kiran','Temmettu','Ceza','Ihsar','Sadaka','Nafile','Olu','Kefaret','Sifa','Hacet','Fidye','Zekat','Nesike','Vesile','Atire','Hayır'];
+const KURBAN_TURLERI = ['Udhiye','Adak','Akika','Vacip','Hedy','Sukur','Kiran','Temmettu','Ceza','Ihsar','Sadaka','Nafile','Olu','Kefaret','Sifa','Hacet','Fidye','Zekat','Nesike','Vesile','Atire','Hayır','Ruhuna Kurbanı'];
 
 const BAGISCI_KATEGORILERI = ['Genel Bağışçı','VIP Bağışçı','Kurumsal','Sponsor','Düzenli Bağışçı','Yeni Bağışçı','Eski Bağışçı','Özel Kategori'];
 
@@ -173,9 +235,95 @@ async function api(method, url, body) {
   const opts = { method, headers:{'Content-Type':'application/json'} };
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch('/api' + url, opts);
-  const d = await r.json();
+  const d = await r.json().catch(() => ({}));
+  // Sistem bakım/kapalı modu: 503 + bloke → zorla sayfayı yenile (middleware bakım ekranına atar)
+  if (r.status === 503 && d.bloke) {
+    sistemModuBlokeAtla(d.sistem_modu, d.sistem_notu);
+    throw new Error(d.hata || 'Sistem şu anda erişime kapalı');
+  }
   if (!r.ok) throw new Error(d.hata || 'Hata olustu');
   return d;
+}
+
+// ─── SİSTEM MODU OTOMATİK KONTROLÜ ───────────────────────────────────────────
+// Bakım/Kapalı moduna geçildiyse açık olan kullanıcıyı bakım ekranına at.
+let _sistemModuTimer = null;
+let _sistemModuRedirecting = false;
+
+function sistemModuBlokeAtla(mod, not) {
+  if (_sistemModuRedirecting) return;
+  _sistemModuRedirecting = true;
+  const modText = mod === 'bakim' ? '🔧 Sistem Bakımda' : '🔒 Sistem Kapalı';
+  const renk = mod === 'bakim' ? '#f59e0b' : '#ef4444';
+  // Mevcut sayfayı kapatıp tam ekran bakım katmanı göster
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:fixed;inset:0;z-index:99999;background:#0a1410;color:#e8f5ee;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:'Segoe UI',sans-serif`;
+  wrap.innerHTML = `
+    <div style="max-width:520px;width:100%">
+      <div style="font-size:96px;margin-bottom:24px;color:${renk}"><i class="fa-solid ${mod === 'bakim' ? 'fa-wrench' : 'fa-lock'}"></i></div>
+      <h1 style="font-size:32px;font-weight:800;color:${renk};margin-bottom:14px">${modText}</h1>
+      <p style="font-size:15px;color:#a8c9b8;line-height:1.7;margin-bottom:22px">${mod === 'bakim' ? 'Sistem şu anda bakım modunda. Kısa süre içinde tekrar erişilebilir olacak.' : 'Sistem şu anda kapalı. Lütfen daha sonra tekrar deneyin.'}</p>
+      ${not ? `<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;font-size:14px;color:#e8f5ee;margin-bottom:22px"><strong style="color:${renk}">Yönetici Notu:</strong><br><br>${esc(not)}</div>` : ''}
+      <div style="font-size:12px;color:#6a8a7a">3 saniye içinde giriş ekranına yönlendiriliyorsunuz...</div>
+    </div>`;
+  document.body.appendChild(wrap);
+  setTimeout(() => { window.location.href = '/icder-giris'; }, 3000);
+}
+
+async function sistemModuKontrol() {
+  if (_sistemModuRedirecting) return;
+  try {
+    const r = await fetch('/api/admin/sistem-modu', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.mod === 'bakim' || d.mod === 'kapali') {
+      sistemModuBlokeAtla(d.mod, d.not);
+    }
+  } catch(e) { /* network hatası — yoksay */ }
+}
+
+function sistemModuPollingBaslat() {
+  if (_sistemModuTimer) return;
+  // İlk kontrol 3 sn sonra, sonra her 10 sn'de bir
+  setTimeout(sistemModuKontrol, 3000);
+  _sistemModuTimer = setInterval(sistemModuKontrol, 10000);
+}
+
+// Sayfa yüklenir yüklenmez polling başlat
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', sistemModuPollingBaslat);
+  } else {
+    sistemModuPollingBaslat();
+  }
+}
+
+// ─── UI LOGO CACHE-BUSTING ───────────────────────────────────────────────────
+async function uiLogoYenile() {
+  try {
+    const r = await fetch('/api/admin/ui-logo-bilgi', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    document.querySelectorAll('img[src^="icder.png"], img[src="icder.png"]').forEach(img => {
+      if (d.var) {
+        img.src = `icder.png?v=${d.v || Date.now()}`;
+        img.style.display = '';
+        const fb = img.nextElementSibling;
+        if (fb && fb.tagName === 'I') fb.style.display = 'none';
+      } else {
+        img.style.display = 'none';
+        const fb = img.nextElementSibling;
+        if (fb && fb.tagName === 'I') fb.style.display = 'block';
+      }
+    });
+  } catch(e) {}
+}
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', uiLogoYenile);
+  } else {
+    uiLogoYenile();
+  }
 }
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
@@ -226,6 +374,7 @@ function showPage(page) {
   else if (page==='ozel-mesajlar') renderOzelMesajlar();
   else if (page==='gorev-bildirimlerim') renderGorevBildirimlerim();
   else if (page==='destek') renderDestekHatti();
+  else if (page==='personel-takip') renderPersonelTakip();
   else if (page==='cop')         renderCopKutusu();
   else if (page==='yedek')       renderYedekGeriYukle();
   else if (page==='denetim')     renderDenetim();
@@ -550,6 +699,10 @@ async function renderKurbanlar() {
             <option value="video-var">Video İsteyenler</option>
             <option value="video-yok">Video İstemeyenler</option>
           </optgroup>
+          <optgroup label="── Vekalet">
+            <option value="vekalet-var">✅ Vekalet Alınanlar</option>
+            <option value="vekalet-yok">❌ Vekalet Alınmayanlar</option>
+          </optgroup>
           <optgroup label="── Hisse Sayısı">
             <option value="7hisse">7 Hisseli (Büyükbaş)</option>
             <option value="1hisse">1 Hisseli (Küçükbaş)</option>
@@ -572,6 +725,7 @@ async function renderKurbanlar() {
               <th>Alış Fiyatı</th>
               <th>Hisse Durumu</th>
               <th>Durum</th>
+              <th>Vekalet</th>
               <th>Kesim</th>
               <th>İşlemler</th>
             </tr></thead>
@@ -595,6 +749,7 @@ async function renderKurbanlar() {
               <th>Alış Fiyatı</th>
               <th>Hisse Durumu</th>
               <th>Durum</th>
+              <th>Vekalet</th>
               <th>Kesim</th>
               <th>İşlemler</th>
             </tr></thead>
@@ -630,6 +785,8 @@ function filterKurbanlar() {
     if (durum === 'bekliyor') return k._bekliyor_sayi > 0;
     if (durum === 'video-var') return k._video_sayi > 0;
     if (durum === 'video-yok') return k.dolu_hisse > 0 && k._video_sayi === 0;
+    if (durum === 'vekalet-var') return k._vekalet_sayi > 0;
+    if (durum === 'vekalet-yok') return k.dolu_hisse > 0 && (k._vekalet_sayi || 0) < k.dolu_hisse;
     if (durum === '7hisse') return k.toplam_hisse === 7;
     if (durum === '1hisse') return k.toplam_hisse === 1;
     return true;
@@ -653,6 +810,12 @@ function filterKurbanlar() {
     if (k.kesildi) durumBadge = `<span class="badge badge-red"><i class="fa-solid fa-scissors"></i> Kesildi</span>`;
     else if (dolu>=top) durumBadge = `<span class="badge badge-yellow"><i class="fa-solid fa-circle-dot"></i> Doldu</span>`;
     else durumBadge = `<span class="badge badge-green"><i class="fa-solid fa-circle"></i> Bos</span>`;
+    const vekaletSayi = k._vekalet_sayi || 0;
+    const vekaletBadge = dolu > 0
+      ? `<span class="badge ${vekaletSayi === dolu ? 'badge-green' : vekaletSayi > 0 ? 'badge-yellow' : 'badge-gray'}" style="font-size:10px" title="Vekalet: ${vekaletSayi}/${dolu}">
+          <i class="fa-solid fa-handshake"></i> ${vekaletSayi}/${dolu}
+        </span>`
+      : '';
     return `<tr>
       <td style="color:var(--text3);font-size:12px;font-weight:600">${idx+1}</td>
       <td><span class="kurban-no-badge">${k.kurban_no}</span></td>
@@ -665,6 +828,7 @@ function filterKurbanlar() {
         </div>
       </td>
       <td>${durumBadge}</td>
+      <td>${vekaletBadge}</td>
       <td>${k.kesim_tarihi?`<span style="font-size:12px">${k.kesim_tarihi}</span>`:'<span style="color:var(--text3)">-</span>'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
@@ -924,11 +1088,32 @@ async function modalBagisciDuzenle(hisseId, kurbanId, mevcutFiyatParam) {
         </select>
       </div>
       <div class="form-group" style="grid-column:1/-1">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="fh-vekalet" ${h.vekalet_onay?'checked':''} style="width:18px;height:18px;cursor:pointer"/>
-          <span><i class="fa-solid fa-handshake"></i> Vekalet Onayı Alındı</span>
-        </label>
-        ${h.vekalet_tarihi ? `<div style="font-size:11px;color:var(--text3);margin-top:4px;margin-left:26px">Onay Tarihi: ${new Date(h.vekalet_tarihi).toLocaleString('tr-TR')}</div>` : ''}
+        <label style="margin-bottom:8px">Vekalet Onayı</label>
+        <input type="hidden" id="fh-vekalet" value="${h.vekalet_onay ? '1' : '0'}"/>
+        <button type="button" id="fh-vekalet-btn" onclick="hisseVekaletAc(${hisseId})"
+          style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:12px;cursor:pointer;
+                 background:${h.vekalet_onay ? 'linear-gradient(135deg, rgba(16,185,129,0.16), rgba(5,150,105,0.08))' : 'var(--bg3)'};
+                 border:2px solid ${h.vekalet_onay ? '#10b981' : 'var(--border)'};
+                 color:${h.vekalet_onay ? '#10b981' : 'var(--text2)'};
+                 font-weight:700;font-family:inherit;text-align:left;transition:all .18s"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,0.14)'"
+          onmouseout="this.style.transform='';this.style.boxShadow=''">
+          <span style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                       background:${h.vekalet_onay ? '#10b981' : 'var(--bg4)'};color:${h.vekalet_onay ? '#fff' : 'var(--text3)'};
+                       font-size:16px;flex-shrink:0">
+            <i class="fa-solid ${h.vekalet_onay ? 'fa-handshake' : 'fa-handshake-slash'}"></i>
+          </span>
+          <span style="flex:1;display:flex;flex-direction:column;gap:2px">
+            <span id="fh-vekalet-baslik" style="font-size:14px;letter-spacing:.2px">
+              ${h.vekalet_onay ? 'VEKALET ALINDI' : 'VEKALET ALINMADI'}
+            </span>
+            <span style="font-size:11px;color:var(--text3);font-weight:500">
+              Değiştirmek için tıkla
+            </span>
+          </span>
+          <i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:12px"></i>
+        </button>
+        ${h.vekalet_tarihi ? `<div id="fh-vekalet-tarih" style="font-size:11px;color:var(--text3);margin-top:6px"><i class="fa-solid fa-clock"></i> Onay Tarihi: ${new Date(h.vekalet_tarihi).toLocaleString('tr-TR')}</div>` : '<div id="fh-vekalet-tarih"></div>'}
       </div>
       <div class="form-group" style="grid-column:1/-1">
         <label>Not</label>
@@ -952,7 +1137,7 @@ async function kaydetBagisci(hisseId, kurbanId) {
   const kimin_adina_telefon = document.getElementById('fh-adina-tel').value.trim();
   const odeme_durumu = document.getElementById('fh-odeme').value;
   const video_ister = document.getElementById('fh-video').value==='1';
-  const vekalet_onay = document.getElementById('fh-vekalet')?.checked || false;
+  const vekalet_onay = (document.getElementById('fh-vekalet')?.value === '1');
   const aciklama = document.getElementById('fh-not').value.trim();
   const fiyat = parseFloat(document.getElementById('fh-fiyat')?.value) || 0;
   if (!bagisci_adi) return toast('Bagisci adi zorunlu','error');
@@ -1028,7 +1213,7 @@ async function renderBagiscilar() {
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="filter-bar" style="margin-bottom:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px">' +
+      '<div class="filter-bar" style="margin-bottom:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px">' +
         '<input id="b-ara" placeholder="Ad veya telefon ile ara..." oninput="filterBagiscilar()"/>' +
         '<select id="b-kategori" onchange="filterBagiscilar()">' +
           '<option value="">Tüm Kategoriler</option>' +
@@ -1052,6 +1237,11 @@ async function renderBagiscilar() {
           '<option value="1">Video İster</option>' +
           '<option value="0">Video İstemez</option>' +
         '</select>' +
+        '<select id="b-vekalet" onchange="filterBagiscilar()">' +
+          '<option value="">Vekalet Durumu</option>' +
+          '<option value="1">✅ Vekalet Alındı</option>' +
+          '<option value="0">❌ Vekalet Alınmadı</option>' +
+        '</select>' +
       '</div>' +
       '<div class="table-wrap">' +
         '<table>' +
@@ -1073,6 +1263,7 @@ async function tumBagiscilariGoster() {
   if (!S.orgId) return toast('Once bir organizasyon secin','error');
   let url = `/bagiscilar/ara?q=&orgId=${S.orgId}&tumunu=1`;
   _tumBagiscilar = await api('GET', url);
+  _filtreliBagiscilar = _tumBagiscilar;
   renderBagisciTablosu(_tumBagiscilar);
 }
 
@@ -1102,15 +1293,29 @@ function renderBagisciTablosu(list) {
   const oRenk  = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
   const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
   tbody.innerHTML = list.map((h,i)=>{
-    // Kurban fiyatını API'den gelen kurban_fiyat alanından al, yoksa _kurbanlar'dan bul
     const fiyat = h.kurban_fiyat || (() => {
       const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
       return kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
     })();
-    
-    // Sıra numarasını sondan başlat
     const siraNo = list.length - i;
-    
+    const vekaletBtn = h.vekalet_onay
+      ? `<button onclick="toggleVekalet(${h.id},0,event)" title="Vekalet alındı — tıkla kaldır" style="
+          display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+          background:linear-gradient(135deg,#10b981,#059669);
+          color:#fff;border:none;border-radius:20px;cursor:pointer;
+          font-size:11px;font-weight:600;box-shadow:0 2px 8px rgba(16,185,129,0.4);
+          transition:all 0.2s">
+          <i class="fa-solid fa-handshake"></i> Alındı
+        </button>`
+      : `<button onclick="toggleVekalet(${h.id},1,event)" title="Vekalet alınmadı — tıkla onayla" style="
+          display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+          background:var(--bg4);color:var(--text3);
+          border:1px dashed var(--border2);border-radius:20px;cursor:pointer;
+          font-size:11px;font-weight:600;transition:all 0.2s"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
+          <i class="fa-solid fa-handshake-slash"></i> Alınmadı
+        </button>`;
     return `
     <tr>
       <td style="color:var(--text3);font-size:12px">${siraNo}</td>
@@ -1125,10 +1330,175 @@ function renderBagisciTablosu(list) {
       <td><strong style="color:var(--green)">${fiyat.toLocaleString('tr-TR')} ₺</strong></td>
       <td><span class="badge ${oRenk[h.odeme_durumu]||'badge-gray'}">${oLabel[h.odeme_durumu]||h.odeme_durumu}</span></td>
       <td>${h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-'}</td>
-      <td>${h.vekalet_onay?'<span class="badge badge-green"><i class="fa-solid fa-handshake"></i> Alındı</span>':'-'}</td>
+      <td>${vekaletBtn}</td>
       <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id},${fiyat})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
     </tr>`;
   }).join('');
+}
+
+// ─── VEKALET ONAY MODAL ─────────────────────────────────────────────────────
+// opts: { bagisciAdi, kurbanNo, hisseNo, mevcutDurum, vekaletTarihi, onSec(yeniDurum) }
+// Bağımsız bir overlay olarak çalışır — ana modal (örn. hisse formu) açıkken üstüne biner.
+function vekaletModalAc(opts) {
+  const {
+    bagisciAdi = '',
+    kurbanNo = '',
+    hisseNo = '',
+    mevcutDurum = false,
+    vekaletTarihi = null,
+    onSec,
+  } = opts || {};
+
+  // Var olan vekalet overlay'i varsa kaldır
+  document.getElementById('vekalet-overlay')?.remove();
+
+  const altSatir = [];
+  if (kurbanNo) altSatir.push(`Kurban #${esc(String(kurbanNo))}`);
+  if (hisseNo)  altSatir.push(`${esc(String(hisseNo))}. Hisse`);
+  const altHtml = altSatir.length
+    ? altSatir.map((t,i) => (i>0?`<span class="dot"></span>`:'') + `<span>${t}</span>`).join('')
+    : '';
+
+  const tarihHtml = (mevcutDurum && vekaletTarihi)
+    ? `<div class="vekalet-onay-tarihi"><i class="fa-solid fa-clock"></i> Önceki onay: ${new Date(vekaletTarihi).toLocaleString('tr-TR')}</div>`
+    : '';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'vekalet-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:20px;animation:sonucFadeIn .2s ease-out';
+  overlay.innerHTML = `
+    <div id="vekalet-box" class="modal" style="position:relative;overflow:hidden;max-width:560px;width:100%;animation:modalIn .25s cubic-bezier(.34,1.56,.64,1)">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-handshake"></i> Vekalet Onayı</div>
+        <button class="modal-close" onclick="vekaletModalKapat()" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="vekalet-modal-wrap">
+          <div class="vekalet-hero"><i class="fa-solid fa-handshake"></i></div>
+          <div class="vekalet-bilgi">
+            <div class="ad">${bagisciAdi ? esc(bagisciAdi) : 'Bağışçı'}</div>
+            ${altHtml ? `<div class="alt">${altHtml}</div>` : ''}
+            ${tarihHtml}
+          </div>
+          <div class="vekalet-secimler">
+            <button type="button" class="vekalet-btn vekalet-btn--alindi ${mevcutDurum ? 'aktif' : ''}" onclick="vekaletSec(1)">
+              <div class="ikon"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="baslik">VEKALET ALINDI</div>
+              <div class="aciklama">Bağışçı vekaleti verdi</div>
+            </button>
+            <button type="button" class="vekalet-btn vekalet-btn--alinmadi ${!mevcutDurum ? 'aktif' : ''}" onclick="vekaletSec(0)">
+              <div class="ikon"><i class="fa-solid fa-circle-xmark"></i></div>
+              <div class="baslik">VEKALET ALINMADI</div>
+              <div class="aciklama">Henüz onay yok</div>
+            </button>
+          </div>
+          <div class="vekalet-mevcut-rozet">
+            <i class="fa-solid fa-circle-info"></i>
+            Mevcut durum:
+            <strong style="color:${mevcutDurum ? '#10b981' : 'var(--text3)'}">${mevcutDurum ? 'Alındı' : 'Alınmadı'}</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  // Dışarı tıklayınca kapat
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) vekaletModalKapat(); });
+  document.body.appendChild(overlay);
+
+  window._vekaletOnSec = (yeniDurum) => {
+    vekaletSonucGoster(!!yeniDurum, () => {
+      if (onSec) onSec(yeniDurum);
+    });
+  };
+}
+
+function vekaletModalKapat() {
+  document.getElementById('vekalet-overlay')?.remove();
+  window._vekaletOnSec = null;
+}
+
+function vekaletSec(yeniDurum) {
+  if (window._vekaletOnSec) window._vekaletOnSec(yeniDurum);
+}
+
+function vekaletSonucGoster(basarili, tamamlandiCb) {
+  const box = document.getElementById('vekalet-box');
+  if (!box) { vekaletModalKapat(); if (tamamlandiCb) tamamlandiCb(); return; }
+  const overlay = document.createElement('div');
+  overlay.className = 'vekalet-sonuc-overlay';
+  overlay.innerHTML = `
+    <div class="vekalet-sonuc-ikon ${basarili ? 'basari' : 'iptal'}">
+      <i class="fa-solid ${basarili ? 'fa-check' : 'fa-xmark'}"></i>
+    </div>
+    <div class="vekalet-sonuc-baslik">${basarili ? 'Vekalet Alındı' : 'Vekalet Kaldırıldı'}</div>
+    <div class="vekalet-sonuc-alt">${basarili ? 'Onay başarıyla kaydedildi' : 'Vekalet durumu temizlendi'}</div>`;
+  box.appendChild(overlay);
+  setTimeout(() => {
+    vekaletModalKapat();
+    if (tamamlandiCb) tamamlandiCb();
+  }, 1200);
+}
+
+// Hisse formundan çağrılır — modal'da seçim sonrası form üzerindeki hidden input + buton görünümü güncellenir
+function hisseVekaletAc(hisseId) {
+  const cur = document.getElementById('fh-vekalet')?.value === '1';
+  // Bağışçı adı / kurban / hisse no form alanlarından okunabiliyorsa al
+  const bagisciAdi = document.getElementById('fh-ad')?.value?.trim() || '';
+  vekaletModalAc({
+    bagisciAdi,
+    mevcutDurum: cur,
+    onSec: (yeniDurum) => {
+      const onay = !!yeniDurum;
+      const hidden = document.getElementById('fh-vekalet');
+      if (hidden) hidden.value = onay ? '1' : '0';
+      // Buton görünümünü güncelle
+      const btn = document.getElementById('fh-vekalet-btn');
+      if (btn) {
+        btn.style.background = onay
+          ? 'linear-gradient(135deg, rgba(16,185,129,0.16), rgba(5,150,105,0.08))'
+          : 'var(--bg3)';
+        btn.style.borderColor = onay ? '#10b981' : 'var(--border)';
+        btn.style.color = onay ? '#10b981' : 'var(--text2)';
+        const ikon = btn.querySelector('span:first-child');
+        if (ikon) {
+          ikon.style.background = onay ? '#10b981' : 'var(--bg4)';
+          ikon.style.color = onay ? '#fff' : 'var(--text3)';
+          const i = ikon.querySelector('i');
+          if (i) i.className = onay ? 'fa-solid fa-handshake' : 'fa-solid fa-handshake-slash';
+        }
+        const baslik = document.getElementById('fh-vekalet-baslik');
+        if (baslik) baslik.textContent = onay ? 'VEKALET ALINDI' : 'VEKALET ALINMADI';
+      }
+      // Tarih bilgisi
+      const tarih = document.getElementById('fh-vekalet-tarih');
+      if (tarih) {
+        tarih.innerHTML = onay
+          ? `<i class="fa-solid fa-clock"></i> Onay Tarihi: ${new Date().toLocaleString('tr-TR')} <span style="color:var(--text3);font-style:italic">(kaydet'e basınca kalıcı olur)</span>`
+          : '';
+      }
+    },
+  });
+}
+
+async function toggleVekalet(hisseId, yeniDurumIgnored, event) {
+  if (event) event.stopPropagation();
+  const h = _tumBagiscilar.find(x => x.id === hisseId);
+  if (!h) return;
+  vekaletModalAc({
+    bagisciAdi: h.bagisci_adi,
+    kurbanNo: h.kurban_no,
+    hisseNo: h.hisse_no,
+    mevcutDurum: !!h.vekalet_onay,
+    vekaletTarihi: h.vekalet_tarihi,
+    onSec: async (yeniDurum) => {
+      try {
+        await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: yeniDurum });
+        h.vekalet_onay = yeniDurum;
+        if (yeniDurum) h.vekalet_tarihi = new Date().toISOString();
+        filterBagiscilar();
+      } catch(e) { toast(e.message, 'error'); }
+    },
+  });
 }
 
 async function modalYeniBagisci() {
@@ -1423,20 +1793,126 @@ async function yazdirKurban(kurbanId, kurbanNo, tur) {
 }
 
 // ─── YAZDIR SEÇİM MODALI ────────────────────────────────────────────────────
-function modalYazdirSecim(kurbanId, kurbanNo, tur) {
-  openModal('Yazdırma Yönü Seçin', `
-    <div style="text-align:center;padding:20px 0">
-      <p style="color:var(--text2);margin-bottom:30px;font-size:15px">Kurban ${kurbanNo} için yazdırma yönünü seçin:</p>
-      <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="yazdirKurbanSatir(${kurbanId});closeModal()" style="min-width:160px;padding:16px 24px;font-size:16px">
-          <i class="fa-solid fa-print"></i> Yatay Yazdır
+async function modalYazdirSecim(kurbanId, kurbanNo, tur) {
+  // Bayrak listesini çek
+  let bayraklar = [];
+  try { bayraklar = await api('GET', '/bayraklar'); } catch(e) {}
+
+  // Bayrak seçenekleri HTML'i
+  const bayrakSecenekleri = bayraklar.length
+    ? bayraklar.map(b => `<div id="bayrak-secim-${b.id}" onclick="bayrakSecimToggle(${b.id})" style="
+        cursor:pointer;border:2px solid var(--border);border-radius:10px;overflow:hidden;
+        background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+      " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.classList.contains('secili'))this.style.borderColor='var(--border)'">
+        <div id="bayrak-img-secim-${b.id}" style="height:50px;display:flex;align-items:center;justify-content:center">
+          <i class="fa-solid fa-spinner fa-spin" style="color:var(--text3)"></i>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.ad)}</div>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">Bayrak kütüphanesi boş — Ayarlar\'dan bayrak ekleyebilirsiniz</div>';
+
+  openModal('Yazdırma Seçenekleri', `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+        <i class="fa-solid fa-flag"></i> Sağ Üst Bayrak Seçin
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:8px">
+        <div id="bayrak-secim-varsayilan" onclick="bayrakSecimToggle('varsayilan')" class="secili" style="
+          cursor:pointer;border:2px solid var(--accent);border-radius:10px;overflow:hidden;
+          background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+        ">
+          <div style="height:50px;display:flex;align-items:center;justify-content:center">
+            ${_kullaniciAyarlar.bayrak_data
+              ? `<img src="${_kullaniciAyarlar.bayrak_data}" style="max-height:46px;max-width:90px;object-fit:contain"/>`
+              : '<span style="font-size:11px;color:var(--text3)">Yok</span>'}
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--accent);margin-top:4px">Varsayılan</div>
+        </div>
+        <div id="bayrak-secim-yok" onclick="bayrakSecimToggle('yok')" style="
+          cursor:pointer;border:2px solid var(--border);border-radius:10px;overflow:hidden;
+          background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+        " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.classList.contains('secili'))this.style.borderColor='var(--border)'">
+          <div style="height:50px;display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-ban" style="font-size:24px;color:var(--text3)"></i>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:4px">Bayrak Yok</div>
+        </div>
+        ${bayrakSecenekleri}
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+        <i class="fa-solid fa-print"></i> Yazdırma Yönü
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button class="btn btn-primary" onclick="yazdirKurbanSecimle(${kurbanId}, ${kurbanNo}, '${tur}', 'landscape')" style="min-width:140px;padding:14px 20px;font-size:15px">
+          <i class="fa-solid fa-print"></i> Yatay
         </button>
-        <button class="btn btn-green" onclick="yazdirKurbanDikey(${kurbanId}, ${kurbanNo}, '${tur}');closeModal()" style="min-width:160px;padding:16px 24px;font-size:16px">
-          <i class="fa-solid fa-print"></i> Dikey Yazdır
+        <button class="btn btn-green" onclick="yazdirKurbanSecimle(${kurbanId}, ${kurbanNo}, '${tur}', 'portrait')" style="min-width:140px;padding:14px 20px;font-size:15px">
+          <i class="fa-solid fa-print"></i> Dikey
         </button>
       </div>
     </div>
   `, false, 'print');
+
+  // Bayrak resimlerini yükle
+  bayraklar.forEach(b => {
+    api('GET', '/bayraklar/' + b.id + '/resim').then(r => {
+      const el = document.getElementById('bayrak-img-secim-' + b.id);
+      if (el && r.resim_data) {
+        el.innerHTML = '<img src="' + r.resim_data + '" style="max-height:46px;max-width:90px;object-fit:contain"/>';
+        // data'yı element'e sakla
+        el.closest('[id^="bayrak-secim-"]').dataset.resim = r.resim_data;
+      }
+    }).catch(() => {});
+  });
+}
+
+let _secilenBayrakData = 'varsayilan'; // 'varsayilan', 'yok', veya base64 data
+
+function bayrakSecimToggle(id) {
+  // Tüm seçimleri kaldır
+  document.querySelectorAll('[id^="bayrak-secim-"]').forEach(el => {
+    el.classList.remove('secili');
+    el.style.borderColor = 'var(--border)';
+  });
+  // Seçileni işaretle
+  const secilen = document.getElementById('bayrak-secim-' + id);
+  if (secilen) {
+    secilen.classList.add('secili');
+    secilen.style.borderColor = 'var(--accent)';
+  }
+  if (id === 'varsayilan') {
+    _secilenBayrakData = 'varsayilan';
+  } else if (id === 'yok') {
+    _secilenBayrakData = 'yok';
+  } else {
+    // Bayrak resim datasını al
+    const imgEl = document.getElementById('bayrak-img-secim-' + id);
+    const img = imgEl ? imgEl.querySelector('img') : null;
+    _secilenBayrakData = img ? img.src : 'varsayilan';
+  }
+}
+
+async function yazdirKurbanSecimle(kurbanId, kurbanNo, tur, orientation) {
+  closeModal();
+  toast('Yazdırma hazırlanıyor...');
+  const hisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
+  const kurbanData = _kurbanlar.find(k => k.id === kurbanId) || {};
+
+  // Bayrak datasını belirle
+  let bayrakData;
+  if (_secilenBayrakData === 'varsayilan') {
+    bayrakData = _kullaniciAyarlar.bayrak_data || '';
+  } else if (_secilenBayrakData === 'yok') {
+    bayrakData = '';
+  } else {
+    bayrakData = _secilenBayrakData;
+  }
+
+  const html = kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakData);
+  printHTML(html);
+  _secilenBayrakData = 'varsayilan'; // sıfırla
 }
 
 async function yazdirKurbanDikey(kurbanId, kurbanNo, tur) {
@@ -1488,82 +1964,100 @@ function yazdirilabilirHTML(tip) {
 }
 
 
-function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation = 'portrait') {
+function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation) {
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
+  return kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakSrc);
+}
+
+function kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakSrc) {
+  orientation = orientation || 'portrait';
   const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
-
-  const minSatir = tur === 'buyukbas' ? 7 : 1;
-  let rows = '';
-  for (let i = 0; i < minSatir; i++) {
-    const h = hisseler[i];
-    rows += '<tr style="height:42px">';
-    rows += '<td style="text-align:center;font-weight:700;border:1.5px solid #000;padding:8px 6px;font-size:18px;width:60px">' + (i + 1) + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:18px;font-weight:600">' + (h && h.bagisci_adi ? h.bagisci_adi : '') + '</td>';
-    rows += '<td style="border:1.5px solid #000;padding:8px 12px;font-size:18px;font-weight:600;width:160px;text-align:center">' + kurbanTuru + '</td>';
-    rows += '</tr>';
-  }
-
   const baseUrl = window.location.origin;
   const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
-  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
 
-  const logoHeight = orientation === 'landscape' ? '200px' : '180px';
-  const logoMaxWidth = orientation === 'landscape' ? '500px' : '400px';
-  const bayrakHeight = orientation === 'landscape' ? '120px' : '100px';
-  const bayrakWidth = orientation === 'landscape' ? '180px' : '150px';
-  const turkBayrakWidth = orientation === 'landscape' ? '180' : '150';
-  const turkBayrakHeight = orientation === 'landscape' ? '120' : '100';
+  const isLandscape = orientation === 'landscape';
+  const bw = isLandscape ? '180' : '150';
+  const bh = isLandscape ? '120' : '100';
+  const logoH = isLandscape ? '100px' : '120px';
+  const titleSize = isLandscape ? '28px' : '32px';
+  const pageH = isLandscape ? '210mm' : '297mm';
+  const satirSayisi = tur === 'buyukbas' ? 7 : 1;
 
-  const printStyle = `
-    @page { margin: 15mm; size: A4 ${orientation}; }
-    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #1a2a50; }
-    .header-left { width: ${bayrakWidth}; display: flex; align-items: center; }
-    .header-center { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; padding: 0 10px; }
-    .header-center img { height: ${logoHeight}; max-width: ${logoMaxWidth}; object-fit: contain; }
-    .header-right { width: ${bayrakWidth}; display: flex; align-items: center; justify-content: flex-end; }
-    .header-right img { height: ${bayrakHeight}; width: ${bayrakWidth}; object-fit: contain; }
-    .kurban-title { font-size: 36px; font-weight: 700; color: #1a2a50; text-align: center; margin: 20px 0 30px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; border: 1.5px solid #000; }
-    th { border: 1.5px solid #000; padding: 10px 12px; text-align: left; font-size: 18px; font-weight: 700; background: #fff; }
-    td { border: 1.5px solid #000; padding: 8px 12px; font-size: 18px; font-weight: 600; }
-    .footer { display: none; }
-    @media print { html, body { margin: 0; padding: 0; } }
-  `;
+  const turkBayrakSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="' + bw + '" height="' + bh + '"><rect width="1200" height="800" fill="#E30A17"/><circle cx="425" cy="400" r="200" fill="white"/><circle cx="475" cy="400" r="160" fill="#E30A17"/><polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/></svg>';
+  const bayrakImg = bayrakSrc ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bh + 'px;width:' + bw + 'px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>' : '';
 
-  const turkBayrakSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="${turkBayrakWidth}" height="${turkBayrakHeight}">
-    <rect width="1200" height="800" fill="#E30A17"/>
-    <circle cx="425" cy="400" r="200" fill="white"/>
-    <circle cx="475" cy="400" r="160" fill="#E30A17"/>
-    <polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/>
-  </svg>`;
+  // Font boyutunu isim uzunluğuna göre belirle — taşmasın, eşit kalsın
+  function getAdFont(ad) {
+    const len = ad ? ad.length : 0;
+    if (len > 32) return '12px';
+    if (len > 26) return '14px';
+    if (len > 20) return '17px';
+    if (len > 14) return '19px';
+    return '21px';
+  }
 
-  const bayrakImg = bayrakSrc
-    ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bayrakHeight + ';width:' + bayrakWidth + ';object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>'
-    : '';
+  let rows = '';
+  for (let i = 0; i < satirSayisi; i++) {
+    const h = hisseler[i];
+    const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
+    const ad = (h && h.bagisci_adi) ? h.bagisci_adi.toUpperCase() : '';
+    const fontSize = getAdFont(ad);
+    rows += '<tr>' +
+      '<td class="no-cell">' + (i + 1) + '</td>' +
+      '<td class="ad-cell" style="font-size:' + fontSize + '">' + ad + '</td>' +
+      '<td class="tur-cell">' + hisseTuru + '</td>' +
+      '</tr>';
+  }
+
+  const isBuyukbas = tur === 'buyukbas';
+
+  const printStyle =
+    '@page { margin: 12mm 15mm; size: A4 ' + orientation + '; }' +
+    '* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+    'html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000;' + (isBuyukbas ? ' height: 100%;' : '') + ' }' +
+    (isBuyukbas
+      ? '.page { display: flex; flex-direction: column; height: calc(' + pageH + ' - 24mm); overflow: hidden; }'
+      : '.page { display: block; }') +
+    '.header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; }' +
+    '.header-left { width: ' + bw + 'px; }' +
+    '.header-center { flex: 1; text-align: center; padding: 0 10px; }' +
+    '.header-center img { height: ' + logoH + '; max-width: 400px; object-fit: contain; }' +
+    '.header-right { width: ' + bw + 'px; display: flex; justify-content: flex-end; }' +
+    '.kurban-title { font-size: ' + titleSize + '; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; }' +
+    (isBuyukbas
+      ? '.table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; } table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }'
+      : '.table-wrap { } table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }') +
+    'thead { display: table-header-group; }' +
+    'th { border: 2px solid #000; padding: 6px 10px; font-size: 16px; font-weight: 700; text-align: center; }' +
+    'tbody { display: table-row-group; }' +
+    (isBuyukbas ? 'tbody tr { height: calc(100% / 7); }' : 'tbody tr { }') +
+    'td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 800; width: 50px; vertical-align: middle; }' +
+    'td.ad-cell { border: 2px solid #000; padding: 2px 10px; font-weight: 800; vertical-align: middle; text-align: center; white-space: nowrap; overflow: hidden; }' +
+    'td.tur-cell { border: 2px solid #000; text-align: center; font-size: 19px; font-weight: 700; width: 140px; vertical-align: middle; }' +
+    '@media print { html, body { margin: 0; padding: 0; } table { page-break-inside: avoid; } }';
 
   return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
     '<style>' + printStyle + '</style></head><body>' +
+    '<div class="page">' +
     '<div class="header">' +
     '<div class="header-left">' + turkBayrakSVG + '</div>' +
-    '<div class="header-center">' +
-    '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
-    '</div>' +
+    '<div class="header-center"><img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/></div>' +
     '<div class="header-right">' + bayrakImg + '</div>' +
     '</div>' +
     '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
+    '<div class="table-wrap">' +
     '<table>' +
     '<thead><tr>' +
-    '<th style="width:60px;text-align:center">No</th>' +
-    '<th>Ad Soyad</th>' +
-    '<th style="width:140px;text-align:center">Kurban Türü</th>' +
+    '<th style="width:50px">No</th>' +
+    '<th style="text-align:center">Ad Soyad</th>' +
+    '<th style="width:140px">Kurban T\u00fcr\u00fc</th>' +
     '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     '</table>' +
-    '<div class="footer">İÇDER</div>' +
+    '</div>' +
+    '</div>' +
     '</body></html>';
 }
-
 // ═══════════════════════════════════════════════════════════════════════════
 // DENETİM MASASI
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1638,27 +2132,44 @@ async function renderCopKutusu() {
   const m = document.getElementById('main-content');
   m.innerHTML =
     '<div class="page-header">' +
-      '<div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-trash-can"></i></div>Cop Kutusu</div>' +
-      '<button class="btn btn-danger" onclick="copBosalt()"><i class="fa-solid fa-trash"></i> Tamamini Sil</button>' +
+      '<div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-trash-can"></i></div>Çöp Kutusu</div>' +
+      '<button class="btn btn-danger" onclick="copBosalt()"><i class="fa-solid fa-trash"></i> Tamamını Sil</button>' +
     '</div>' +
-    '<div class="card" id="cop-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></div>';
-  await yuklecopKutusu();
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+      '<button class="btn btn-secondary btn-sm" id="cop-tab-veri" onclick="copTabSec(\'veri\')" style="border-bottom:2px solid var(--accent)">Organizasyon & Kurban</button>' +
+      '<button class="btn btn-secondary btn-sm" id="cop-tab-medya" onclick="copTabSec(\'medya\')">Medya Dosyaları</button>' +
+    '</div>' +
+    '<div class="card" id="cop-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div></div>';
+  await yuklecopKutusu('veri');
 }
 
-async function yuklecopKutusu() {
-  const list = await api('GET', '/cop-kutusu');
+let _copAktifTab = 'veri';
+async function copTabSec(tab) {
+  _copAktifTab = tab;
+  const tabVeri = document.getElementById('cop-tab-veri');
+  const tabMedya = document.getElementById('cop-tab-medya');
+  if (tabVeri) tabVeri.style.borderBottom = tab === 'veri' ? '2px solid var(--accent)' : 'none';
+  if (tabMedya) tabMedya.style.borderBottom = tab === 'medya' ? '2px solid var(--accent)' : 'none';
+  await yuklecopKutusu(tab);
+}
+
+async function yuklecopKutusu(tab) {
+  tab = tab || _copAktifTab || 'veri';
   const el = document.getElementById('cop-icerik');
+  if (!el) return;
+  if (tab === 'medya') { await yuklecopMedya(el); return; }
+  const list = await api('GET', '/cop-kutusu');
   if (!list.length) {
-    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-trash-can" style="opacity:.3"></i><p>Cop kutusu bos.</p></div>';
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-trash-can" style="opacity:.3"></i><p>Çöp kutusu boş.</p></div>';
     return;
   }
   const turIcon = { organizasyon: 'fa-layer-group', kurban: 'fa-cow' };
   const turRenk = { organizasyon: 'badge-blue', kurban: 'badge-yellow' };
   let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
-  html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' ogre silindi</span>';
-  html += '<button class="btn btn-success btn-sm" onclick="copTumunuGeriYukle()"><i class="fa-solid fa-rotate-left"></i> Tamamini Geri Yukle</button>';
+  html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' öğe silindi</span>';
+  html += '<button class="btn btn-success btn-sm" onclick="copTumunuGeriYukle()"><i class="fa-solid fa-rotate-left"></i> Tamamını Geri Yükle</button>';
   html += '</div>';
-  html += '<div class="table-wrap"><table><thead><tr><th>Tur</th><th>Icerik</th><th>Silinme Tarihi</th><th>Islem</th></tr></thead><tbody>';
+  html += '<div class="table-wrap"><table><thead><tr><th>Tür</th><th>İçerik</th><th>Silinme Tarihi</th><th>İşlem</th></tr></thead><tbody>';
   list.forEach(item => {
     const tarih = new Date(item.silme_tarihi).toLocaleString('tr-TR');
     html += '<tr>';
@@ -1666,13 +2177,62 @@ async function yuklecopKutusu() {
     html += '<td><strong>' + esc(item.baslik) + '</strong></td>';
     html += '<td style="font-size:12px;color:var(--text3)">' + tarih + '</td>';
     html += '<td><div style="display:flex;gap:6px">';
-    html += '<button class="btn btn-success btn-sm" onclick="copGeriYukle(' + item.id + ')"><i class="fa-solid fa-rotate-left"></i> Geri Yukle</button>';
+    html += '<button class="btn btn-success btn-sm" onclick="copGeriYukle(' + item.id + ')"><i class="fa-solid fa-rotate-left"></i> Geri Yükle</button>';
     html += '<button class="btn btn-danger btn-sm btn-icon" onclick="copSil(' + item.id + ')"><i class="fa-solid fa-trash"></i></button>';
     html += '</div></td>';
     html += '</tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+}
+
+async function yuklecopMedya(el) {
+  try {
+    const list = await api('GET', '/medya-cop');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-photo-film" style="opacity:.3"></i><p>Silinmiş medya yok.</p></div>';
+      return;
+    }
+    let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+    html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' medya silindi</span>';
+    html += '<button class="btn btn-danger btn-sm" onclick="medyaCopBosalt()"><i class="fa-solid fa-trash"></i> Medya Çöpünü Temizle</button>';
+    html += '</div>';
+    html += '<div class="table-wrap"><table><thead><tr><th>Tür</th><th>Dosya Adı</th><th>Public ID</th><th>Silinme Tarihi</th><th>İşlem</th></tr></thead><tbody>';
+    list.forEach(item => {
+      const tarih = new Date(item.silme_tarihi).toLocaleString('tr-TR');
+      const turBadge = item.tur === 'video'
+        ? '<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Video</span>'
+        : '<span class="badge badge-blue"><i class="fa-solid fa-image"></i> Resim</span>';
+      html += '<tr>';
+      html += '<td>' + turBadge + '</td>';
+      html += '<td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(item.dosya_adi || '-') + '</td>';
+      html += '<td style="font-size:11px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(item.public_id || '-') + '</td>';
+      html += '<td style="font-size:12px;color:var(--text3);white-space:nowrap">' + tarih + '</td>';
+      html += '<td><button class="btn btn-danger btn-sm btn-icon" onclick="medyaCopSil(' + item.id + ')"><i class="fa-solid fa-trash"></i></button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state"><p>Yüklenemedi: ' + e.message + '</p></div>';
+  }
+}
+
+async function medyaCopSil(id) {
+  try {
+    await api('DELETE', '/medya-cop/' + id);
+    toast('Kayıt silindi');
+    await yuklecopMedya(document.getElementById('cop-icerik'));
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function medyaCopBosalt() {
+  if (!confirm('Tüm medya çöp kayıtları silinecek. Emin misiniz?')) return;
+  try {
+    await api('DELETE', '/medya-cop');
+    toast('Medya çöp kutusu temizlendi');
+    await yuklecopMedya(document.getElementById('cop-icerik'));
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function copGeriYukle(id) {
@@ -1932,53 +2492,90 @@ async function modalKapatmaYedek() {
 
 function yazdirBagiscilar() {
   if (!S.orgId) return toast('Once organizasyon secin', 'error');
-  const tbody = document.getElementById('bagisci-tbody');
-  if (!tbody) return toast('Bagisci listesi yuklu degil', 'error');
 
-  const rows = Array.from(tbody.querySelectorAll('tr')).map(tr => {
-    const cells = tr.querySelectorAll('td');
-    if (!cells.length) return '';
-    let r = '<tr>';
-    cells.forEach((td, i) => {
-      if (i < cells.length - 1) r += '<td>' + td.innerText.trim() + '</td>';
-    });
-    r += '</tr>';
-    return r;
-  }).join('');
+  // Ekranda ne görünüyorsa onu yazdır: filtreli liste varsa onu, yoksa tümünü
+  const liste = (_filtreliBagiscilar && _filtreliBagiscilar.length > 0)
+    ? _filtreliBagiscilar
+    : _tumBagiscilar;
+
+  if (!liste || !liste.length) return toast('Bagisci listesi yuklu degil', 'error');
+
+  // Aktif filtreleri başlığa yansıt
+  const kategori = document.getElementById('b-kategori')?.value || '';
+  const odeme = document.getElementById('b-odeme')?.value || '';
+  const video = document.getElementById('b-video')?.value || '';
+  const vekalet = document.getElementById('b-vekalet')?.value || '';
+  const ara = document.getElementById('b-ara')?.value?.trim() || '';
+  const filtreler = [];
+  if (kategori) filtreler.push('Kategori: ' + kategori);
+  if (odeme) filtreler.push('Ödeme: ' + ({odendi:'Ödendi',bekliyor:'Bekliyor',iptal:'İptal'}[odeme]||odeme));
+  if (video !== '') filtreler.push(video === '1' ? 'Video İster' : 'Video İstemez');
+  if (vekalet !== '') filtreler.push(vekalet === '1' ? 'Vekalet Alındı' : 'Vekalet Alınmadı');
+  if (ara) filtreler.push('Arama: ' + ara);
+  const filtreSatiri = filtreler.length ? ' — Filtre: ' + filtreler.join(', ') : '';
 
   const baseUrl = window.location.origin;
   const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/yazi.png');
+  const oLabel = {odendi:'Ödendi', iptal:'İptal', bekliyor:'Bekliyor'};
+
+  const rows = liste.map((h, i) => {
+    const fiyat = h.kurban_fiyat || (() => {
+      const k = _kurbanlar.find(k => k.id === h.kurban_id);
+      return k ? (k.fiyat || k.alis_fiyati || 0) : 0;
+    })();
+    const siraNo = liste.length - i;
+    return `<tr>
+      <td>${siraNo}</td>
+      <td><strong>${esc(h.bagisci_adi)}</strong></td>
+      <td>${h.bagisci_telefon || '-'}</td>
+      <td>${h.bagisci_kategori || '-'}</td>
+      <td>${h.kimin_adina || '-'}</td>
+      <td>${h.kurban_no}</td>
+      <td>${h.hisse_no}</td>
+      <td>${h.tur === 'buyukbas' ? 'Büyükbaş' : 'Küçükbaş'}</td>
+      <td>${h.kurban_turu || 'Udhiye'}</td>
+      <td><strong>${fiyat ? fiyat.toLocaleString('tr-TR') + ' ₺' : '-'}</strong></td>
+      <td>${oLabel[h.odeme_durumu] || h.odeme_durumu || '-'}</td>
+      <td>${h.video_ister ? 'Evet' : 'Hayır'}</td>
+      <td>${h.vekalet_onay ? 'Alındı' : 'Alınmadı'}</td>
+    </tr>`;
+  }).join('');
 
   const printStyle = `
-    @page { margin: 12mm 15mm; size: A4; }
+    @page { margin: 10mm 12mm; size: A4 landscape; }
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
-    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; border-bottom: 3px solid #000; padding-bottom: 12px; }
-    .header img { height: 70px; object-fit: contain; }
-    .header-info { flex: 1; }
-    .header-info .title { font-size: 22px; font-weight: 900; }
-    .header-info .sub { font-size: 15px; color: #333; margin-top: 3px; font-weight: 600; }
-    .header-right { text-align: right; font-size: 15px; color: #333; font-weight: 600; }
-    table { width: 100%; border-collapse: collapse; border: 2px solid #000; }
-    th { background: #1a2a50; color: #fff; padding: 10px 8px; text-align: left; font-size: 13px; font-weight: 700; border: 1px solid #000; }
-    td { padding: 9px 8px; border: 1px solid #999; font-size: 13px; line-height: 1.5; font-weight: 500; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; border-bottom: 3px solid #000; padding-bottom: 10px; }
+    .header img { height: 60px; object-fit: contain; }
+    .header-info .title { font-size: 20px; font-weight: 900; }
+    .header-info .sub { font-size: 13px; color: #333; margin-top: 2px; }
+    .header-info .filtre { font-size: 11px; color: #555; margin-top: 3px; font-style: italic; }
+    .header-right { margin-left: auto; text-align: right; font-size: 13px; color: #333; }
+    table { width: 100%; border-collapse: collapse; border: 2px solid #000; font-size: 11px; }
+    th { background: #1a2a50; color: #fff; padding: 7px 5px; text-align: left; font-size: 11px; font-weight: 700; border: 1px solid #000; }
+    td { padding: 6px 5px; border: 1px solid #bbb; font-size: 11px; line-height: 1.4; }
     tr:nth-child(even) { background: #f5f5f5; }
-    .footer { display: none; }
     @media print { body { margin: 0; } }
   `;
 
-  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bagisci Listesi</title>' +
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bağışçı Listesi</title>' +
     '<style>' + printStyle + '</style></head><body>' +
     '<div class="header">' +
     '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
     '<div class="header-info">' +
-    '<div class="sub">Bağışçı Listesi &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
+    '<div class="title">Bağışçı Listesi</div>' +
+    '<div class="sub">' + esc(S.orgAd) + ' — ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
+    (filtreler.length ? '<div class="filtre">Filtre: ' + filtreler.join(' | ') + '</div>' : '') +
     '</div>' +
-    '<div class="header-right">Organizasyon: <strong>' + esc(S.orgAd) + '</strong><br>' + S.orgYil + '</div>' +
+    '<div class="header-right">Toplam: <strong>' + liste.length + ' kişi</strong>' +
+    (liste.length < _tumBagiscilar.length ? '<br><span style="font-size:11px;color:#888">(Toplam ' + _tumBagiscilar.length + ' kişiden filtrelendi)</span>' : '') +
     '</div>' +
-    '<table><thead><tr><th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kimin Adına</th><th>Kurban No</th><th>Hisse</th><th>Tür</th><th>Ödeme</th><th>Video</th></tr></thead>' +
-    '<tbody>' + rows + '</tbody></table>' +
-    '<div class="footer">İÇDER</div>' +
+    '</div>' +
+    '<table><thead><tr>' +
+    '<th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kimin Adına</th>' +
+    '<th>Kurban No</th><th>Hisse</th><th>Hayvan</th><th>Kurban Türü</th>' +
+    '<th>Ücret</th><th>Ödeme</th><th>Video</th><th>Vekalet</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>' +
     '</body></html>';
 
   printHTML(html);
@@ -2132,17 +2729,17 @@ async function yukleOtoYedekAyar() {
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
           <div>
             <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Otomatik Yedek</div>
-            <div style="font-size:12px;color:var(--text3)">Program çalışırken arka planda otomatik yedek alır</div>
+            <div style="font-size:12px;color:var(--text3)">Sunucu çalışırken arka planda otomatik yedek alır — tarayıcı kapalı olsa bile</div>
           </div>
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-            <span style="font-size:13px;color:var(--text2)">${aktif ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>'}</span>
+            <span style="font-size:13px;color:var(--text2)" id="oto-yedek-label">${aktif ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>'}</span>
             <div style="position:relative;width:44px;height:24px">
               <input type="checkbox" id="oto-yedek-toggle" ${aktif ? 'checked' : ''} 
                 style="opacity:0;width:0;height:0;position:absolute" onchange="otoYedekToggle()"/>
               <div id="oto-yedek-slider" style="
                 position:absolute;inset:0;border-radius:24px;cursor:pointer;transition:.3s;
                 background:${aktif ? 'var(--accent)' : 'var(--border2)'};
-              ">
+              " onclick="document.getElementById('oto-yedek-toggle').click()">
                 <div style="
                   position:absolute;top:3px;left:${aktif ? '23px' : '3px'};
                   width:18px;height:18px;border-radius:50%;background:#fff;
@@ -2169,15 +2766,93 @@ async function yukleOtoYedekAyar() {
           <button class="btn btn-primary btn-sm" onclick="kaydetOtoYedekAyar()">
             <i class="fa-solid fa-floppy-disk"></i> Kaydet
           </button>
+          <button class="btn btn-green btn-sm" onclick="simdiYedekAl()">
+            <i class="fa-solid fa-bolt"></i> Şimdi Yedek Al
+          </button>
         </div>
         <div style="font-size:12px;color:var(--text3);background:var(--bg4);border-radius:8px;padding:10px 14px;line-height:1.7">
           <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
-          Yedekler <strong>userData/otomatik-yedek</strong> klasörüne kaydedilir. Son 20 yedek tutulur, eskiler silinir.
-          Ayar değişikliği programı yeniden başlatınca aktif olur.
+          Yedekler sunucuda <strong>otomatik-yedek/</strong> klasörüne kaydedilir. Son 50 yedek tutulur. Tarayıcı kapalı olsa bile sunucu çalıştığı sürece yedek alınır.
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:600;color:var(--text)"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> Yedek Geçmişi</div>
+          <button class="btn btn-secondary btn-sm" onclick="yukleYedekLoglar()"><i class="fa-solid fa-rotate"></i> Yenile</button>
+        </div>
+        <div id="yedek-log-listesi">
+          <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">
+            <i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...
+          </div>
         </div>
       </div>`;
+    // Logları yükle
+    yukleYedekLoglar();
   } catch(e) {
     if (wrap) wrap.innerHTML = '<span style="color:var(--text3);font-size:13px">Ayar yüklenemedi (admin girişi gerekebilir)</span>';
+  }
+}
+
+async function yukleYedekLoglar() {
+  const el = document.getElementById('yedek-log-listesi');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/admin/oto-yedek-loglar');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="fa-solid fa-inbox"></i> Henüz otomatik yedek alınmadı</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th>Tarih</th>
+            <th>Dosya Adı</th>
+            <th>Boyut</th>
+            <th>Durum</th>
+            <th>İndir</th>
+          </tr></thead>
+          <tbody>
+            ${list.map((log, i) => `
+              <tr>
+                <td style="color:var(--text3);font-size:12px">${list.length - i}</td>
+                <td style="font-size:12px;white-space:nowrap">${new Date(log.tarih).toLocaleString('tr-TR')}</td>
+                <td style="font-size:11px;color:var(--text3);font-family:monospace">${esc(log.dosya_adi)}</td>
+                <td style="font-size:12px">${log.boyut ? Math.round(log.boyut/1024) + ' KB' : '-'}</td>
+                <td><span class="badge ${log.durum === 'basarili' ? 'badge-green' : 'badge-red'}">${log.durum === 'basarili' ? 'Başarılı' : 'Hata'}</span></td>
+                <td>
+                  <button class="btn btn-secondary btn-sm btn-icon" onclick="yedekLogIndir('${esc(log.dosya_adi)}')" title="İndir">
+                    <i class="fa-solid fa-download"></i>
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<span style="color:var(--text3);font-size:13px">Log listesi yüklenemedi</span>';
+  }
+}
+
+function yedekLogIndir(dosyaAdi) {
+  const a = document.createElement('a');
+  a.href = '/api/admin/oto-yedek-indir/' + encodeURIComponent(dosyaAdi);
+  a.download = dosyaAdi;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); }, 1000);
+}
+
+async function simdiYedekAl() {
+  try {
+    toast('Yedek alınıyor...');
+    await api('POST', '/admin/oto-yedek-simdi', {});
+    toast('Yedek başarıyla alındı');
+    setTimeout(yukleYedekLoglar, 800);
+  } catch(e) {
+    toast('Yedek alınamadı: ' + e.message, 'error');
   }
 }
 
@@ -2202,7 +2877,7 @@ async function kaydetOtoYedekAyar() {
   const dakika = parseInt(document.getElementById('oto-yedek-dakika')?.value || '10');
   try {
     await api('POST', '/admin/otomatik-yedek-ayar', { aktif, dakika });
-    toast(`Oto yedek ayarı kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika. Değişiklik programı yeniden başlatınca aktif olur.`);
+    toast(`Oto yedek ayarı kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika`);
   } catch(e) {
     toast('Kayıt başarısız: ' + e.message, 'error');
   }
@@ -2384,16 +3059,16 @@ async function excelYedekSecildi(input) {
 // TEMA SİSTEMİ
 // ═══════════════════════════════════════════════════════════════════════════
 const TEMALAR = [
-  { id: 'dark',        name: 'Koyu Yeşil',    class: '',                  emoji: '🌿', preview: '#0a1410,#10b981' },
-  { id: 'light-green', name: 'Açık Yeşil',    class: 'theme-light-green', emoji: '🍃', preview: '#f0fdf7,#059669' },
-  { id: 'mint',        name: 'Nane Yeşili',   class: 'theme-mint',        emoji: '🌊', preview: '#f0fdfa,#14b8a6' },
-  { id: 'olive',       name: 'Zeytin Yeşili', class: 'theme-olive',       emoji: '🫒', preview: '#f7fee7,#65a30d' },
-  { id: 'light',       name: 'Beyaz/Mavi',    class: 'theme-light',       emoji: '❄️', preview: '#f8fafc,#3b82f6' },
-  { id: 'dark-blue',   name: 'Koyu Mavi',     class: 'theme-dark-blue',   emoji: '🌌', preview: '#0a0f1e,#6366f1' },
-  { id: 'dark-purple', name: 'Mor Gece',      class: 'theme-dark-purple', emoji: '🔮', preview: '#0d0a1e,#a855f7' },
-  { id: 'dark-red',    name: 'Kırmızı Kor',   class: 'theme-dark-red',    emoji: '🔥', preview: '#1a0a0a,#ef4444' },
-  { id: 'dark-gold',   name: 'Altın Çöl',     class: 'theme-dark-gold',   emoji: '🏜️', preview: '#1a1200,#f59e0b' },
-  { id: 'ocean',       name: 'Okyanus',       class: 'theme-ocean',       emoji: '🌊', preview: '#0a1628,#0ea5e9' }
+  { id: 'dark',        name: 'Koyu Yeşil',    class: '',                  preview: '#0a1410,#10b981' },
+  { id: 'light-green', name: 'Açık Yeşil',    class: 'theme-light-green', preview: '#f0fdf7,#059669' },
+  { id: 'mint',        name: 'Nane Yeşili',   class: 'theme-mint',        preview: '#f0fdfa,#14b8a6' },
+  { id: 'olive',       name: 'Zeytin Yeşili', class: 'theme-olive',       preview: '#f7fee7,#65a30d' },
+  { id: 'light',       name: 'Beyaz/Mavi',    class: 'theme-light',       preview: '#f8fafc,#3b82f6' },
+  { id: 'dark-blue',   name: 'Koyu Mavi',     class: 'theme-dark-blue',   preview: '#0a0f1e,#6366f1' },
+  { id: 'dark-purple', name: 'Mor Gece',      class: 'theme-dark-purple', preview: '#0d0a1e,#a855f7' },
+  { id: 'dark-red',    name: 'Kırmızı Kor',   class: 'theme-dark-red',    preview: '#1a0a0a,#ef4444' },
+  { id: 'dark-gold',   name: 'Altın Çöl',     class: 'theme-dark-gold',   preview: '#1a1200,#f59e0b' },
+  { id: 'ocean',       name: 'Okyanus',       class: 'theme-ocean',       preview: '#0a1628,#0ea5e9' }
 ];
 
 function toggleTheme() {
@@ -2421,7 +3096,6 @@ function modalTemaSecim() {
           <div style="width:10px;height:10px;border-radius:50%;background:${accent}44"></div>
         </div>
         <div style="background:${bg}dd;padding:8px 12px;text-align:center">
-          <div style="font-size:18px">${t.emoji}</div>
           <div style="font-size:12px;font-weight:600;color:${accent};margin-top:2px">${t.name}</div>
           ${secili ? '<div style="font-size:10px;color:#aaa;margin-top:2px">✓ Aktif</div>' : ''}
         </div>
@@ -2523,17 +3197,30 @@ function medyaKart(item) {
   const isVideo = item.resource_type === 'video';
   const kb = Math.round(item.bytes / 1024);
   const boyut = kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb + ' KB';
+  // Video için Cloudinary'nin otomatik poster (jpg) URL'i: secure_url'i .jpg ile değiştir
+  const videoPoster = isVideo && item.secure_url
+    ? item.secure_url.replace(/\/upload\//, '/upload/so_auto,w_400,h_300,c_fill/').replace(/\.[a-z0-9]+$/i, '.jpg')
+    : '';
   const thumb = isVideo
-    ? `<div class="medya-video-thumb"><i class="fa-solid fa-circle-play"></i></div>`
+    ? `<div class="medya-video-thumb" style="position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden">
+         ${videoPoster ? `<img src="${videoPoster}" alt="video" loading="lazy" style="width:100%;height:100%;object-fit:cover;opacity:.85" onerror="this.style.display='none'"/>` : ''}
+         <i class="fa-solid fa-circle-play" style="position:absolute;color:#fff;font-size:32px;text-shadow:0 2px 6px rgba(0,0,0,.6)"></i>
+       </div>`
     : `<img src="${item.secure_url}" alt="medya" loading="lazy"/>`;
+  const safeUrl = (item.secure_url || '').replace(/'/g, "\\'");
+  const safeFormat = (item.format || '').replace(/'/g, "\\'");
+  // Klasör/alt yol bilgisi (örn. "kurban-1/hisse-2")
+  const altYol = (item.public_id || '').split('/').slice(1, -1).join('/');
+  const altYolHtml = altYol ? `<div class="medya-size" style="font-size:10px;opacity:.7" title="${esc(altYol)}"><i class="fa-solid fa-folder"></i> ${esc(altYol)}</div>` : '';
   return `
-    <div class="medya-item" onclick="medyaOnizle('${item.secure_url}','${item.resource_type}')">
+    <div class="medya-item" onclick="medyaOnizle('${safeUrl}','${item.resource_type}')">
       ${thumb}
       <div class="medya-info">
         <div class="medya-type">${isVideo ? 'Video' : 'Fotograf'} &bull; ${item.format||''}</div>
         <div class="medya-size">${boyut}</div>
+        ${altYolHtml}
       </div>
-      <button class="medya-del" onclick="event.stopPropagation();medyaSil('${item.public_id}','${item.resource_type}')" title="Sil">
+      <button class="medya-del" onclick="event.stopPropagation();medyaSil('${item.public_id}','${item.resource_type}','${safeUrl}','${safeFormat}',${item.bytes||0})" title="Sil">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>`;
@@ -2552,10 +3239,17 @@ function medyaOnizle(url, type) {
     </div>`, true, 'eye');
 }
 
-async function medyaSil(publicId, resourceType) {
+async function medyaSil(publicId, resourceType, secureUrl, format, bytes) {
   if (!confirm('Bu dosyayi silmek istediginizden emin misiniz?')) return;
   try {
-    await api('DELETE', '/medya/delete', { public_id: publicId, resource_type: resourceType });
+    // dosya_adi: public_id'nin son kısmı
+    const dosyaAdi = publicId ? publicId.split('/').pop() : '';
+    await api('DELETE', '/medya/delete', {
+      public_id: publicId,
+      resource_type: resourceType,
+      url: secureUrl || null,
+      dosya_adi: dosyaAdi + (format ? '.' + format : ''),
+    });
     toast('Dosya silindi');
     await loadMedyaListesi();
   } catch(e) { toast(e.message, 'error'); }
@@ -4543,11 +5237,11 @@ async function renderDestekHatti() {
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
           <i class="fa-solid fa-envelope" style="color:var(--accent);font-size:18px"></i>
-          <div><div style="font-size:11px;color:var(--text3)">E-posta</div><div style="font-weight:600">icderkurban@hotmail.com</div></div>
+          <div><div style="font-size:11px;color:var(--text3)">E-posta</div><div style="font-weight:600">cms.teamm@gmail.com</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
           <i class="fa-brands fa-whatsapp" style="color:var(--green);font-size:18px"></i>
-          <div><div style="font-size:11px;color:var(--text3)">WhatsApp</div><div style="font-weight:600">0 (540) 305 18 55</div></div>
+          <div><div style="font-size:11px;color:var(--text3)">WhatsApp</div><div style="font-weight:600">0 (536) 835 10 08</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
           <i class="fa-solid fa-clock" style="color:var(--yellow);font-size:18px"></i>
@@ -5151,11 +5845,11 @@ async function renderTumOrganizasyonlar() {
 
 // Bağışçı filtreleme fonksiyonu
 let _tumBagiscilar = [];
+let _filtreliBagiscilar = [];
 
 async function filterBagiscilar() {
   if (!S.orgId) return;
   
-  // İlk yüklemede tüm bağışçıları çek
   if (_tumBagiscilar.length === 0) {
     const url = `/bagiscilar/ara?q=&orgId=${S.orgId}&tumunu=1`;
     _tumBagiscilar = await api('GET', url);
@@ -5165,34 +5859,23 @@ async function filterBagiscilar() {
   const kategori = document.getElementById('b-kategori')?.value || '';
   const odeme = document.getElementById('b-odeme')?.value || '';
   const video = document.getElementById('b-video')?.value || '';
+  const vekalet = document.getElementById('b-vekalet')?.value || '';
 
   let filtered = _tumBagiscilar.filter(h => {
-    // Arama filtresi
-    if (ara && !h.bagisci_adi.toLowerCase().includes(ara) && !(h.bagisci_telefon||'').toLowerCase().includes(ara)) {
-      return false;
-    }
-
-    // Kategori filtresi
-    if (kategori && h.bagisci_kategori !== kategori) {
-      return false;
-    }
-
-    // Ödeme filtresi
-    if (odeme && h.odeme_durumu !== odeme) {
-      return false;
-    }
-
-    // Video filtresi
+    if (ara && !h.bagisci_adi.toLowerCase().includes(ara) && !(h.bagisci_telefon||'').toLowerCase().includes(ara)) return false;
+    if (kategori && h.bagisci_kategori !== kategori) return false;
+    if (odeme && h.odeme_durumu !== odeme) return false;
     if (video !== '') {
-      const videoIster = video === '1';
-      if (h.video_ister !== videoIster) {
-        return false;
-      }
+      if (h.video_ister !== (video === '1')) return false;
     }
-
+    if (vekalet !== '') {
+      const vekaletIster = vekalet === '1';
+      if (!!h.vekalet_onay !== vekaletIster) return false;
+    }
     return true;
   });
 
+  _filtreliBagiscilar = filtered;
   renderBagisciTablosu(filtered);
 }
 
@@ -5474,4 +6157,773 @@ async function gelirGiderHesapla() {
 
 function formatMoney(amount) {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAYRAK YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function yukleBayraklarAyar() {
+  const el = document.getElementById('bayrak-listesi-ayar');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/bayraklar');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">Henuz bayrak eklenmedi</div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">' +
+      list.map(b =>
+        '<div style="border:2px solid ' + (b.aktif ? 'var(--accent)' : 'var(--border)') + ';border-radius:10px;overflow:hidden;background:var(--bg4)">' +
+          '<div id="bayrak-img-' + b.id + '" style="height:65px;display:flex;align-items:center;justify-content:center;background:var(--bg5)">' +
+            '<i class="fa-solid fa-spinner fa-spin" style="color:var(--text3)"></i>' +
+          '</div>' +
+          '<div style="padding:6px 8px">' +
+            '<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(b.ad) + '</div>' +
+            '<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">' +
+              (b.aktif ? '<span class="badge badge-green" style="font-size:10px">Aktif</span>' : '') +
+              '<button onclick="modalDuzenleBayrak(' + b.id + ',\'' + esc(b.ad) + '\')" style="font-size:10px;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;cursor:pointer;color:var(--text2)"><i class="fa-solid fa-pen"></i></button>' +
+              '<button onclick="silBayrak(' + b.id + ')" style="font-size:10px;padding:2px 6px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:4px;cursor:pointer;color:var(--red)"><i class="fa-solid fa-trash"></i></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      ).join('') +
+    '</div>';
+    list.forEach(b => {
+      api('GET', '/bayraklar/' + b.id + '/resim').then(r => {
+        const imgEl = document.getElementById('bayrak-img-' + b.id);
+        if (imgEl && r.resim_data) {
+          imgEl.innerHTML = '<img src="' + r.resim_data + '" style="max-height:61px;max-width:100%;object-fit:contain;padding:4px"/>';
+        }
+      }).catch(() => {});
+    });
+  } catch(e) {
+    if (el) el.innerHTML = '<div style="color:var(--text3);font-size:13px">Yuklenemedi</div>';
+  }
+}
+
+function modalYeniBayrak() {
+  _yeniBayrakData = null;
+  openModal('Yeni Bayrak Ekle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Adi *</label>
+        <input id="yeni-bayrak-ad" placeholder="Orn: Tanzanya Bayragi, Turk Bayragi..."/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Resmi *</label>
+        <div class="upload-zone" style="padding:20px;text-align:center;cursor:pointer;min-height:100px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('yeni-bayrak-input').click()">
+          <div id="yeni-bayrak-preview">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:28px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:6px">Resim yukle</div>
+          </div>
+        </div>
+        <input type="file" id="yeni-bayrak-input" accept="image/*" style="display:none" onchange="onYeniBayrakResim(this)"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="kaydetYeniBayrak()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'flag');
+}
+
+let _yeniBayrakData = null;
+function onYeniBayrakResim(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _yeniBayrakData = e.target.result;
+    document.getElementById('yeni-bayrak-preview').innerHTML =
+      '<img src="' + _yeniBayrakData + '" style="max-height:90px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function kaydetYeniBayrak() {
+  const ad = document.getElementById('yeni-bayrak-ad').value.trim();
+  if (!ad) return toast('Bayrak adi zorunlu', 'error');
+  if (!_yeniBayrakData) return toast('Resim secin', 'error');
+  try {
+    await api('POST', '/bayraklar', { ad, resim_data: _yeniBayrakData });
+    _yeniBayrakData = null;
+    closeModal();
+    toast('Bayrak eklendi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+let _duzenleBayrakData = null;
+function modalDuzenleBayrak(id, mevcutAd) {
+  _duzenleBayrakData = null;
+  openModal('Bayragi Duzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Adi *</label>
+        <input id="duzenle-bayrak-ad" value="${esc(mevcutAd)}"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Yeni Resim <span style="color:var(--text3);font-weight:400">(degistirmek icin sec)</span></label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:80px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('duzenle-bayrak-input').click()">
+          <div id="duzenle-bayrak-preview">
+            <i class="fa-solid fa-image" style="font-size:22px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Degistirmek icin tikla</div>
+          </div>
+        </div>
+        <input type="file" id="duzenle-bayrak-input" accept="image/*" style="display:none" onchange="onDuzenleBayrakResim(this)"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="guncelleBayrak(${id})"><i class="fa-solid fa-floppy-disk"></i> Guncelle</button>
+    </div>`, false, 'pen');
+}
+
+function onDuzenleBayrakResim(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _duzenleBayrakData = e.target.result;
+    document.getElementById('duzenle-bayrak-preview').innerHTML =
+      '<img src="' + _duzenleBayrakData + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function guncelleBayrak(id) {
+  const ad = document.getElementById('duzenle-bayrak-ad').value.trim();
+  if (!ad) return toast('Bayrak adi zorunlu', 'error');
+  try {
+    const body = { ad };
+    if (_duzenleBayrakData) body.resim_data = _duzenleBayrakData;
+    await api('PUT', '/bayraklar/' + id, body);
+    _duzenleBayrakData = null;
+    closeModal();
+    toast('Bayrak guncellendi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function silBayrak(id) {
+  if (!confirm('Bu bayragi silmek istediginizden emin misiniz?')) return;
+  try {
+    await api('DELETE', '/bayraklar/' + id);
+    toast('Bayrak silindi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PERSONEL TAKİP SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PERSONEL_SIFRE = '5586Persona';
+let _personelSifreOnaylandi = false;
+
+async function renderPersonelTakip() {
+  const c = document.getElementById('main-content');
+  c.innerHTML = `<div style="padding:32px;text-align:center;color:var(--muted)"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>`;
+  let liste = [];
+  try { liste = await api('GET', '/personeller'); } catch(e) {}
+
+  const aktifSayisi = liste.filter(p => p.aktif).length;
+  const pasifSayisi = liste.filter(p => !p.aktif).length;
+  const toplamMaas = liste.reduce((s, p) => s + (p.maas || 0), 0);
+
+  c.innerHTML = `
+    <div style="padding:24px 28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2 style="font-size:20px;font-weight:800;color:var(--text)"><i class="fa-solid fa-id-card" style="color:var(--accent);margin-right:10px"></i>Personel Takip</h2>
+          <p style="font-size:13px;color:var(--muted);margin-top:4px">Dernek personelini yönetin</p>
+        </div>
+        <button onclick="modalPersonelEkle()" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px">
+          <i class="fa-solid fa-plus"></i> Personel Ekle
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+        <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)">
+          <div style="font-size:28px;font-weight:800;color:var(--accent)">${aktifSayisi}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Aktif Personel</div>
+        </div>
+        <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)">
+          <div style="font-size:28px;font-weight:800;color:#f59e0b">${pasifSayisi}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Pasif Personel</div>
+        </div>
+        <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)">
+          <div style="font-size:28px;font-weight:800;color:#10b981">${toplamMaas.toLocaleString('tr-TR')} ₺</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Toplam Maaş</div>
+        </div>
+      </div>
+
+      ${liste.length === 0 ? `
+        <div style="text-align:center;padding:60px;color:var(--muted)">
+          <i class="fa-solid fa-users" style="font-size:48px;margin-bottom:16px;display:block;opacity:.3"></i>
+          <p>Henüz personel eklenmemiş.</p>
+          <button onclick="modalPersonelEkle()" style="margin-top:16px;background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">Personel Ekle</button>
+        </div>
+      ` : `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+          ${liste.map(p => `
+            <div style="background:var(--card);border-radius:14px;padding:20px;border:1px solid var(--border);transition:box-shadow .2s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)'" onmouseout="this.style.boxShadow='none'">
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+                <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">
+                  ${p.ad[0].toUpperCase()}
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:700;font-size:15px;color:var(--text)">${p.ad} ${p.soyad}</div>
+                  <div style="font-size:12px;color:var(--muted)">${p.pozisyon || 'Pozisyon belirtilmemiş'}</div>
+                </div>
+                <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${p.aktif ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)'};color:${p.aktif ? '#10b981' : '#ef4444'}">
+                  ${p.aktif ? 'Aktif' : 'Pasif'}
+                </span>
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px"><i class="fa-solid fa-building" style="width:16px"></i> ${p.departman || '-'}</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px"><i class="fa-solid fa-phone" style="width:16px"></i> ${p.telefon || '-'}</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:14px"><i class="fa-solid fa-calendar" style="width:16px"></i> ${p.ise_baslama ? new Date(p.ise_baslama).toLocaleDateString('tr-TR') : '-'}</div>
+              <div style="display:flex;gap:8px">
+                <button onclick="modalPersonelDetay(${p.id},'${p.ad} ${p.soyad}')" style="flex:1;background:var(--accent);color:#fff;border:none;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">
+                  <i class="fa-solid fa-eye"></i> Detay
+                </button>
+                <button onclick="modalPersonelDuzenle(${p.id})" style="flex:1;background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:8px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">
+                  <i class="fa-solid fa-pen"></i> Düzenle
+                </button>
+                <button onclick="personelSil(${p.id},'${p.ad} ${p.soyad}')" style="background:rgba(239,68,68,.15);color:#ef4444;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function modalPersonelEkle() {
+  const bugun = new Date().toISOString().split('T')[0];
+  openModal('Personel Ekle', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ad *</label>
+        <input id="p-ad" class="form-input" placeholder="Ad" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Soyad *</label>
+        <input id="p-soyad" class="form-input" placeholder="Soyad" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Pozisyon</label>
+        <input id="p-pozisyon" class="form-input" placeholder="Örn: Muhasebeci" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Departman</label>
+        <input id="p-departman" class="form-input" placeholder="Örn: Finans" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Telefon</label>
+        <input id="p-telefon" class="form-input" placeholder="05XX XXX XX XX" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">E-posta</label>
+        <input id="p-email" class="form-input" type="email" placeholder="ornek@mail.com" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">İşe Başlama</label>
+        <input id="p-ise-baslama" class="form-input" type="date" value="${bugun}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Maaş (₺)</label>
+        <input id="p-maas" class="form-input" type="number" placeholder="0" /></div>
+      <div style="grid-column:span 2"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Adres</label>
+        <input id="p-adres" class="form-input" placeholder="Adres" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">TC No</label>
+        <input id="p-tc" class="form-input" placeholder="TC Kimlik No" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Doğum Tarihi</label>
+        <input id="p-dogum" class="form-input" type="date" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">IBAN</label>
+        <input id="p-iban" class="form-input" placeholder="TR..." /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Banka</label>
+        <input id="p-banka" class="form-input" placeholder="Banka adı" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Acil Kişi</label>
+        <input id="p-acil-kisi" class="form-input" placeholder="Ad Soyad" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Acil Telefon</label>
+        <input id="p-acil-tel" class="form-input" placeholder="05XX XXX XX XX" /></div>
+      <div style="grid-column:span 2"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Notlar</label>
+        <textarea id="p-notlar" class="form-input" rows="2" placeholder="Ek notlar..."></textarea></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeModal()" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="personelKaydet()" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, true, 'id-card');
+}
+
+async function personelKaydet() {
+  const body = {
+    ad: document.getElementById('p-ad')?.value?.trim(),
+    soyad: document.getElementById('p-soyad')?.value?.trim(),
+    pozisyon: document.getElementById('p-pozisyon')?.value?.trim(),
+    departman: document.getElementById('p-departman')?.value?.trim(),
+    telefon: document.getElementById('p-telefon')?.value?.trim(),
+    email: document.getElementById('p-email')?.value?.trim(),
+    ise_baslama: document.getElementById('p-ise-baslama')?.value,
+    maas: parseFloat(document.getElementById('p-maas')?.value) || 0,
+    adres: document.getElementById('p-adres')?.value?.trim(),
+    tc_no: document.getElementById('p-tc')?.value?.trim(),
+    dogum_tarihi: document.getElementById('p-dogum')?.value,
+    iban: document.getElementById('p-iban')?.value?.trim(),
+    banka: document.getElementById('p-banka')?.value?.trim(),
+    acil_kisi: document.getElementById('p-acil-kisi')?.value?.trim(),
+    acil_telefon: document.getElementById('p-acil-tel')?.value?.trim(),
+    notlar: document.getElementById('p-notlar')?.value?.trim(),
+  };
+  if (!body.ad || !body.soyad) return toast('Ad ve soyad zorunlu', 'error');
+  try {
+    await api('POST', '/personeller', body);
+    closeModal();
+    toast('Personel eklendi');
+    renderPersonelTakip();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function personelSil(id, ad) {
+  if (!confirm(`"${ad}" adlı personeli silmek istediğinizden emin misiniz?\nTüm kayıtları (devamsızlık, avans, maaş, notlar) silinecek.`)) return;
+  try {
+    await api('DELETE', '/personeller/' + id);
+    toast('Personel silindi');
+    renderPersonelTakip();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function modalPersonelDuzenle(id) {
+  let p;
+  try {
+    const liste = await api('GET', '/personeller');
+    p = liste.find(x => x.id === id);
+  } catch(e) { return toast('Personel yüklenemedi', 'error'); }
+  if (!p) return;
+
+  openModal('Personel Düzenle', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ad *</label>
+        <input id="pe-ad" class="form-input" value="${p.ad||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Soyad *</label>
+        <input id="pe-soyad" class="form-input" value="${p.soyad||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Pozisyon</label>
+        <input id="pe-pozisyon" class="form-input" value="${p.pozisyon||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Departman</label>
+        <input id="pe-departman" class="form-input" value="${p.departman||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Telefon</label>
+        <input id="pe-telefon" class="form-input" value="${p.telefon||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Maaş (₺)</label>
+        <input id="pe-maas" class="form-input" type="number" value="${p.maas||0}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">İşe Başlama</label>
+        <input id="pe-ise-baslama" class="form-input" type="date" value="${p.ise_baslama||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Durum</label>
+        <select id="pe-aktif" class="form-input">
+          <option value="1" ${p.aktif ? 'selected' : ''}>Aktif</option>
+          <option value="0" ${!p.aktif ? 'selected' : ''}>Pasif</option>
+        </select></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeModal()" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="personelGuncelle(${id})" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Güncelle</button>
+    </div>
+  `, true, 'pen');
+}
+
+async function personelGuncelle(id) {
+  const body = {
+    ad: document.getElementById('pe-ad')?.value?.trim(),
+    soyad: document.getElementById('pe-soyad')?.value?.trim(),
+    pozisyon: document.getElementById('pe-pozisyon')?.value?.trim(),
+    departman: document.getElementById('pe-departman')?.value?.trim(),
+    telefon: document.getElementById('pe-telefon')?.value?.trim(),
+    maas: parseFloat(document.getElementById('pe-maas')?.value) || 0,
+    ise_baslama: document.getElementById('pe-ise-baslama')?.value,
+    aktif: parseInt(document.getElementById('pe-aktif')?.value),
+  };
+  if (!body.ad || !body.soyad) return toast('Ad ve soyad zorunlu', 'error');
+  try {
+    await api('PUT', '/personeller/' + id, body);
+    closeModal();
+    toast('Personel güncellendi');
+    renderPersonelTakip();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function modalPersonelDetay(id, adSoyad) {
+  // Önce şifre sor
+  openModal('Personel Detay — Şifre Gerekli', `
+    <div style="text-align:center;padding:16px 0">
+      <i class="fa-solid fa-lock" style="font-size:40px;color:var(--accent);margin-bottom:16px"></i>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Personel detaylarını görüntülemek için şifre gereklidir.</p>
+      <input id="detay-sifre" type="password" class="form-input" placeholder="Şifre" style="max-width:240px;margin:0 auto;display:block;text-align:center;letter-spacing:3px"
+        onkeydown="if(event.key==='Enter') personelDetayYukle(${id},'${adSoyad}')" />
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:center">
+        <button onclick="closeModal()" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+        <button onclick="personelDetayYukle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">Giriş</button>
+      </div>
+    </div>
+  `, false, 'lock');
+  setTimeout(() => document.getElementById('detay-sifre')?.focus(), 100);
+}
+
+async function personelDetayYukle(id, adSoyad) {
+  const sifre = document.getElementById('detay-sifre')?.value;
+  if (!sifre) return toast('Şifre giriniz', 'error');
+  let data;
+  try {
+    data = await api('POST', '/personeller/' + id + '/detay', { sifre });
+  } catch(e) {
+    return toast(e.message || 'Yanlış şifre', 'error');
+  }
+  const p = data.personel;
+  const devamsizlik = data.devamsizlik || [];
+  const avanslar = data.avanslar || [];
+  const maaslar = data.maaslar || [];
+  const notlar = data.notlar || [];
+  const toplamAvans = avanslar.filter(a => !a.odendi).reduce((s, a) => s + a.miktar, 0);
+
+  openModal(`${adSoyad} — Personel Detayı`, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">Kişisel Bilgiler</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>TC:</b> ${p.tc_no || '-'}</div>
+          <div><b>Doğum:</b> ${p.dogum_tarihi ? new Date(p.dogum_tarihi).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Tel:</b> ${p.telefon || '-'}</div>
+          <div><b>E-posta:</b> ${p.email || '-'}</div>
+          <div><b>Adres:</b> ${p.adres || '-'}</div>
+        </div>
+      </div>
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">İş Bilgileri</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>Pozisyon:</b> ${p.pozisyon || '-'}</div>
+          <div><b>Departman:</b> ${p.departman || '-'}</div>
+          <div><b>İşe Başlama:</b> ${p.ise_baslama ? new Date(p.ise_baslama).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Maaş:</b> <span style="color:#10b981;font-weight:700">${(p.maas||0).toLocaleString('tr-TR')} ₺</span></div>
+          <div><b>IBAN:</b> ${p.iban || '-'}</div>
+          <div><b>Banka:</b> ${p.banka || '-'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <!-- Devamsızlık -->
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Devamsızlık (${devamsizlik.length})</div>
+          <button onclick="modalDevamsizlikEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${devamsizlik.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          devamsizlik.slice(0,5).map(d => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(d.tarih).toLocaleDateString('tr-TR')} — ${d.tur}</span>
+              <button onclick="devamsizlikSil(${d.id},${id},'${adSoyad}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `).join('')
+        }
+      </div>
+
+      <!-- Avans -->
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Avans — Bekleyen: <span style="color:#f59e0b">${toplamAvans.toLocaleString('tr-TR')} ₺</span></div>
+          <button onclick="modalAvansEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${avanslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          avanslar.slice(0,5).map(a => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(a.tarih).toLocaleDateString('tr-TR')} — ${a.miktar.toLocaleString('tr-TR')} ₺</span>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${a.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${a.odendi ? '#10b981' : '#f59e0b'}">${a.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>
+
+    <!-- Maaş -->
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border);margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Maaş Ödemeleri</div>
+        <button onclick="modalMaasEkle(${id},'${adSoyad}',${p.maas||0})" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${maaslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+        `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+          ${maaslar.slice(0,6).map(m => `
+            <div style="background:var(--card);border-radius:8px;padding:10px;border:1px solid var(--border);font-size:12px">
+              <div style="font-weight:700;color:var(--text)">${m.ay}</div>
+              <div style="color:#10b981;font-weight:700">${m.maas.toLocaleString('tr-TR')} ₺</div>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${m.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${m.odendi ? '#10b981' : '#f59e0b'}">${m.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')}
+        </div>`
+      }
+    </div>
+
+    <!-- Notlar -->
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Notlar</div>
+        <button onclick="modalNotEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${notlar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Not yok</div>' :
+        notlar.slice(0,3).map(n => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <div style="font-weight:700;color:var(--text)">${n.baslik || n.tur}</div>
+            <div style="color:var(--muted);margin-top:2px">${n.icerik}</div>
+          </div>
+        `).join('')
+      }
+    </div>
+  `, true, 'id-card');
+}
+
+function modalDevamsizlikEkle(personelId, adSoyad) {
+  const bugun = new Date().toISOString().split('T')[0];
+  openModal('Devamsızlık Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tarih *</label>
+        <input id="dev-tarih" class="form-input" type="date" value="${bugun}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tür</label>
+        <select id="dev-tur" class="form-input">
+          <option value="gelmedi">Gelmedi</option>
+          <option value="izinli">İzinli</option>
+          <option value="raporlu">Raporlu</option>
+          <option value="mazeret">Mazeretli</option>
+          <option value="diger">Diğer</option>
+        </select></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Açıklama</label>
+        <input id="dev-aciklama" class="form-input" placeholder="Opsiyonel açıklama" /></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="devamsizlikKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'calendar-xmark');
+}
+
+async function devamsizlikKaydet(personelId, adSoyad) {
+  const tarih = document.getElementById('dev-tarih')?.value;
+  const tur = document.getElementById('dev-tur')?.value;
+  const aciklama = document.getElementById('dev-aciklama')?.value?.trim();
+  if (!tarih) return toast('Tarih zorunlu', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/devamsizlik', { sifre: PERSONEL_SIFRE, tarih, tur, aciklama });
+    toast('Devamsızlık kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function devamsizlikSil(devId, personelId, adSoyad) {
+  if (!confirm('Bu devamsızlık kaydını silmek istediğinizden emin misiniz?')) return;
+  try {
+    await api('DELETE', '/personel-devamsizlik/' + devId, { sifre: PERSONEL_SIFRE });
+    toast('Kayıt silindi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function modalAvansEkle(personelId, adSoyad) {
+  const bugun = new Date().toISOString().split('T')[0];
+  openModal('Avans Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Miktar (₺) *</label>
+        <input id="av-miktar" class="form-input" type="number" placeholder="0" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tarih *</label>
+        <input id="av-tarih" class="form-input" type="date" value="${bugun}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Açıklama</label>
+        <input id="av-aciklama" class="form-input" placeholder="Opsiyonel açıklama" /></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="avansKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'money-bill');
+}
+
+async function avansKaydet(personelId, adSoyad) {
+  const miktar = parseFloat(document.getElementById('av-miktar')?.value);
+  const tarih = document.getElementById('av-tarih')?.value;
+  const aciklama = document.getElementById('av-aciklama')?.value?.trim();
+  if (!miktar || miktar <= 0) return toast('Geçerli bir miktar girin', 'error');
+  if (!tarih) return toast('Tarih zorunlu', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/avans', { sifre: PERSONEL_SIFRE, miktar, tarih, aciklama });
+    toast('Avans kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function modalMaasEkle(personelId, adSoyad, varsayilanMaas) {
+  const bugun = new Date();
+  const ayStr = bugun.getFullYear() + '-' + String(bugun.getMonth() + 1).padStart(2, '0');
+  openModal('Maaş Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ay (YYYY-MM) *</label>
+        <input id="ms-ay" class="form-input" type="month" value="${ayStr}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Maaş Tutarı (₺) *</label>
+        <input id="ms-maas" class="form-input" type="number" value="${varsayilanMaas || 0}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ödeme Durumu</label>
+        <select id="ms-odendi" class="form-input">
+          <option value="0">Bekliyor</option>
+          <option value="1">Ödendi</option>
+        </select></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ödeme Tarihi</label>
+        <input id="ms-odeme-tarihi" class="form-input" type="date" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Açıklama</label>
+        <input id="ms-aciklama" class="form-input" placeholder="Opsiyonel" /></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="maasKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'money-bill-wave');
+}
+
+async function maasKaydet(personelId, adSoyad) {
+  const ay = document.getElementById('ms-ay')?.value;
+  const maas = parseFloat(document.getElementById('ms-maas')?.value);
+  const odendi = parseInt(document.getElementById('ms-odendi')?.value);
+  const odeme_tarihi = document.getElementById('ms-odeme-tarihi')?.value || null;
+  const aciklama = document.getElementById('ms-aciklama')?.value?.trim();
+  if (!ay) return toast('Ay zorunlu', 'error');
+  if (!maas || maas <= 0) return toast('Geçerli bir tutar girin', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/maas', { sifre: PERSONEL_SIFRE, ay, maas, odendi, odeme_tarihi, aciklama });
+    toast('Maaş kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function modalNotEkle(personelId, adSoyad) {
+  openModal('Not Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tür</label>
+        <select id="not-tur" class="form-input">
+          <option value="genel">Genel</option>
+          <option value="performans">Performans</option>
+          <option value="uyari">Uyarı</option>
+          <option value="odul">Ödül</option>
+          <option value="izin">İzin</option>
+        </select></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Başlık</label>
+        <input id="not-baslik" class="form-input" placeholder="Kısa başlık" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">İçerik *</label>
+        <textarea id="not-icerik" class="form-input" rows="3" placeholder="Not içeriği..."></textarea></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="notKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'note-sticky');
+}
+
+async function notKaydet(personelId, adSoyad) {
+  const tur = document.getElementById('not-tur')?.value;
+  const baslik = document.getElementById('not-baslik')?.value?.trim();
+  const icerik = document.getElementById('not-icerik')?.value?.trim();
+  if (!icerik) return toast('İçerik zorunlu', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/not', { sifre: PERSONEL_SIFRE, tur, baslik, icerik });
+    toast('Not kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Detay modalına geri dön (şifre tekrar sormadan)
+async function personelDetayYukleGeri(id, adSoyad) {
+  let data;
+  try {
+    data = await api('POST', '/personeller/' + id + '/detay', { sifre: PERSONEL_SIFRE });
+  } catch(e) { closeModal(); return; }
+  // personelDetayYukle içindeki render mantığını tekrar çalıştır
+  // Şifre inputu olmadan direkt detay göster
+  const p = data.personel;
+  const devamsizlik = data.devamsizlik || [];
+  const avanslar = data.avanslar || [];
+  const maaslar = data.maaslar || [];
+  const notlar = data.notlar || [];
+  const toplamAvans = avanslar.filter(a => !a.odendi).reduce((s, a) => s + a.miktar, 0);
+
+  document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-id-card"></i>${adSoyad} — Personel Detayı`;
+  document.getElementById('modal-box').className = 'modal modal-lg';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">Kişisel Bilgiler</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>TC:</b> ${p.tc_no || '-'}</div>
+          <div><b>Doğum:</b> ${p.dogum_tarihi ? new Date(p.dogum_tarihi).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Tel:</b> ${p.telefon || '-'}</div>
+          <div><b>E-posta:</b> ${p.email || '-'}</div>
+          <div><b>Adres:</b> ${p.adres || '-'}</div>
+        </div>
+      </div>
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">İş Bilgileri</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>Pozisyon:</b> ${p.pozisyon || '-'}</div>
+          <div><b>Departman:</b> ${p.departman || '-'}</div>
+          <div><b>İşe Başlama:</b> ${p.ise_baslama ? new Date(p.ise_baslama).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Maaş:</b> <span style="color:#10b981;font-weight:700">${(p.maas||0).toLocaleString('tr-TR')} ₺</span></div>
+          <div><b>IBAN:</b> ${p.iban || '-'}</div>
+          <div><b>Banka:</b> ${p.banka || '-'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Devamsızlık (${devamsizlik.length})</div>
+          <button onclick="modalDevamsizlikEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${devamsizlik.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          devamsizlik.slice(0,5).map(d => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(d.tarih).toLocaleDateString('tr-TR')} — ${d.tur}</span>
+              <button onclick="devamsizlikSil(${d.id},${id},'${adSoyad}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `).join('')
+        }
+      </div>
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Avans — Bekleyen: <span style="color:#f59e0b">${toplamAvans.toLocaleString('tr-TR')} ₺</span></div>
+          <button onclick="modalAvansEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${avanslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          avanslar.slice(0,5).map(a => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(a.tarih).toLocaleDateString('tr-TR')} — ${a.miktar.toLocaleString('tr-TR')} ₺</span>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${a.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${a.odendi ? '#10b981' : '#f59e0b'}">${a.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>
+
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border);margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Maaş Ödemeleri</div>
+        <button onclick="modalMaasEkle(${id},'${adSoyad}',${p.maas||0})" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${maaslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+        `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+          ${maaslar.slice(0,6).map(m => `
+            <div style="background:var(--card);border-radius:8px;padding:10px;border:1px solid var(--border);font-size:12px">
+              <div style="font-weight:700;color:var(--text)">${m.ay}</div>
+              <div style="color:#10b981;font-weight:700">${m.maas.toLocaleString('tr-TR')} ₺</div>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${m.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${m.odendi ? '#10b981' : '#f59e0b'}">${m.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')}
+        </div>`
+      }
+    </div>
+
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Notlar</div>
+        <button onclick="modalNotEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${notlar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Not yok</div>' :
+        notlar.slice(0,3).map(n => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <div style="font-weight:700;color:var(--text)">${n.baslik || n.tur}</div>
+            <div style="color:var(--muted);margin-top:2px">${n.icerik}</div>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
 }

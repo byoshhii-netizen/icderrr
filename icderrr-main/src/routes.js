@@ -1,4 +1,4 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const { getDb } = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
   ? require('./database-web')
   : require('./database');
@@ -73,7 +73,8 @@ router.get('/organizasyonlar/:orgId/kurbanlar', async (req, res) => {
     (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.bagisci_adi IS NOT NULL) as dolu_hisse,
     (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.odeme_durumu='odendi') as _odendi_sayi,
     (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.bagisci_adi IS NOT NULL AND h.odeme_durumu='bekliyor') as _bekliyor_sayi,
-    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.video_ister=1) as _video_sayi
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.video_ister=1) as _video_sayi,
+    (SELECT COUNT(*) FROM hisseler h WHERE h.kurban_id=k.id AND h.vekalet_onay=1) as _vekalet_sayi
     FROM kurbanlar k WHERE k.organizasyon_id=? ORDER BY k.kurban_no ASC`).all(orgId);
 
   if (tur) allKurbanlar = allKurbanlar.filter(k => k.tur === tur);
@@ -152,9 +153,12 @@ router.put('/hisseler/:id', async (req, res) => {
   const db = await getDb();
   const { bagisci_adi, bagisci_telefon, bagisci_kategori, kimin_adina, kimin_adina_telefon, odeme_durumu, video_ister, aciklama, kurban_turu, vekalet_onay } = req.body;
   const vekalet_tarihi = vekalet_onay ? new Date().toISOString() : null;
+  // kurban_turu gönderilmemişse mevcut değeri koru
+  const mevcutHisse = db.prepare('SELECT kurban_turu FROM hisseler WHERE id=?').get(req.params.id);
+  const finalKurbanTuru = kurban_turu || (mevcutHisse && mevcutHisse.kurban_turu) || 'Udhiye';
   db.prepare(`UPDATE hisseler SET bagisci_adi=?,bagisci_telefon=?,bagisci_kategori=?,kimin_adina=?,kimin_adina_telefon=?,odeme_durumu=?,video_ister=?,aciklama=?,kurban_turu=?,vekalet_onay=?,vekalet_tarihi=? WHERE id=?`)
     .run(bagisci_adi || null, bagisci_telefon || null, bagisci_kategori || 'Genel Bağışçı', kimin_adina || null, kimin_adina_telefon || null,
-      odeme_durumu || 'bekliyor', video_ister ? 1 : 0, aciklama || null, kurban_turu || 'Udhiye', vekalet_onay ? 1 : 0, vekalet_tarihi, req.params.id);
+      odeme_durumu || 'bekliyor', video_ister ? 1 : 0, aciklama || null, finalKurbanTuru, vekalet_onay ? 1 : 0, vekalet_tarihi, req.params.id);
   res.json({ ok: true });
 });
 
@@ -162,6 +166,16 @@ router.delete('/hisseler/:id/temizle', async (req, res) => {
   const db = await getDb();
   db.prepare(`UPDATE hisseler SET bagisci_adi=NULL,bagisci_telefon=NULL,bagisci_kategori='Genel Bağışçı',kimin_adina=NULL,kimin_adina_telefon=NULL,odeme_durumu='bekliyor',video_ister=0,aciklama=NULL,kurban_turu='Udhiye',vekalet_onay=0,vekalet_tarihi=NULL WHERE id=?`)
     .run(req.params.id);
+  res.json({ ok: true });
+});
+
+// ─── VEKALET TOGGLE ────────────────────────────────────────────────────────
+router.put('/hisseler/:id/vekalet', async (req, res) => {
+  const db = await getDb();
+  const { vekalet_onay } = req.body;
+  const vekalet_tarihi = vekalet_onay ? new Date().toISOString() : null;
+  db.prepare(`UPDATE hisseler SET vekalet_onay=?, vekalet_tarihi=? WHERE id=?`)
+    .run(vekalet_onay ? 1 : 0, vekalet_tarihi, req.params.id);
   res.json({ ok: true });
 });
 
@@ -597,10 +611,18 @@ router.get('/cop-kutusu', async (req, res) => {
     try {
       const v = JSON.parse(item.veri);
       let baslik = '';
+      let ekstra = null;
       if (item.tur === 'organizasyon') baslik = v.org ? v.org.ad + ' (' + v.org.yil + ')' : 'Organizasyon';
       else if (item.tur === 'kurban') baslik = v.kurban ? 'Kurban #' + v.kurban.kurban_no : 'Kurban';
-      return { id: item.id, tur: item.tur, baslik, silme_tarihi: item.silme_tarihi };
-    } catch(e) { return { id: item.id, tur: item.tur, baslik: '?', silme_tarihi: item.silme_tarihi }; }
+      else if (item.tur === 'medya') {
+        const isVideo = v.resource_type === 'video';
+        const kb = v.bytes ? Math.round(v.bytes / 1024) : 0;
+        const boyut = kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb + ' KB';
+        baslik = (v.public_id || 'Medya') + (v.format ? '.' + v.format : '') + ' (' + boyut + ')';
+        ekstra = { public_id: v.public_id, resource_type: v.resource_type, secure_url: v.secure_url, format: v.format, bytes: v.bytes, isVideo };
+      }
+      return { id: item.id, tur: item.tur, baslik, silme_tarihi: item.silme_tarihi, ekstra };
+    } catch(e) { return { id: item.id, tur: item.tur, baslik: '?', silme_tarihi: item.silme_tarihi, ekstra: null }; }
   });
   res.json(ozet);
 });
@@ -642,6 +664,11 @@ router.post('/cop-kutusu/:id/geri-yukle', async (req, res) => {
             VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(h.id, h.kurban_id, h.hisse_no, h.bagisci_adi||null, h.bagisci_telefon||null, h.kimin_adina||null, h.kimin_adina_telefon||null, h.odeme_durumu||'bekliyor', h.video_ister||0, h.aciklama||null, h.olusturma);
         });
       }
+    } else if (item.tur === 'medya') {
+      // Medya Cloudinary'den kalıcı silindiği için geri yüklenemez.
+      // Çöp kutusundan kaydı kaldırıp bilgi döndür.
+      db.prepare('DELETE FROM cop_kutusu WHERE id=?').run(req.params.id);
+      return res.status(400).json({ hata: 'Medya dosyaları Cloudinary\'den kalıcı olarak silindiği için geri yüklenemez. Kaydı çöp kutusundan kaldırıldı.' });
     }
     db.prepare('DELETE FROM cop_kutusu WHERE id=?').run(req.params.id);
     res.json({ ok: true });
@@ -657,6 +684,27 @@ router.delete('/cop-kutusu/:id', async (req, res) => {
 router.delete('/cop-kutusu', async (req, res) => {
   const db = await getDb();
   db.prepare('DELETE FROM cop_kutusu').run();
+  res.json({ ok: true });
+});
+
+// ─── MEDYA ÇÖP KUTUSU ──────────────────────────────────────────────────────
+router.get('/medya-cop', async (req, res) => {
+  const db = await getDb();
+  try {
+    const list = db.prepare('SELECT * FROM medya_cop ORDER BY silme_tarihi DESC LIMIT 200').all();
+    res.json(list);
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.delete('/medya-cop/:id', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM medya_cop WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+router.delete('/medya-cop', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM medya_cop').run();
   res.json({ ok: true });
 });
 
@@ -965,6 +1013,172 @@ router.post('/organizasyonlar/:orgId/kurbanlar/:kurbanId/bagiscilar', async (req
     eklenen: eklenenSayi,
     mesaj: `${eklenenSayi} bağışçı kurban #${kurban.kurban_no}'a eklendi`
   });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAYRAK YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+router.get('/bayraklar', async (req, res) => {
+  const db = await getDb();
+  try {
+    db.exec("CREATE TABLE IF NOT EXISTS bayraklar (id INTEGER PRIMARY KEY AUTOINCREMENT, ad TEXT NOT NULL, resim_data TEXT NOT NULL, aktif INTEGER DEFAULT 0, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)");
+    res.json(db.prepare('SELECT id, ad, aktif, olusturma FROM bayraklar ORDER BY olusturma DESC').all());
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.get('/bayraklar/:id/resim', async (req, res) => {
+  const db = await getDb();
+  const b = db.prepare('SELECT resim_data FROM bayraklar WHERE id=?').get(req.params.id);
+  if (!b) return res.status(404).json({ hata: 'Bulunamadı' });
+  res.json({ resim_data: b.resim_data });
+});
+
+router.post('/bayraklar', async (req, res) => {
+  const db = await getDb();
+  const { ad, resim_data } = req.body;
+  if (!ad || !resim_data) return res.status(400).json({ hata: 'Ad ve resim zorunlu' });
+  const r = db.prepare('INSERT INTO bayraklar (ad, resim_data, aktif) VALUES (?,?,0)').run(ad, resim_data);
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+
+router.put('/bayraklar/:id', async (req, res) => {
+  const db = await getDb();
+  const { ad, resim_data } = req.body;
+  if (resim_data) {
+    db.prepare('UPDATE bayraklar SET ad=?, resim_data=? WHERE id=?').run(ad, resim_data, req.params.id);
+  } else {
+    db.prepare('UPDATE bayraklar SET ad=? WHERE id=?').run(ad, req.params.id);
+  }
+  res.json({ ok: true });
+});
+
+router.delete('/bayraklar/:id', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM bayraklar WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PERSONEL TAKİP SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PERSONEL_SIFRE = '5586Persona';
+
+// Personel listesi
+router.get('/personeller', async (req, res) => {
+  const db = await getDb();
+  res.json(db.prepare('SELECT id,ad,soyad,pozisyon,departman,telefon,aktif,ise_baslama,maas FROM personeller ORDER BY ad ASC').all());
+});
+
+// Personel ekle
+router.post('/personeller', async (req, res) => {
+  const db = await getDb();
+  const { ad,soyad,tc_no,dogum_tarihi,telefon,email,adres,pozisyon,departman,ise_baslama,maas,iban,banka,acil_kisi,acil_telefon,fotograf,notlar } = req.body;
+  if (!ad || !soyad) return res.status(400).json({ hata: 'Ad ve soyad zorunlu' });
+  const r = db.prepare('INSERT INTO personeller (ad,soyad,tc_no,dogum_tarihi,telefon,email,adres,pozisyon,departman,ise_baslama,maas,iban,banka,acil_kisi,acil_telefon,fotograf,notlar) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(ad,soyad,tc_no||null,dogum_tarihi||null,telefon||null,email||null,adres||null,pozisyon||null,departman||null,ise_baslama||null,maas||0,iban||null,banka||null,acil_kisi||null,acil_telefon||null,fotograf||null,notlar||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+// Personel güncelle
+router.put('/personeller/:id', async (req, res) => {
+  const db = await getDb();
+  const { ad,soyad,tc_no,dogum_tarihi,telefon,email,adres,pozisyon,departman,ise_baslama,maas,iban,banka,acil_kisi,acil_telefon,fotograf,notlar,aktif } = req.body;
+  db.prepare('UPDATE personeller SET ad=?,soyad=?,tc_no=?,dogum_tarihi=?,telefon=?,email=?,adres=?,pozisyon=?,departman=?,ise_baslama=?,maas=?,iban=?,banka=?,acil_kisi=?,acil_telefon=?,fotograf=?,notlar=?,aktif=? WHERE id=?').run(ad,soyad,tc_no||null,dogum_tarihi||null,telefon||null,email||null,adres||null,pozisyon||null,departman||null,ise_baslama||null,maas||0,iban||null,banka||null,acil_kisi||null,acil_telefon||null,fotograf||null,notlar||null,aktif??1,req.params.id);
+  res.json({ ok:true });
+});
+
+// Personel sil
+router.delete('/personeller/:id', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM personeller WHERE id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_devamsizlik WHERE personel_id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_avans WHERE personel_id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_maas WHERE personel_id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_notlar WHERE personel_id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// Personel detay (şifre korumalı)
+router.post('/personeller/:id/detay', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const p = db.prepare('SELECT * FROM personeller WHERE id=?').get(req.params.id);
+  if (!p) return res.status(404).json({ hata: 'Bulunamadı' });
+  const devamsizlik = db.prepare('SELECT * FROM personel_devamsizlik WHERE personel_id=? ORDER BY tarih DESC').all(req.params.id);
+  const avanslar = db.prepare('SELECT * FROM personel_avans WHERE personel_id=? ORDER BY tarih DESC').all(req.params.id);
+  const maaslar = db.prepare('SELECT * FROM personel_maas WHERE personel_id=? ORDER BY ay DESC').all(req.params.id);
+  const notlar = db.prepare('SELECT * FROM personel_notlar WHERE personel_id=? ORDER BY olusturma DESC').all(req.params.id);
+  res.json({ personel:p, devamsizlik, avanslar, maaslar, notlar });
+});
+
+// Devamsızlık ekle
+router.post('/personeller/:id/devamsizlik', async (req, res) => {
+  const { sifre, tarih, tur, aciklama } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_devamsizlik (personel_id,tarih,tur,aciklama) VALUES (?,?,?,?)').run(req.params.id,tarih,tur||'gelmedi',aciklama||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.delete('/personel-devamsizlik/:id', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('DELETE FROM personel_devamsizlik WHERE id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// Avans ekle
+router.post('/personeller/:id/avans', async (req, res) => {
+  const { sifre, miktar, tarih, aciklama } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_avans (personel_id,miktar,tarih,aciklama) VALUES (?,?,?,?)').run(req.params.id,miktar,tarih,aciklama||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.put('/personel-avans/:id/odendi', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('UPDATE personel_avans SET odendi=1 WHERE id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// Maaş ekle
+router.post('/personeller/:id/maas', async (req, res) => {
+  const { sifre, ay, maas, odendi, odeme_tarihi, aciklama } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_maas (personel_id,ay,maas,odendi,odeme_tarihi,aciklama) VALUES (?,?,?,?,?,?)').run(req.params.id,ay,maas,odendi?1:0,odeme_tarihi||null,aciklama||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.put('/personel-maas/:id', async (req, res) => {
+  const { sifre, odendi, odeme_tarihi } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('UPDATE personel_maas SET odendi=?,odeme_tarihi=? WHERE id=?').run(odendi?1:0,odeme_tarihi||null,req.params.id);
+  res.json({ ok:true });
+});
+
+// Not ekle
+router.post('/personeller/:id/not', async (req, res) => {
+  const { sifre, tur, baslik, icerik } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_notlar (personel_id,tur,baslik,icerik) VALUES (?,?,?,?)').run(req.params.id,tur||'genel',baslik||null,icerik);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.delete('/personel-not/:id', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('DELETE FROM personel_notlar WHERE id=?').run(req.params.id);
+  res.json({ ok:true });
 });
 
 module.exports = router;

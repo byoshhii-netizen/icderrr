@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8"/>
@@ -57,10 +57,10 @@
       <i class="fa-solid fa-money-bill-trend-up"></i> Gelir-Gider
     </div>
     <div class="sidebar-item active" data-page="kurban-organizasyonu" onclick="showPage('kurban-organizasyonu')">
-      <i class="fa-solid fa-cow"></i> Kurban Organizasyonu
+      <i class="fa-solid fa-cow"></i> Organizasyonlar
     </div>
     <div class="sidebar-item" data-page="organizasyon" onclick="toggleOrganizasyonMenu()">
-      <i class="fa-solid fa-globe"></i> Organizasyon
+      <i class="fa-solid fa-globe"></i> Faaliyetler
       <i class="fa-solid fa-chevron-down" id="organizasyon-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
     </div>
     <div id="organizasyon-submenu" style="display:none;background:var(--glow2);border-left:3px solid var(--accent);margin-left:12px;border-radius:8px">
@@ -144,6 +144,11 @@
       </div>
     </div>
     <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Personel</div>
+    <div class="sidebar-item" data-page="personel-takip" onclick="showPage('personel-takip')">
+      <i class="fa-solid fa-id-card"></i> Personel Takip
+    </div>
+    <hr class="sidebar-divider"/>
     <div class="sidebar-section">Sistem</div>
     <div class="sidebar-item" data-page="cop" onclick="showPage('cop')">
       <i class="fa-solid fa-trash-can"></i> Çöp Kutusu
@@ -215,7 +220,7 @@
 <div class="toast-container" id="toast-container"></div>
 
 <!-- Sabit Destek Hattı Butonu -->
-<div class="floating-support-btn" onclick="showPage('destek')" title="Destek Hattı">
+<div class="floating-support-btn" id="floating-destek-btn" onclick="showPage('destek')" title="Destek Hattı">
   <i class="fa-solid fa-headset"></i>
 </div>
 

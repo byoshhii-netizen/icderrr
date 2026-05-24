@@ -198,12 +198,20 @@ async function getDb() {
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN vekalet_onay INTEGER DEFAULT 0"); } catch(e) {}
   // hisseler tablosuna vekalet_tarihi kolonu ekle
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN vekalet_tarihi DATETIME"); } catch(e) {}
+  // oto_yedek_loglar tablosu
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS oto_yedek_loglar (id INTEGER PRIMARY KEY AUTOINCREMENT, dosya_adi TEXT NOT NULL, boyut INTEGER DEFAULT 0, tarih DATETIME DEFAULT CURRENT_TIMESTAMP, durum TEXT DEFAULT 'basarili')"); } catch(e) {}
   // ozel_kategoriler tablosu - admin panelinden yönetilebilir kategoriler
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_kategoriler (id INTEGER PRIMARY KEY AUTOINCREMENT, kategori_adi TEXT UNIQUE NOT NULL, kategori_tipi TEXT DEFAULT 'bagisci', aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   // ozel_filtreler tablosu - admin panelinden yönetilebilir filtreler
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS ozel_filtreler (id INTEGER PRIMARY KEY AUTOINCREMENT, filtre_adi TEXT NOT NULL, filtre_tipi TEXT NOT NULL, filtre_degeri TEXT, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   // giris_logosu tablosu - giriş sayfası logo yönetimi
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS giris_logosu (id INTEGER PRIMARY KEY AUTOINCREMENT, logo_data TEXT, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  // Personel tabloları
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS personeller (id INTEGER PRIMARY KEY AUTOINCREMENT, ad TEXT NOT NULL, soyad TEXT NOT NULL, tc_no TEXT, dogum_tarihi TEXT, telefon TEXT, email TEXT, adres TEXT, pozisyon TEXT, departman TEXT, ise_baslama TEXT, maas REAL DEFAULT 0, iban TEXT, banka TEXT, acil_kisi TEXT, acil_telefon TEXT, fotograf TEXT, notlar TEXT, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS personel_devamsizlik (id INTEGER PRIMARY KEY AUTOINCREMENT, personel_id INTEGER NOT NULL, tarih TEXT NOT NULL, tur TEXT DEFAULT 'gelmedi', aciklama TEXT, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS personel_avans (id INTEGER PRIMARY KEY AUTOINCREMENT, personel_id INTEGER NOT NULL, miktar REAL NOT NULL, tarih TEXT NOT NULL, aciklama TEXT, odendi INTEGER DEFAULT 0, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS personel_maas (id INTEGER PRIMARY KEY AUTOINCREMENT, personel_id INTEGER NOT NULL, ay TEXT NOT NULL, maas REAL NOT NULL, odendi INTEGER DEFAULT 0, odeme_tarihi TEXT, aciklama TEXT, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS personel_notlar (id INTEGER PRIMARY KEY AUTOINCREMENT, personel_id INTEGER NOT NULL, tur TEXT DEFAULT 'genel', baslik TEXT, icerik TEXT NOT NULL, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   const data = sqlDb.export();
   fs.writeFileSync(DB_PATH, Buffer.from(data));
   _db = new DbWrapper(sqlDb);

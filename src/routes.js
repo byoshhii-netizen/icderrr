@@ -1016,6 +1016,128 @@ router.post('/organizasyonlar/:orgId/kurbanlar/:kurbanId/bagiscilar', async (req
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PERSONEL TAKİP SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PERSONEL_SIFRE = '5586Persona';
+
+// Personel listesi
+router.get('/personeller', async (req, res) => {
+  const db = await getDb();
+  res.json(db.prepare('SELECT id,ad,soyad,pozisyon,departman,telefon,aktif,ise_baslama,maas FROM personeller ORDER BY ad ASC').all());
+});
+
+// Personel ekle
+router.post('/personeller', async (req, res) => {
+  const db = await getDb();
+  const { ad,soyad,tc_no,dogum_tarihi,telefon,email,adres,pozisyon,departman,ise_baslama,maas,iban,banka,acil_kisi,acil_telefon,fotograf,notlar } = req.body;
+  if (!ad || !soyad) return res.status(400).json({ hata: 'Ad ve soyad zorunlu' });
+  const r = db.prepare('INSERT INTO personeller (ad,soyad,tc_no,dogum_tarihi,telefon,email,adres,pozisyon,departman,ise_baslama,maas,iban,banka,acil_kisi,acil_telefon,fotograf,notlar) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(ad,soyad,tc_no||null,dogum_tarihi||null,telefon||null,email||null,adres||null,pozisyon||null,departman||null,ise_baslama||null,maas||0,iban||null,banka||null,acil_kisi||null,acil_telefon||null,fotograf||null,notlar||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+// Personel güncelle
+router.put('/personeller/:id', async (req, res) => {
+  const db = await getDb();
+  const { ad,soyad,tc_no,dogum_tarihi,telefon,email,adres,pozisyon,departman,ise_baslama,maas,iban,banka,acil_kisi,acil_telefon,fotograf,notlar,aktif } = req.body;
+  db.prepare('UPDATE personeller SET ad=?,soyad=?,tc_no=?,dogum_tarihi=?,telefon=?,email=?,adres=?,pozisyon=?,departman=?,ise_baslama=?,maas=?,iban=?,banka=?,acil_kisi=?,acil_telefon=?,fotograf=?,notlar=?,aktif=? WHERE id=?').run(ad,soyad,tc_no||null,dogum_tarihi||null,telefon||null,email||null,adres||null,pozisyon||null,departman||null,ise_baslama||null,maas||0,iban||null,banka||null,acil_kisi||null,acil_telefon||null,fotograf||null,notlar||null,aktif??1,req.params.id);
+  res.json({ ok:true });
+});
+
+// Personel sil
+router.delete('/personeller/:id', async (req, res) => {
+  const db = await getDb();
+  db.prepare('DELETE FROM personeller WHERE id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_devamsizlik WHERE personel_id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_avans WHERE personel_id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_maas WHERE personel_id=?').run(req.params.id);
+  db.prepare('DELETE FROM personel_notlar WHERE personel_id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// Personel detay (şifre korumalı)
+router.post('/personeller/:id/detay', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const p = db.prepare('SELECT * FROM personeller WHERE id=?').get(req.params.id);
+  if (!p) return res.status(404).json({ hata: 'Bulunamadı' });
+  const devamsizlik = db.prepare('SELECT * FROM personel_devamsizlik WHERE personel_id=? ORDER BY tarih DESC').all(req.params.id);
+  const avanslar = db.prepare('SELECT * FROM personel_avans WHERE personel_id=? ORDER BY tarih DESC').all(req.params.id);
+  const maaslar = db.prepare('SELECT * FROM personel_maas WHERE personel_id=? ORDER BY ay DESC').all(req.params.id);
+  const notlar = db.prepare('SELECT * FROM personel_notlar WHERE personel_id=? ORDER BY olusturma DESC').all(req.params.id);
+  res.json({ personel:p, devamsizlik, avanslar, maaslar, notlar });
+});
+
+// Devamsızlık ekle
+router.post('/personeller/:id/devamsizlik', async (req, res) => {
+  const { sifre, tarih, tur, aciklama } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_devamsizlik (personel_id,tarih,tur,aciklama) VALUES (?,?,?,?)').run(req.params.id,tarih,tur||'gelmedi',aciklama||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.delete('/personel-devamsizlik/:id', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('DELETE FROM personel_devamsizlik WHERE id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// Avans ekle
+router.post('/personeller/:id/avans', async (req, res) => {
+  const { sifre, miktar, tarih, aciklama } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_avans (personel_id,miktar,tarih,aciklama) VALUES (?,?,?,?)').run(req.params.id,miktar,tarih,aciklama||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.put('/personel-avans/:id/odendi', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('UPDATE personel_avans SET odendi=1 WHERE id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// Maaş ekle
+router.post('/personeller/:id/maas', async (req, res) => {
+  const { sifre, ay, maas, odendi, odeme_tarihi, aciklama } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_maas (personel_id,ay,maas,odendi,odeme_tarihi,aciklama) VALUES (?,?,?,?,?,?)').run(req.params.id,ay,maas,odendi?1:0,odeme_tarihi||null,aciklama||null);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.put('/personel-maas/:id', async (req, res) => {
+  const { sifre, odendi, odeme_tarihi } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('UPDATE personel_maas SET odendi=?,odeme_tarihi=? WHERE id=?').run(odendi?1:0,odeme_tarihi||null,req.params.id);
+  res.json({ ok:true });
+});
+
+// Not ekle
+router.post('/personeller/:id/not', async (req, res) => {
+  const { sifre, tur, baslik, icerik } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  const r = db.prepare('INSERT INTO personel_notlar (personel_id,tur,baslik,icerik) VALUES (?,?,?,?)').run(req.params.id,tur||'genel',baslik||null,icerik);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.delete('/personel-not/:id', async (req, res) => {
+  const { sifre } = req.body;
+  if (sifre !== PERSONEL_SIFRE) return res.status(403).json({ hata: 'Yanlış şifre' });
+  const db = await getDb();
+  db.prepare('DELETE FROM personel_notlar WHERE id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // BAYRAK YÖNETİMİ
 // ═══════════════════════════════════════════════════════════════════════════
 

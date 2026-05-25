@@ -374,6 +374,7 @@ function showPage(page) {
   else if (page==='ozel-mesajlar') renderOzelMesajlar();
   else if (page==='gorev-bildirimlerim') renderGorevBildirimlerim();
   else if (page==='destek') renderDestekHatti();
+  else if (page==='personel-takip') renderPersonelTakip();
   else if (page==='cop')         renderCopKutusu();
   else if (page==='yedek')       renderYedekGeriYukle();
   else if (page==='denetim')     renderDenetim();

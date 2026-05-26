@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hesap Numaraları – İÇDER</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .bank-card { background: #fff; border: 2px solid #e8f5e9; border-radius: 14px; padding: 28px; margin-bottom: 20px; transition: border-color .2s; }
+    .bank-card:hover { border-color: #2e7d32; }
+    .bank-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .bank-icon { width: 52px; height: 52px; background: #e8f5e9; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #2e7d32; }
+    .bank-header h3 { font-size: 18px; font-weight: 700; color: #1b5e20; }
+    .bank-accounts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .account-item { background: #f9fbe7; border-radius: 10px; padding: 16px; }
+    .account-item label { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; }
+    .account-item .iban { font-size: 14px; font-weight: 600; color: #1b5e20; font-family: monospace; letter-spacing: 1px; }
+    .account-item .acc-name { font-size: 13px; color: #555; margin-top: 4px; }
+    .copy-btn { background: none; border: 1px solid #2e7d32; color: #2e7d32; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; transition: all .2s; }
+    .copy-btn:hover { background: #2e7d32; color: #fff; }
+    @media (max-width: 600px) { .bank-accounts { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <a href="tel:+908503051855"><i class="fa fa-phone"></i> 0850 305 18 55</a>
+        <a href="mailto:bilgi@icder.org"><i class="fa fa-envelope"></i> bilgi@icder.org</a>
+      </div>
+      <div class="topbar-right">
+        <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+        <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="logo"><img src="../icderyazi.png" alt="İÇDER Logo" /></a>
+      <nav class="nav-links">
+        <div class="nav-item dropdown">
+          <a href="kurumsal.html">KURUMSAL <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="hakkimizda.html">Hakkımızda</a>
+            <a href="misyon.html">Misyonumuz</a>
+            <a href="vizyon.html">Vizyonumuz</a>
+            <a href="yonetim.html">Yönetim Kurulu</a>
+            <a href="hesap-numaralari.html">Hesap Numaraları</a>
+          </div>
+        </div>
+        <div class="nav-item dropdown">
+          <a href="projeler.html">PROJELER <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="kurban.html">Kurban Bayramı</a>
+            <a href="gazze.html">Gazze Yardım</a>
+            <a href="cocuklar-gulsun.html">Çocuklar Gülsün</a>
+          </div>
+        </div>
+        <a href="faaliyetler.html" class="nav-item">FAALİYETLER</a>
+        <a href="haberler.html" class="nav-item">HABERLER</a>
+        <a href="iletisim.html" class="nav-item">İLETİŞİM</a>
+      </nav>
+      <a href="bagis.html" class="btn-donate">BAĞIŞ YAP</a>
+      <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="kurumsal.html">Kurumsal</a>
+    <a href="projeler.html">Projeler</a>
+    <a href="faaliyetler.html">Faaliyetler</a>
+    <a href="haberler.html">Haberler</a>
+    <a href="iletisim.html">İletişim</a>
+    <a href="bagis.html" class="btn-donate-mobile">Bağış Yap</a>
+  </div>
+
+  <section class="page-hero">
+    <div class="container">
+      <h1>Hesap Numaraları</h1>
+      <p>EFT / Havale ile bağış yapabilirsiniz</p>
+      <div class="breadcrumb">
+        <a href="index.html">Ana Sayfa</a>
+        <span>/</span>
+        <span>Hesap Numaraları</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:80px 0; background:#f9fbe7;">
+    <div class="container" style="max-width:900px;">
+
+      <div style="background:#e8f5e9; border-left:4px solid #2e7d32; border-radius:8px; padding:16px 20px; margin-bottom:36px;">
+        <p style="color:#1b5e20; font-size:14px;"><i class="fa fa-info-circle"></i> <strong>Açıklama kısmına</strong> bağış türünü (Zekat, Sadaka, Kurban vb.), adınızı ve telefon numaranızı yazmayı unutmayınız.</p>
+      </div>
+
+      <div class="bank-card">
+        <div class="bank-header">
+          <div class="bank-icon"><i class="fa fa-building-columns"></i></div>
+          <h3>Ziraat Bankası</h3>
+        </div>
+        <div class="bank-accounts">
+          <div class="account-item">
+            <label>Hesap Adı</label>
+            <div class="iban">İslam Çınarı Derneği</div>
+            <label style="margin-top:10px;">IBAN (TL)</label>
+            <div class="iban">TR00 0001 0000 0000 0000 0000 00</div>
+            <button class="copy-btn" onclick="copyText('TR00 0001 0000 0000 0000 0000 00', this)"><i class="fa fa-copy"></i> Kopyala</button>
+          </div>
+          <div class="account-item">
+            <label>Hesap Adı</label>
+            <div class="iban">İslam Çınarı Derneği</div>
+            <label style="margin-top:10px;">IBAN (USD)</label>
+            <div class="iban">TR00 0001 0000 0000 0000 0000 01</div>
+            <button class="copy-btn" onclick="copyText('TR00 0001 0000 0000 0000 0000 01', this)"><i class="fa fa-copy"></i> Kopyala</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bank-card">
+        <div class="bank-header">
+          <div class="bank-icon"><i class="fa fa-building-columns"></i></div>
+          <h3>Vakıfbank</h3>
+        </div>
+        <div class="bank-accounts">
+          <div class="account-item">
+            <label>Hesap Adı</label>
+            <div class="iban">İslam Çınarı Derneği</div>
+            <label style="margin-top:10px;">IBAN (TL)</label>
+            <div class="iban">TR00 0001 5001 5800 0000 0000 00</div>
+            <button class="copy-btn" onclick="copyText('TR00 0001 5001 5800 0000 0000 00', this)"><i class="fa fa-copy"></i> Kopyala</button>
+          </div>
+          <div class="account-item">
+            <label>Hesap Adı</label>
+            <div class="iban">İslam Çınarı Derneği</div>
+            <label style="margin-top:10px;">IBAN (EUR)</label>
+            <div class="iban">TR00 0001 5001 5800 0000 0000 01</div>
+            <button class="copy-btn" onclick="copyText('TR00 0001 5001 5800 0000 0000 01', this)"><i class="fa fa-copy"></i> Kopyala</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bank-card">
+        <div class="bank-header">
+          <div class="bank-icon"><i class="fa fa-building-columns"></i></div>
+          <h3>Halkbank</h3>
+        </div>
+        <div class="bank-accounts">
+          <div class="account-item">
+            <label>Hesap Adı</label>
+            <div class="iban">İslam Çınarı Derneği</div>
+            <label style="margin-top:10px;">IBAN (TL)</label>
+            <div class="iban">TR00 0001 2009 0000 0000 0000 00</div>
+            <button class="copy-btn" onclick="copyText('TR00 0001 2009 0000 0000 0000 00', this)"><i class="fa fa-copy"></i> Kopyala</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:40px;">
+        <p style="color:#555; margin-bottom:16px;">Online bağış yapmak ister misiniz?</p>
+        <a href="bagis.html" class="btn-primary" style="background:#2e7d32; color:#fff;">Online Bağış Yap</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-brand">
+        <img src="../icderyazi.png" alt="İÇDER Logo" class="footer-logo" />
+        <p>İÇDER, köklü bir çınar gibi sağlam durarak Allah'ın rızasını kazanacak işler yapan bir kuruluştur.</p>
+        <div class="footer-social">
+          <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>KURUMSAL</h5>
+        <ul>
+          <li><a href="hakkimizda.html">Hakkımızda</a></li>
+          <li><a href="misyon.html">Misyonumuz</a></li>
+          <li><a href="vizyon.html">Vizyonumuz</a></li>
+          <li><a href="yonetim.html">Yönetim Kurulu</a></li>
+          <li><a href="hesap-numaralari.html">Hesap Numaraları</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>PROJELER</h5>
+        <ul>
+          <li><a href="kurban.html">Kurban Bayramı</a></li>
+          <li><a href="gazze.html">Gazze Yardım</a></li>
+          <li><a href="cocuklar-gulsun.html">Çocuklar Gülsün</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>İLETİŞİM</h5>
+        <ul class="footer-contact">
+          <li><i class="fa fa-location-dot"></i> Hasköy Mah. Bozkır Sokak No:49 Canik / Samsun</li>
+          <li><i class="fa fa-phone"></i> <a href="tel:+908503051855">0850 305 18 55</a></li>
+          <li><i class="fa fa-envelope"></i> <a href="mailto:bilgi@icder.org">bilgi@icder.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© 2026 Tüm Hakları Saklıdır | İslam Çınarı Derneği</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+  <script>
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.innerHTML = '<i class="fa fa-check"></i> Kopyalandı!';
+        btn.style.background = '#2e7d32';
+        btn.style.color = '#fff';
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fa fa-copy"></i> Kopyala';
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
+

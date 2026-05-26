@@ -1,0 +1,6929 @@
+﻿﻿// ─── AUTH KONTROL KALDIRILDI (EXE İÇİN) ─────────────────────────────────────
+// Kullanıcı ayarları global
+let _kullaniciAyarlar = { logo_data: null, bayrak_data: null, kurulum_tamamlandi: 0 };
+let _kullaniciAdi = 'İÇDER';
+
+// Direkt başlat
+(async function init() {
+  await yukleKullaniciAyarlar();
+  // Bakım modu periyodik kontrolü (her 30 saniyede bir)
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/admin/sistem-modu');
+      const d = await res.json();
+      if (d.mod === 'bakim' || d.mod === 'kapali') {
+        window.location.href = '/icder-giris';
+      }
+    } catch(e) {}
+  }, 30000);
+})();
+
+async function yukleKullaniciAyarlar() {
+  try {
+    const ayar = await api('GET', '/ayarlar');
+    _kullaniciAyarlar = ayar;
+    if (!ayar.kurulum_tamamlandi) {
+      setTimeout(() => modalKurulumSihirbazi(), 600);
+    }
+  } catch(e) {}
+}
+
+// ─── AĞ BİLGİLERİNİ GÖSTER (KALDIRILDI) ─────────────────────────────────────
+async function gosterAgBilgileri() { /* Bildirim kaldırıldı */ }
+
+// ─── KURULUM SİHİRBAZI ───────────────────────────────────────────────────────
+let _setupLogoData = null;
+let _setupBayrakData = null;
+
+function modalKurulumSihirbazi() {
+  _setupLogoData = null;
+  _setupBayrakData = null;
+  openModal('Hoş Geldiniz! Kurulum', `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:36px;margin-bottom:6px">🎉</div>
+      <div style="font-size:14px;color:var(--text2)">Yazdırma şablonunuz için görselleri yükleyin.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+      <div class="form-group">
+        <label><i class="fa-solid fa-image"></i> Logonuz <span style="color:var(--text3);font-weight:400">(Orta + Bağışçı sol üst)</span></label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-logo-input').click()">
+          <div id="setup-logo-preview">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Logo yükle</div>
+          </div>
+        </div>
+        <input type="file" id="setup-logo-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'logo')"/>
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-flag"></i> Sağ Üst Bayrak <span style="color:var(--text3);font-weight:400">(Kurban yazdır)</span></label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-bayrak-input').click()">
+          <div id="setup-bayrak-preview">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Bayrak yükle</div>
+          </div>
+        </div>
+        <input type="file" id="setup-bayrak-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'bayrak')"/>
+      </div>
+    </div>
+    <div style="background:var(--bg4);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text3);line-height:1.7">
+      <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+      <strong>Kurban yazdır:</strong> Sol üst = Türk Bayrağı (sabit) &nbsp;|&nbsp; Orta = Logonuz &nbsp;|&nbsp; Sağ üst = Yüklediğiniz bayrak<br>
+      <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+      <strong>Bağışçı listesi:</strong> Sol üst = Logonuz &nbsp;|&nbsp; Ayarlardan sonradan değiştirilebilir
+    </div>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="kurulumAtla()">Şimdi Değil</button>
+      <button class="btn btn-primary" onclick="kurulumKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet ve Başla</button>
+    </div>
+  `, true, 'gear');
+}
+
+function onSetupImageChange(input, tip) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = e.target.result;
+    if (tip === 'logo') {
+      _setupLogoData = data;
+      document.getElementById('setup-logo-preview').innerHTML =
+        '<img src="' + data + '" style="max-height:80px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+    } else {
+      _setupBayrakData = data;
+      document.getElementById('setup-bayrak-preview').innerHTML =
+        '<img src="' + data + '" style="max-height:80px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function kurulumKaydet() {
+  try {
+    const logo = _setupLogoData || _kullaniciAyarlar.logo_data;
+    const bayrak = _setupBayrakData || _kullaniciAyarlar.bayrak_data;
+    await api('POST', '/ayarlar', { logo_data: logo, bayrak_data: bayrak, kurulum_tamamlandi: 1 });
+    _kullaniciAyarlar.logo_data = logo;
+    _kullaniciAyarlar.bayrak_data = bayrak;
+    _kullaniciAyarlar.kurulum_tamamlandi = 1;
+    closeModal();
+    toast('Ayarlar kaydedildi');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function kurulumAtla() {
+  try {
+    await api('POST', '/ayarlar', { kurulum_tamamlandi: 1 });
+    _kullaniciAyarlar.kurulum_tamamlandi = 1;
+  } catch(e) {}
+  closeModal();
+}
+
+// Ayarlar sayfasından da değiştirilebilir
+async function modalAyarlar() {
+  _setupLogoData = null;
+  _setupBayrakData = null;
+  const logoOnizleme = _kullaniciAyarlar.logo_data
+    ? '<img src="' + _kullaniciAyarlar.logo_data + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>'
+    : '<i class="fa-solid fa-image" style="font-size:22px;color:var(--text3)"></i><div style="color:var(--text3);font-size:12px;margin-top:4px">Yüklenmedi</div>';
+  const bayrakOnizleme = _kullaniciAyarlar.bayrak_data
+    ? '<img src="' + _kullaniciAyarlar.bayrak_data + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>'
+    : '<i class="fa-solid fa-flag" style="font-size:22px;color:var(--text3)"></i><div style="color:var(--text3);font-size:12px;margin-top:4px">Yüklenmedi</div>';
+
+  // Çağrı merkezi butonu ayarını oku
+  const destekButonGoster = localStorage.getItem('icder-destek-buton') !== '0';
+
+  openModal('Ayarlar', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="form-group">
+        <label><i class="fa-solid fa-image"></i> Logonuz</label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-logo-input').click()">
+          <div id="setup-logo-preview">${logoOnizleme}</div>
+        </div>
+        <input type="file" id="setup-logo-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'logo')"/>
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-flag"></i> Sağ Üst Bayrak</label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:90px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('setup-bayrak-input').click()">
+          <div id="setup-bayrak-preview">${bayrakOnizleme}</div>
+        </div>
+        <input type="file" id="setup-bayrak-input" accept="image/*" style="display:none" onchange="onSetupImageChange(this,'bayrak')"/>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">
+          <i class="fa-solid fa-flag"></i> Bayrak Kütüphanesi
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="modalYeniBayrak()"><i class="fa-solid fa-plus"></i> Bayrak Ekle</button>
+      </div>
+      <div id="bayrak-listesi-ayar"><div style="color:var(--text3);font-size:13px">Yükleniyor...</div></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">
+        <i class="fa-solid fa-sliders"></i> Arayüz Ayarları
+      </div>
+      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 12px;background:var(--bg4);border-radius:8px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <i class="fa-solid fa-headset" style="color:var(--accent);font-size:16px"></i>
+          <div>
+            <div style="font-size:13px;font-weight:600">Sağ Alt Destek Butonu</div>
+            <div style="font-size:11px;color:var(--text3)">Ekranın sağ altındaki çağrı merkezi tuşu</div>
+          </div>
+        </div>
+        <div style="position:relative;width:44px;height:24px;flex-shrink:0" onclick="var cb=document.getElementById('ayar-destek-buton');cb.checked=!cb.checked;toggleDestekButon(cb.checked)">
+          <div id="destek-toggle-track" style="
+            position:absolute;inset:0;border-radius:12px;cursor:pointer;transition:background 0.3s;
+            background:${destekButonGoster ? 'var(--accent)' : 'var(--border2)'};
+          ">
+            <div style="
+              position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;
+              transition:left 0.3s;box-shadow:0 1px 4px rgba(0,0,0,0.3);
+              left:${destekButonGoster ? '23px' : '3px'};
+            " id="destek-toggle-thumb"></div>
+          </div>
+          <input type="checkbox" id="ayar-destek-buton" ${destekButonGoster ? 'checked' : ''} style="opacity:0;width:0;height:0;position:absolute"/>
+        </div>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kurulumKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>
+  `, true, 'gear');
+  // Bayrak listesini yükle
+  yukleBayraklarAyar();
+}
+
+function toggleDestekButon(goster) {
+  localStorage.setItem('icder-destek-buton', goster ? '1' : '0');
+  const btn = document.getElementById('floating-destek-btn');
+  if (btn) btn.style.display = goster ? 'flex' : 'none';
+  // Toggle görselini güncelle
+  const track = document.getElementById('destek-toggle-track');
+  const thumb = document.getElementById('destek-toggle-thumb');
+  if (track) track.style.background = goster ? 'var(--accent)' : 'var(--border2)';
+  if (thumb) thumb.style.left = goster ? '23px' : '3px';
+}
+
+// Sayfa yüklenince destek butonu durumunu uygula — DOMContentLoaded yerine direkt çalıştır
+function applyDestekButon() {
+  const goster = localStorage.getItem('icder-destek-buton') !== '0';
+  const btn = document.getElementById('floating-destek-btn');
+  if (btn) btn.style.display = goster ? 'flex' : 'none';
+}
+// Hem hemen hem DOM hazır olunca çalıştır
+applyDestekButon();
+document.addEventListener('DOMContentLoaded', applyDestekButon);
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const S = { page:'organizasyonlar', orgId:null, orgAd:'', orgYil:'' };
+
+const KURBAN_TURLERI = ['Udhiye','Adak','Akika','Vacip','Hedy','Sukur','Kiran','Temmettu','Ceza','Ihsar','Sadaka','Nafile','Olu','Kefaret','Sifa','Hacet','Fidye','Zekat','Nesike','Vesile','Atire','Hayır','Ruhuna Kurbanı'];
+
+const BAGISCI_KATEGORILERI = ['Genel Bağışçı','VIP Bağışçı','Kurumsal','Sponsor','Düzenli Bağışçı','Yeni Bağışçı','Eski Bağışçı','Özel Kategori'];
+
+function kurbanTuruOptions(secili) {
+  return KURBAN_TURLERI.map(t => '<option value="' + t + '"' + (secili===t?' selected':'') + '>' + t + '</option>').join('');
+}
+
+function bagisciKategoriOptions(secili) {
+  return BAGISCI_KATEGORILERI.map(k => '<option value="' + k + '"' + (secili===k?' selected':'') + '>' + k + '</option>').join('');
+}
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function api(method, url, body) {
+  const opts = { method, headers:{'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch('/api' + url, opts);
+  const d = await r.json().catch(() => ({}));
+  // Sistem bakım/kapalı modu: 503 + bloke → zorla sayfayı yenile (middleware bakım ekranına atar)
+  if (r.status === 503 && d.bloke) {
+    sistemModuBlokeAtla(d.sistem_modu, d.sistem_notu);
+    throw new Error(d.hata || 'Sistem şu anda erişime kapalı');
+  }
+  if (!r.ok) throw new Error(d.hata || 'Hata olustu');
+  return d;
+}
+
+// ─── SİSTEM MODU OTOMATİK KONTROLÜ ───────────────────────────────────────────
+// Bakım/Kapalı moduna geçildiyse açık olan kullanıcıyı bakım ekranına at.
+let _sistemModuTimer = null;
+let _sistemModuRedirecting = false;
+
+function sistemModuBlokeAtla(mod, not) {
+  if (_sistemModuRedirecting) return;
+  _sistemModuRedirecting = true;
+  const modText = mod === 'bakim' ? '🔧 Sistem Bakımda' : '🔒 Sistem Kapalı';
+  const renk = mod === 'bakim' ? '#f59e0b' : '#ef4444';
+  // Mevcut sayfayı kapatıp tam ekran bakım katmanı göster
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:fixed;inset:0;z-index:99999;background:#0a1410;color:#e8f5ee;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:'Segoe UI',sans-serif`;
+  wrap.innerHTML = `
+    <div style="max-width:520px;width:100%">
+      <div style="font-size:96px;margin-bottom:24px;color:${renk}"><i class="fa-solid ${mod === 'bakim' ? 'fa-wrench' : 'fa-lock'}"></i></div>
+      <h1 style="font-size:32px;font-weight:800;color:${renk};margin-bottom:14px">${modText}</h1>
+      <p style="font-size:15px;color:#a8c9b8;line-height:1.7;margin-bottom:22px">${mod === 'bakim' ? 'Sistem şu anda bakım modunda. Kısa süre içinde tekrar erişilebilir olacak.' : 'Sistem şu anda kapalı. Lütfen daha sonra tekrar deneyin.'}</p>
+      ${not ? `<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;font-size:14px;color:#e8f5ee;margin-bottom:22px"><strong style="color:${renk}">Yönetici Notu:</strong><br><br>${esc(not)}</div>` : ''}
+      <div style="font-size:12px;color:#6a8a7a">3 saniye içinde giriş ekranına yönlendiriliyorsunuz...</div>
+    </div>`;
+  document.body.appendChild(wrap);
+  setTimeout(() => { window.location.href = '/icder-giris'; }, 3000);
+}
+
+async function sistemModuKontrol() {
+  if (_sistemModuRedirecting) return;
+  try {
+    const r = await fetch('/api/admin/sistem-modu', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.mod === 'bakim' || d.mod === 'kapali') {
+      sistemModuBlokeAtla(d.mod, d.not);
+    }
+  } catch(e) { /* network hatası — yoksay */ }
+}
+
+function sistemModuPollingBaslat() {
+  if (_sistemModuTimer) return;
+  // İlk kontrol 3 sn sonra, sonra her 10 sn'de bir
+  setTimeout(sistemModuKontrol, 3000);
+  _sistemModuTimer = setInterval(sistemModuKontrol, 10000);
+}
+
+// Sayfa yüklenir yüklenmez polling başlat
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', sistemModuPollingBaslat);
+  } else {
+    sistemModuPollingBaslat();
+  }
+}
+
+// ─── UI LOGO CACHE-BUSTING ───────────────────────────────────────────────────
+async function uiLogoYenile() {
+  try {
+    const r = await fetch('/api/admin/ui-logo-bilgi', { cache: 'no-store' });
+    if (!r.ok) return;
+    const d = await r.json();
+    document.querySelectorAll('img[src^="icder.png"], img[src="icder.png"]').forEach(img => {
+      if (d.var) {
+        img.src = `icder.png?v=${d.v || Date.now()}`;
+        img.style.display = '';
+        const fb = img.nextElementSibling;
+        if (fb && fb.tagName === 'I') fb.style.display = 'none';
+      } else {
+        img.style.display = 'none';
+        const fb = img.nextElementSibling;
+        if (fb && fb.tagName === 'I') fb.style.display = 'block';
+      }
+    });
+  } catch(e) {}
+}
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', uiLogoYenile);
+  } else {
+    uiLogoYenile();
+  }
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const c = document.getElementById('toast-container');
+  if (!c) {
+    console.warn('toast-container not found, using console:', msg);
+    return;
+  }
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i class="fa-solid fa-${type==='success'?'circle-check':'circle-xmark'}"></i> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+function openModal(title, html, large=false, icon='') {
+  document.getElementById('modal-title').innerHTML = `${icon?`<i class="fa-solid fa-${icon}"></i>`:''}${title}`;
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-box').className = large ? 'modal modal-lg' : 'modal';
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+function closeModalOutside(e) { if (e.target===document.getElementById('modal-overlay')) closeModal(); }
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+function showPage(page) {
+  S.page = page;
+  document.querySelectorAll('.sidebar-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.page === page));
+  document.getElementById('main-content').innerHTML = '';
+  if (page==='organizasyon-sec') renderOrganizasyonSec();
+  else if (page==='tum-organizasyonlar') renderTumOrganizasyonlar();
+  else if (page==='gelir-gider') renderGelirGider();
+  else if (page==='organizasyonlar' || page==='kurban-organizasyonu') renderOrganizasyonlar();
+  else if (page==='kurbanlar')   renderKurbanlar();
+  else if (page==='bagiscilar')  renderBagiscilar();
+  else if (page==='raporlar')    renderRaporlar();
+  else if (page==='hissedar-raporlari') renderHissedarRaporlari();
+  else if (page==='su-kuyusu-raporlari') renderSuKuyusuRaporlari();
+  else if (page==='bagisci-raporlari') renderBagisciRaporlari();
+  else if (page==='ihtiyac-sahibi-raporlari') renderIhtiyacSahibiRaporlari();
+  else if (page==='tahsilat-raporlari') renderTahsilatRaporlari();
+  else if (page==='banka-servisleri') renderBankaServisleri();
+  else if (page==='sponsor-periyot-raporlari') renderSponsorPeriyotRaporlari();
+  else if (page==='profil-bilgilerim') renderProfilBilgilerim();
+  else if (page==='ozel-mesajlar') renderOzelMesajlar();
+  else if (page==='gorev-bildirimlerim') renderGorevBildirimlerim();
+  else if (page==='destek') renderDestekHatti();
+  else if (page==='personel-takip') renderPersonelTakip();
+  else if (page==='cop')         renderCopKutusu();
+  else if (page==='yedek')       renderYedekGeriYukle();
+  else if (page==='denetim')     renderDenetim();
+  else if (page==='medya')       renderMedyaDeposu();
+  else if (page==='bagis-turleri') renderBagisTurleri();
+  else if (page==='bagis-raporlari') renderBagisRaporlari();
+  else if (page==='bagisci-yonetimi') renderBagisciYonetimi();
+  else if (page==='bagis-al') renderBagisAl();
+  else if (page==='gonullu-yonetimi') renderGonulluYonetimi();
+  else if (page==='kumbara-talepleri') renderKumbaraTalepleri();
+  else if (page==='web-sitesi-bagislari') renderWebSitesiBagislari();
+  else if (page==='kategori-tanimlari') renderKategoriTanimlari();
+  else if (page==='urun-tanimlari') renderUrunTanimlari();
+  else if (page==='stok-girisi') renderStokGirisi();
+  else if (page==='stok-cikisi') renderStokCikisi();
+  else if (page==='fatura-raporlari') renderFaturaRaporlari();
+  else if (page==='depo-sayimi') renderDepoSayimi();
+  else if (page==='yardim-raporlari') renderYardimRaporlari();
+  else if (page==='basvuru-dosyalari') renderBasvuruDosyalari();
+  else if (page==='yetim-oksuz-yonetimi') renderYetimOksuzYonetimi();
+  else if (page==='ihtiyac-sahibi-listesi') renderIhtiyacSahibiListesi();
+  else if (page==='su-kuyusu-organizasyonu') renderSuKuyusuOrganizasyonu();
+  else if (page==='proje-yonetimi') renderProjeYonetimi();
+  else if (page==='diger-organizasyonlar') renderDigerOrganizasyonlar();
+  else if (page==='partner-kurum-listesi') renderPartnerKurumListesi();
+}
+
+function toggleBagisMenu() {
+  const submenu = document.getElementById('bagis-submenu');
+  const chevron = document.getElementById('bagis-chevron');
+  if (submenu.style.display === 'none' || submenu.style.display === '') {
+    submenu.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+    setTimeout(() => submenu.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
+  } else {
+    submenu.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function toggleDepoStokMenu() {
+  const submenu = document.getElementById('depo-stok-submenu');
+  const chevron = document.getElementById('depo-stok-chevron');
+  if (submenu.style.display === 'none' || submenu.style.display === '') {
+    submenu.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    submenu.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function toggleYardimMenu() {
+  const submenu = document.getElementById('yardim-submenu');
+  const chevron = document.getElementById('yardim-chevron');
+  if (submenu.style.display === 'none' || submenu.style.display === '') {
+    submenu.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    submenu.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function toggleOrganizasyonMenu() {
+  const submenu = document.getElementById('organizasyon-submenu');
+  const chevron = document.getElementById('organizasyon-chevron');
+  if (submenu.style.display === 'none' || submenu.style.display === '') {
+    submenu.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    submenu.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function toggleRaporlarMenu() {
+  const submenu = document.getElementById('raporlar-submenu');
+  const chevron = document.getElementById('raporlar-chevron');
+  if (submenu.style.display === 'none' || submenu.style.display === '') {
+    submenu.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    submenu.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function toggleKisiselMenu() {
+  const submenu = document.getElementById('kisisel-submenu');
+  const chevron = document.getElementById('kisisel-chevron');
+  if (submenu.style.display === 'none' || submenu.style.display === '') {
+    submenu.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    submenu.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function togglePartnerMenu() {
+  const submenu = document.getElementById('partner-submenu');
+  const chevron = document.getElementById('partner-chevron');
+  if (submenu.style.display === 'none' || submenu.style.display === '') {
+    submenu.style.display = 'block';
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    submenu.style.display = 'none';
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
+function setSidebarOrg(ad, yil) {
+  document.getElementById('sidebar-org-name').textContent = ad || 'Organizasyon Seçilmedi';
+  document.getElementById('sidebar-org-sub').textContent  = yil ? `${yil} Yılı` : 'Bir organizasyon seçin';
+  // Topbar göstergesi
+  const display = document.getElementById('selected-org-display');
+  const nameEl  = document.getElementById('selected-org-name');
+  const yearEl  = document.getElementById('selected-org-year');
+  if (display) display.style.display = ad ? 'flex' : 'none';
+  if (nameEl)  nameEl.textContent = ad || '';
+  if (yearEl)  yearEl.textContent = yil ? `${yil} Yılı` : '';
+}
+
+function cikOrganizasyondan() {
+  S.orgId = null; S.orgAd = ''; S.orgYil = '';
+  setSidebarOrg('', '');
+  showPage('organizasyonlar');
+}
+
+// ─── YARDIMCI ────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function para(v) { return v ? Number(v).toLocaleString('tr-TR') + ' TL' : '-'; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORGANİZASYONLAR
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderOrganizasyonlar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-layer-group"></i></div>
+        Organizasyonlar
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniOrg()">
+        <i class="fa-solid fa-plus"></i> Yeni Organizasyon
+      </button>
+    </div>
+    <div class="org-grid" id="org-grid">
+      <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div>
+    </div>`;
+  const list = await api('GET','/organizasyonlar');
+  const g = document.getElementById('org-grid');
+  if (!list.length) {
+    g.innerHTML = `<div class="empty-state"><i class="fa-solid fa-layer-group"></i><p>Henuz organizasyon yok.</p></div>`;
+    return;
+  }
+  g.innerHTML = list.map(o => `
+    <div class="org-card" onclick="secOrg(${o.id},'${esc(o.ad)}',${o.yil})">
+      <div class="org-card-name">${esc(o.ad)}</div>
+      <div class="org-card-year"><i class="fa-solid fa-calendar"></i> ${o.yil} &nbsp;|&nbsp; Maks. ${o.max_kurban} Kurban</div>
+      <div class="org-card-stats">
+        <div class="org-card-stat"><div class="val">${o.max_kurban}</div><div class="lbl">Kapasite</div></div>
+        <div class="org-card-stat"><div class="val" style="color:var(--green)">${para(o.buyukbas_hisse_fiyati)}</div><div class="lbl">Buyukbas</div></div>
+        <div class="org-card-stat"><div class="val" style="color:var(--yellow)">${para(o.kucukbas_hisse_fiyati)}</div><div class="lbl">Kucukbas</div></div>
+      </div>
+      <div class="org-card-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-secondary btn-sm" onclick="modalDuzenleOrg(${o.id})"><i class="fa-solid fa-pen"></i> Duzenle</button>
+        <button class="btn btn-danger btn-sm" onclick="silOrg(${o.id})"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>`).join('');
+}
+
+function secOrg(id, ad, yil) {
+  S.orgId=id; S.orgAd=ad; S.orgYil=yil;
+  setSidebarOrg(ad, yil);
+  showPage('kurbanlar');
+}
+
+function modalYeniOrg() {
+  openModal('Yeni Organizasyon Olustur', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Organizasyon Adi *</label>
+        <input id="fo-ad" placeholder="Ornek: 2025 Kurban Organizasyonu"/>
+      </div>
+      <div class="form-group">
+        <label>Yil *</label>
+        <input id="fo-yil" type="number" value="${new Date().getFullYear()}"/>
+      </div>
+      <div class="form-group">
+        <label>Maksimum Kurban Sayisi *</label>
+        <input id="fo-max" type="number" placeholder="50"/>
+      </div>
+      <div class="form-group">
+        <label>Buyukbas Hisse Fiyati (TL)</label>
+        <input id="fo-bb" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label>Kucukbas Hisse Fiyati (TL)</label>
+        <input id="fo-kb" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Aciklama</label>
+        <textarea id="fo-aciklama" placeholder="Opsiyonel..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="kaydetOrg()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'layer-group');
+}
+
+async function kaydetOrg() {
+  const ad=document.getElementById('fo-ad').value.trim();
+  const yil=parseInt(document.getElementById('fo-yil').value);
+  const max_kurban=parseInt(document.getElementById('fo-max').value);
+  const buyukbas_hisse_fiyati=parseFloat(document.getElementById('fo-bb').value)||0;
+  const kucukbas_hisse_fiyati=parseFloat(document.getElementById('fo-kb').value)||0;
+  const aciklama=document.getElementById('fo-aciklama').value.trim();
+  if (!ad||!yil||!max_kurban) return toast('Zorunlu alanlar eksik','error');
+  try {
+    await api('POST','/organizasyonlar',{ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati,aciklama});
+    closeModal(); toast('Organizasyon olusturuldu'); renderOrganizasyonlar();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function modalDuzenleOrg(id) {
+  const list = await api('GET','/organizasyonlar');
+  const o = list.find(x=>x.id===id); if (!o) return;
+  openModal('Organizasyonu Duzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Organizasyon Adi *</label>
+        <input id="fo-ad" value="${esc(o.ad)}"/>
+      </div>
+      <div class="form-group"><label>Yil *</label><input id="fo-yil" type="number" value="${o.yil}"/></div>
+      <div class="form-group"><label>Maks. Kurban *</label><input id="fo-max" type="number" value="${o.max_kurban}"/></div>
+      <div class="form-group"><label>Buyukbas Hisse (TL)</label><input id="fo-bb" type="number" value="${o.buyukbas_hisse_fiyati}"/></div>
+      <div class="form-group"><label>Kucukbas Hisse (TL)</label><input id="fo-kb" type="number" value="${o.kucukbas_hisse_fiyati}"/></div>
+      <div class="form-group" style="grid-column:1/-1"><label>Aciklama</label><textarea id="fo-aciklama">${esc(o.aciklama||'')}</textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="guncOrg(${id})"><i class="fa-solid fa-floppy-disk"></i> Guncelle</button>
+    </div>`, false, 'pen');
+}
+
+async function guncOrg(id) {
+  const ad=document.getElementById('fo-ad').value.trim();
+  const yil=parseInt(document.getElementById('fo-yil').value);
+  const max_kurban=parseInt(document.getElementById('fo-max').value);
+  const buyukbas_hisse_fiyati=parseFloat(document.getElementById('fo-bb').value)||0;
+  const kucukbas_hisse_fiyati=parseFloat(document.getElementById('fo-kb').value)||0;
+  const aciklama=document.getElementById('fo-aciklama').value.trim();
+  try {
+    await api('PUT',`/organizasyonlar/${id}`,{ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati,aciklama});
+    closeModal(); toast('Guncellendi'); renderOrganizasyonlar();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function silOrg(id) {
+  if (!confirm('Bu organizasyonu silmek istediginizden emin misiniz?')) return;
+  try { await api('DELETE',`/organizasyonlar/${id}`); toast('Silindi'); renderOrganizasyonlar(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KURBANLAR
+// ═══════════════════════════════════════════════════════════════════════════
+let _kurbanlar = [];
+
+async function renderKurbanlar() {
+  if (!S.orgId) { showPage('organizasyonlar'); return; }
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-cow"></i></div>
+        Kurbanlar <small>${esc(S.orgAd)}</small>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="showPage('organizasyonlar')"><i class="fa-solid fa-arrow-left"></i> Geri</button>
+        <div style="position:relative">
+          <button class="btn btn-secondary" onclick="togglePrintMenu(event)">
+            <i class="fa-solid fa-print"></i> Yazdırma Seçenekleri
+            <i class="fa-solid fa-chevron-down" style="margin-left:6px;font-size:10px"></i>
+          </button>
+          <div id="print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;z-index:1000">
+            <div onclick="tumKurbanlariYazdir()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>
+              <span>Tümünü Yazdır</span>
+            </div>
+            <div onclick="tumKurbanlariExcel()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>
+              <span>Excel İndir</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="modalYeniKurban()"><i class="fa-solid fa-plus"></i> Kurban Ekle</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input id="k-ara" placeholder="Kurban no ara..." oninput="filterKurbanlar()"/>
+        <select id="k-durum" onchange="filterKurbanlar()">
+          <option value="">Tüm Durumlar</option>
+          <optgroup label="── Hisse Durumu">
+            <option value="bos">Boş Hisseli</option>
+            <option value="doldu">Hisseleri Dolu</option>
+            <option value="kesildi">Kesildi</option>
+          </optgroup>
+          <optgroup label="── Ödeme">
+            <option value="odendi">Tümü Ödendi</option>
+            <option value="bekliyor">Ödeme Bekleyen Var</option>
+          </optgroup>
+          <optgroup label="── Video">
+            <option value="video-var">Video İsteyenler</option>
+            <option value="video-yok">Video İstemeyenler</option>
+          </optgroup>
+          <optgroup label="── Vekalet">
+            <option value="vekalet-var">✅ Vekalet Alınanlar</option>
+            <option value="vekalet-yok">❌ Vekalet Alınmayanlar</option>
+          </optgroup>
+          <optgroup label="── Hisse Sayısı">
+            <option value="7hisse">7 Hisseli (Büyükbaş)</option>
+            <option value="1hisse">1 Hisseli (Küçükbaş)</option>
+          </optgroup>
+        </select>
+      </div>
+      <!-- Büyükbaş -->
+      <div style="margin-bottom:28px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--accent)">
+          <i class="fa-solid fa-cow" style="color:var(--accent);font-size:18px"></i>
+          <span style="font-size:16px;font-weight:700;color:var(--accent)">Büyükbaş</span>
+          <span id="buyukbas-sayac" style="font-size:12px;color:var(--text3);margin-left:4px"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:40px">#</th>
+              <th>No</th>
+              <th>Küpe No</th>
+              <th>Alış Fiyatı</th>
+              <th>Hisse Durumu</th>
+              <th>Durum</th>
+              <th>Vekalet</th>
+              <th>Kesim</th>
+              <th>İşlemler</th>
+            </tr></thead>
+            <tbody id="buyukbas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Küçükbaş -->
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--yellow)">
+          <i class="fa-solid fa-hippo" style="color:var(--yellow);font-size:18px"></i>
+          <span style="font-size:16px;font-weight:700;color:var(--yellow)">Küçükbaş</span>
+          <span id="kucukbas-sayac" style="font-size:12px;color:var(--text3);margin-left:4px"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:40px">#</th>
+              <th>No</th>
+              <th>Küpe No</th>
+              <th>Alış Fiyatı</th>
+              <th>Hisse Durumu</th>
+              <th>Durum</th>
+              <th>Vekalet</th>
+              <th>Kesim</th>
+              <th>İşlemler</th>
+            </tr></thead>
+            <tbody id="kucukbas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  await loadKurbanlar();
+}
+
+async function loadKurbanlar() {
+  const durum = document.getElementById('k-durum')?.value||'';
+  let url = `/organizasyonlar/${S.orgId}/kurbanlar?`;
+  if (durum) url+=`durum=${durum}`;
+  _kurbanlar = await api('GET', url);
+  filterKurbanlar();
+}
+
+function filterKurbanlar() {
+  const ara = (document.getElementById('k-ara')?.value||'').toLowerCase();
+  const durum = document.getElementById('k-durum')?.value||'';
+
+  let list = _kurbanlar.filter(k => {
+    // Arama filtresi
+    if (ara && !String(k.kurban_no).includes(ara) && !(k.kupe_no||'').toLowerCase().includes(ara)) return false;
+
+    // Durum filtresi
+    if (durum === 'bos') return !k.kesildi && k.dolu_hisse < k.toplam_hisse;
+    if (durum === 'doldu') return !k.kesildi && k.dolu_hisse >= k.toplam_hisse;
+    if (durum === 'kesildi') return !!k.kesildi;
+    if (durum === 'odendi') return k.dolu_hisse > 0 && k._odendi_sayi === k.dolu_hisse;
+    if (durum === 'bekliyor') return k._bekliyor_sayi > 0;
+    if (durum === 'video-var') return k._video_sayi > 0;
+    if (durum === 'video-yok') return k.dolu_hisse > 0 && k._video_sayi === 0;
+    if (durum === 'vekalet-var') return k._vekalet_sayi > 0;
+    if (durum === 'vekalet-yok') return k.dolu_hisse > 0 && (k._vekalet_sayi || 0) < k.dolu_hisse;
+    if (durum === '7hisse') return k.toplam_hisse === 7;
+    if (durum === '1hisse') return k.toplam_hisse === 1;
+    return true;
+  });
+
+  const buyukbaslar = list.filter(k => k.tur === 'buyukbas').sort((a,b) => a.kurban_no - b.kurban_no);
+  const kucukbaslar = list.filter(k => k.tur === 'kucukbas').sort((a,b) => a.kurban_no - b.kurban_no);
+
+  // Sayaçları güncelle
+  const bSayac = document.getElementById('buyukbas-sayac');
+  const kSayac = document.getElementById('kucukbas-sayac');
+  if (bSayac) bSayac.textContent = `(${buyukbaslar.length} adet)`;
+  if (kSayac) kSayac.textContent = `(${kucukbaslar.length} adet)`;
+
+  const bosRow = (colspan) => `<tr><td colspan="${colspan}"><div class="empty-state" style="padding:16px"><i class="fa-solid fa-inbox"></i><p style="font-size:13px">Kayıt yok</p></div></td></tr>`;
+
+  const renderRow = (k, idx) => {
+    const dolu = k.dolu_hisse, top = k.toplam_hisse;
+    const pct = Math.round((dolu/top)*100);
+    let durumBadge;
+    if (k.kesildi) durumBadge = `<span class="badge badge-red"><i class="fa-solid fa-scissors"></i> Kesildi</span>`;
+    else if (dolu>=top) durumBadge = `<span class="badge badge-yellow"><i class="fa-solid fa-circle-dot"></i> Doldu</span>`;
+    else durumBadge = `<span class="badge badge-green"><i class="fa-solid fa-circle"></i> Bos</span>`;
+    const vekaletSayi = k._vekalet_sayi || 0;
+    const vekaletBadge = dolu > 0
+      ? `<span class="badge ${vekaletSayi === dolu ? 'badge-green' : vekaletSayi > 0 ? 'badge-yellow' : 'badge-gray'}" style="font-size:10px" title="Vekalet: ${vekaletSayi}/${dolu}">
+          <i class="fa-solid fa-handshake"></i> ${vekaletSayi}/${dolu}
+        </span>`
+      : '';
+    return `<tr>
+      <td style="color:var(--text3);font-size:12px;font-weight:600">${idx+1}</td>
+      <td><span class="kurban-no-badge">${k.kurban_no}</span></td>
+      <td>${k.kupe_no?esc(k.kupe_no):'<span style="color:var(--text3)">-</span>'}</td>
+      <td>${k.alis_fiyati?para(k.alis_fiyati):'-'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;min-width:120px">
+          <div class="progress-bar" style="flex:1"><div class="progress-fill ${dolu>=top?'full':''}" style="width:${pct}%"></div></div>
+          <span style="font-size:12px;color:var(--text2);font-weight:600">${dolu}/${top}</span>
+        </div>
+      </td>
+      <td>${durumBadge}</td>
+      <td>${vekaletBadge}</td>
+      <td>${k.kesim_tarihi?`<span style="font-size:12px">${k.kesim_tarihi}</span>`:'<span style="color:var(--text3)">-</span>'}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-purple btn-sm" onclick="modalHisseler(${k.id},${k.kurban_no},'${k.tur}')"><i class="fa-solid fa-users"></i> Hisseler</button>
+          <button class="btn btn-secondary btn-sm btn-icon" title="Yazdır" onclick="modalYazdirSecim(${k.id}, ${k.kurban_no}, '${k.tur}')"><i class="fa-solid fa-print"></i></button>
+          <button class="btn btn-green btn-sm btn-icon" title="Excel İndir" onclick="excelIndirKurbanSatir(${k.id})"><i class="fa-solid fa-file-excel"></i></button>
+          <button class="btn btn-secondary btn-sm btn-icon" title="Duzenle" onclick="modalDuzenleKurban(${k.id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-danger btn-sm btn-icon" title="Sil" onclick="silKurban(${k.id})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  };
+
+  const bTbody = document.getElementById('buyukbas-tbody');
+  const kTbody = document.getElementById('kucukbas-tbody');
+  if (bTbody) bTbody.innerHTML = buyukbaslar.length ? buyukbaslar.map(renderRow).join('') : bosRow(8);
+  if (kTbody) kTbody.innerHTML = kucukbaslar.length ? kucukbaslar.map(renderRow).join('') : bosRow(8);
+}
+
+function modalYeniKurban() {
+  openModal('Yeni Kurban Ekle', `
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Hayvan Turu *</label>
+        <select id="fk-tur" onchange="otoKupeNo()">
+          <option value="buyukbas">Buyukbas (7 Hisse)</option>
+          <option value="kucukbas">Kucukbas (1 Hisse)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Kurban Turu *</label>
+        <select id="fk-kurban-turu">${kurbanTuruOptions('Udhiye')}</select>
+      </div>
+      <div class="form-group">
+        <label>Küpe No <span style="font-size:11px;color:var(--text3);font-weight:400">(otomatik)</span></label>
+        <input id="fk-kupe" placeholder="Otomatik atanır"/>
+      </div>
+      <div class="form-group">
+        <label>Alis Fiyati (TL)</label>
+        <input id="fk-alis" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Kesen Kisi Adi Soyadi <span style="color:var(--text3);font-weight:400">(Opsiyonel)</span></label>
+        <input id="fk-kesen" placeholder="Kurbani kesecek kisi"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Not</label>
+        <textarea id="fk-not" placeholder="Opsiyonel..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="kaydetKurban()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'cow');
+  // Modal açılınca otomatik küpe no ata
+  setTimeout(otoKupeNo, 100);
+}
+
+function otoKupeNo() {
+  // Hem "Yeni Kurban" (fk-*) hem "Bağışçı Ekle" (fb-*) modallarını destekler
+  const turEl = document.getElementById('fk-tur') || document.getElementById('fb-tur');
+  const kupeInput = document.getElementById('fk-kupe') || document.getElementById('fb-kupe');
+  if (!turEl || !kupeInput) return;
+  const tur = turEl.value || 'buyukbas';
+  // Bu türün mevcut kurbanlarındaki en büyük sayısal küpe nosunu bul
+  const mevcutlar = _kurbanlar.filter(k => k.tur === tur && k.kupe_no);
+  const maxNo = mevcutlar.reduce((max, k) => {
+    const n = parseInt(k.kupe_no);
+    return !isNaN(n) && n > max ? n : max;
+  }, 0);
+  kupeInput.value = String(maxNo + 1);
+}
+
+async function kaydetKurban() {
+  const tur=document.getElementById('fk-tur').value;
+  const kurban_turu=document.getElementById('fk-kurban-turu').value;
+  const kupe_no=document.getElementById('fk-kupe').value.trim();
+  const alis_fiyati=parseFloat(document.getElementById('fk-alis').value)||0;
+  const kesen_kisi=document.getElementById('fk-kesen').value.trim();
+  const aciklama=document.getElementById('fk-not').value.trim();
+  try {
+    const r = await api('POST',`/organizasyonlar/${S.orgId}/kurbanlar`,{tur,kurban_turu,kupe_no,alis_fiyati,kesen_kisi,aciklama});
+    closeModal(); toast(`Kurban #${r.kurban_no} olusturuldu (${r.toplam_hisse} hisse)`);
+    await loadKurbanlar();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function modalDuzenleKurban(id) {
+  const k = _kurbanlar.find(x=>x.id===id); if (!k) return;
+  openModal(`Kurban #${k.kurban_no} Duzenle`, `
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Kurban Turu</label>
+        <select id="fk-kurban-turu">${kurbanTuruOptions(k.kurban_turu||'Udhiye')}</select>
+      </div>
+      <div class="form-group">
+        <label>Kupe No</label>
+        <input id="fk-kupe" value="${esc(k.kupe_no||'')}"/>
+      </div>
+      <div class="form-group">
+        <label>Alis Fiyati (TL)</label>
+        <input id="fk-alis" type="number" value="${k.alis_fiyati||0}"/>
+      </div>
+      <div class="form-group">
+        <label>Kesildi mi?</label>
+        <select id="fk-kesildi">
+          <option value="0" ${!k.kesildi?'selected':''}>Hayir</option>
+          <option value="1" ${k.kesildi?'selected':''}>Evet</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Kesim Tarihi</label>
+        <input id="fk-kesim" type="date" value="${k.kesim_tarihi||''}"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Kesen Kisi Adi Soyadi</label>
+        <input id="fk-kesen" value="${esc(k.kesen_kisi||'')}" placeholder="Opsiyonel"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Not</label>
+        <textarea id="fk-not">${esc(k.aciklama||'')}</textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="guncKurban(${id})"><i class="fa-solid fa-floppy-disk"></i> Guncelle</button>
+    </div>`, false, 'pen');
+}
+
+async function guncKurban(id) {
+  const kurban_turu=document.getElementById('fk-kurban-turu').value;
+  const kupe_no=document.getElementById('fk-kupe').value.trim();
+  const alis_fiyati=parseFloat(document.getElementById('fk-alis').value)||0;
+  const kesildi=document.getElementById('fk-kesildi').value==='1';
+  const kesim_tarihi=document.getElementById('fk-kesim').value;
+  const kesen_kisi=document.getElementById('fk-kesen').value.trim();
+  const aciklama=document.getElementById('fk-not').value.trim();
+  try {
+    await api('PUT',`/kurbanlar/${id}`,{kurban_turu,kupe_no,alis_fiyati,kesildi,kesim_tarihi,kesen_kisi,aciklama});
+    closeModal(); toast('Guncellendi'); await loadKurbanlar();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function silKurban(id) {
+  if (!confirm('Bu kurbani silmek istediginizden emin misiniz?')) return;
+  try { await api('DELETE',`/kurbanlar/${id}`); toast('Silindi'); await loadKurbanlar(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HİSSELER / BAĞIŞÇI EKLEME
+// ═══════════════════════════════════════════════════════════════════════════
+async function modalHisseler(kurbanId, kurbanNo, tur) {
+  const hisseler = await api('GET',`/kurbanlar/${kurbanId}/hisseler`);
+  const dolu = hisseler.filter(h=>h.bagisci_adi).length;
+  const html = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span class="badge ${tur==='buyukbas'?'badge-blue':'badge-gray'}">${tur==='buyukbas'?'Buyukbas':'Kucukbas'}</span>
+      <span style="font-size:13px;color:var(--text2)">${dolu}/${hisseler.length} hisse dolu</span>
+      <div class="progress-bar" style="flex:1;max-width:120px">
+        <div class="progress-fill ${dolu>=hisseler.length?'full':''}" style="width:${Math.round(dolu/hisseler.length*100)}%"></div>
+      </div>
+    </div>
+    <div class="hisse-grid">
+      ${hisseler.map(h => hisseKart(h, kurbanId)).join('')}
+    </div>`;
+  openModal(`Kurban #${kurbanNo} — Hisseler`, html, true, 'users');
+}
+
+function hisseKart(h, kurbanId) {
+  const dolu = !!h.bagisci_adi;
+  const odemeRenk = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
+  const odemeLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
+  return `
+    <div class="hisse-card ${dolu?'dolu':''}" onclick="modalBagisciDuzenle(${h.id},${kurbanId})">
+      <div class="hisse-no"><i class="fa-solid fa-hashtag"></i> Hisse ${h.hisse_no}</div>
+      ${dolu ? `
+        <div class="hisse-isim">${esc(h.bagisci_adi)}</div>
+        <div class="hisse-tel">${h.bagisci_telefon?esc(h.bagisci_telefon):''}</div>
+        ${h.kurban_turu?`<div style="font-size:11px;color:var(--accent);margin-top:4px"><i class="fa-solid fa-tag"></i> ${esc(h.kurban_turu)}</div>`:''}
+        ${h.kimin_adina?`<div class="hisse-adina"><i class="fa-solid fa-heart"></i> ${esc(h.kimin_adina)}</div>`:''}
+        ${h.video_ister?`<div style="font-size:11px;color:var(--accent);margin-top:4px"><i class="fa-solid fa-video"></i> Video istiyor</div>`:''}
+        ${h.vekalet_onay?`<div style="font-size:11px;color:var(--green);margin-top:4px"><i class="fa-solid fa-handshake"></i> Vekalet Alındı</div>`:''}
+        <div class="hisse-odeme"><span class="badge ${odemeRenk[h.odeme_durumu]||'badge-gray'}" style="font-size:10px">${odemeLabel[h.odeme_durumu]||h.odeme_durumu}</span></div>
+        <div style="margin-top:6px" onclick="event.stopPropagation()">
+          <button class="btn btn-purple btn-sm" style="font-size:10px;padding:4px 8px" onclick="modalHisseMedya(${h.id},${h.kurban_id||kurbanId},${h.hisse_no})">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Medya
+          </button>
+        </div>
+      ` : `
+        <div class="hisse-bos"><i class="fa-solid fa-user-plus"></i> Bos — Tikla ekle</div>
+      `}    </div>`;
+}
+
+async function modalBagisciDuzenle(hisseId, kurbanId, mevcutFiyatParam) {
+  const hisseler = await api('GET',`/kurbanlar/${kurbanId}/hisseler`);
+  const h = hisseler.find(x=>x.id===hisseId); if (!h) return;
+  
+  // Kurban fiyatını belirle
+  const kurban = _kurbanlar.find(k => k.id === kurbanId);
+  let mevcutFiyat = mevcutFiyatParam || 0;
+  if (!mevcutFiyat) {
+    const org = (await api('GET', '/organizasyonlar')).find(o => o.id === S.orgId);
+    const otomatikFiyat = kurban
+      ? (kurban.tur === 'buyukbas' ? (org?.buyukbas_hisse_fiyati || 0) : (org?.kucukbas_hisse_fiyati || 0))
+      : 0;
+    mevcutFiyat = kurban ? (kurban.fiyat || kurban.alis_fiyati || otomatikFiyat) : otomatikFiyat;
+  }
+
+  const html = `
+    <div style="margin-bottom:16px">
+      <span class="badge badge-blue" style="font-size:12px"><i class="fa-solid fa-hashtag"></i> Hisse ${h.hisse_no}</span>
+      ${h.vekalet_onay ? '<span class="badge badge-green" style="font-size:12px;margin-left:8px"><i class="fa-solid fa-check-circle"></i> Vekalet Alındı</span>' : ''}
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Bagisci Adi Soyadi *</label>
+        <input id="fh-ad" value="${esc(h.bagisci_adi||'')}" placeholder="Ad Soyad"/>
+      </div>
+      <div class="form-group">
+        <label>Bagisci Telefonu</label>
+        <input id="fh-tel" value="${esc(h.bagisci_telefon||'')}" placeholder="05xx xxx xx xx"/>
+      </div>
+      <div class="form-group">
+        <label>Kategori</label>
+        <select id="fh-kategori">${bagisciKategoriOptions(h.bagisci_kategori||'Genel Bağışçı')}</select>
+      </div>
+      <div class="form-group">
+        <label>Kurban Türü *</label>
+        <select id="fh-kurban-turu">${kurbanTuruOptions(h.kurban_turu||'Udhiye')}</select>
+      </div>
+      <div class="form-group">
+        <label>Fiyat (TL) <span style="color:var(--text3);font-weight:400;font-size:11px">Oto: ${mevcutFiyat.toLocaleString('tr-TR')} ₺</span></label>
+        <input id="fh-fiyat" type="number" value="${mevcutFiyat}" placeholder="${mevcutFiyat}" min="0" step="100"/>
+      </div>
+      <div class="form-group">
+        <label>Kimin Adina <span style="color:var(--text3);font-weight:400">(Opsiyonel)</span></label>
+        <input id="fh-adina" value="${esc(h.kimin_adina||'')}" placeholder="Vefat eden veya baska kisi"/>
+      </div>
+      <div class="form-group">
+        <label>Kimin Adina Telefon <span style="color:var(--text3);font-weight:400">(Opsiyonel)</span></label>
+        <input id="fh-adina-tel" value="${esc(h.kimin_adina_telefon||'')}" placeholder="Opsiyonel"/>
+      </div>
+      <div class="form-group">
+        <label>Odeme Durumu</label>
+        <select id="fh-odeme">
+          <option value="bekliyor" ${h.odeme_durumu==='bekliyor'?'selected':''}>Bekliyor</option>
+          <option value="odendi"   ${h.odeme_durumu==='odendi'?'selected':''}>Odendi</option>
+          <option value="iptal"    ${h.odeme_durumu==='iptal'?'selected':''}>Iptal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Video Ister mi?</label>
+        <select id="fh-video">
+          <option value="0" ${!h.video_ister?'selected':''}>Hayir</option>
+          <option value="1" ${h.video_ister?'selected':''}>Evet</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label style="margin-bottom:8px">Vekalet Onayı</label>
+        <input type="hidden" id="fh-vekalet" value="${h.vekalet_onay ? '1' : '0'}"/>
+        <button type="button" id="fh-vekalet-btn" onclick="hisseVekaletAc(${hisseId})"
+          style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:12px;cursor:pointer;
+                 background:${h.vekalet_onay ? 'linear-gradient(135deg, rgba(16,185,129,0.16), rgba(5,150,105,0.08))' : 'var(--bg3)'};
+                 border:2px solid ${h.vekalet_onay ? '#10b981' : 'var(--border)'};
+                 color:${h.vekalet_onay ? '#10b981' : 'var(--text2)'};
+                 font-weight:700;font-family:inherit;text-align:left;transition:all .18s"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,0.14)'"
+          onmouseout="this.style.transform='';this.style.boxShadow=''">
+          <span style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                       background:${h.vekalet_onay ? '#10b981' : 'var(--bg4)'};color:${h.vekalet_onay ? '#fff' : 'var(--text3)'};
+                       font-size:16px;flex-shrink:0">
+            <i class="fa-solid ${h.vekalet_onay ? 'fa-handshake' : 'fa-handshake-slash'}"></i>
+          </span>
+          <span style="flex:1;display:flex;flex-direction:column;gap:2px">
+            <span id="fh-vekalet-baslik" style="font-size:14px;letter-spacing:.2px">
+              ${h.vekalet_onay ? 'VEKALET ALINDI' : 'VEKALET ALINMADI'}
+            </span>
+            <span style="font-size:11px;color:var(--text3);font-weight:500">
+              Değiştirmek için tıkla
+            </span>
+          </span>
+          <i class="fa-solid fa-chevron-right" style="color:var(--text3);font-size:12px"></i>
+        </button>
+        ${h.vekalet_tarihi ? `<div id="fh-vekalet-tarih" style="font-size:11px;color:var(--text3);margin-top:6px"><i class="fa-solid fa-clock"></i> Onay Tarihi: ${new Date(h.vekalet_tarihi).toLocaleString('tr-TR')}</div>` : '<div id="fh-vekalet-tarih"></div>'}
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Not</label>
+        <textarea id="fh-not">${esc(h.aciklama||'')}</textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      ${h.bagisci_adi?`<button class="btn btn-danger" onclick="temizleHisse(${hisseId},${kurbanId})"><i class="fa-solid fa-eraser"></i> Temizle</button>`:''}
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="kaydetBagisci(${hisseId},${kurbanId})"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`;
+  openModal(`Hisse ${h.hisse_no} — Bagisci Bilgileri`, html, false, 'user-pen');
+}
+
+async function kaydetBagisci(hisseId, kurbanId) {
+  const bagisci_adi = document.getElementById('fh-ad').value.trim();
+  const bagisci_telefon = document.getElementById('fh-tel').value.trim();
+  const bagisci_kategori = document.getElementById('fh-kategori').value;
+  const kurban_turu = document.getElementById('fh-kurban-turu').value;
+  const kimin_adina = document.getElementById('fh-adina').value.trim();
+  const kimin_adina_telefon = document.getElementById('fh-adina-tel').value.trim();
+  const odeme_durumu = document.getElementById('fh-odeme').value;
+  const video_ister = document.getElementById('fh-video').value==='1';
+  const vekalet_onay = (document.getElementById('fh-vekalet')?.value === '1');
+  const aciklama = document.getElementById('fh-not').value.trim();
+  const fiyat = parseFloat(document.getElementById('fh-fiyat')?.value) || 0;
+  if (!bagisci_adi) return toast('Bagisci adi zorunlu','error');
+  try {
+    // Hisse bilgilerini güncelle
+    await api('PUT',`/hisseler/${hisseId}`,{bagisci_adi,bagisci_telefon,bagisci_kategori,kurban_turu,kimin_adina,kimin_adina_telefon,odeme_durumu,video_ister,vekalet_onay,aciklama});
+    // Kurban fiyatını güncelle
+    if (fiyat > 0) {
+      const kurban = _kurbanlar.find(k => k.id === kurbanId);
+      if (kurban) {
+        await api('PUT',`/kurbanlar/${kurbanId}`,{
+          kupe_no: kurban.kupe_no,
+          alis_fiyati: fiyat,
+          kesildi: kurban.kesildi,
+          kesim_tarihi: kurban.kesim_tarihi,
+          aciklama: kurban.aciklama,
+          kurban_turu: kurban.kurban_turu,
+          kesen_kisi: kurban.kesen_kisi,
+          kucukbas_sayi: kurban.kucukbas_sayi
+        });
+      }
+    }
+    closeModal(); toast('Bagisci kaydedildi');
+    await loadKurbanlar();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function temizleHisse(hisseId, kurbanId) {
+  if (!confirm('Bu hisseyi temizlemek istediginizden emin misiniz?')) return;
+  try {
+    await api('DELETE',`/hisseler/${hisseId}/temizle`);
+    closeModal(); toast('Hisse temizlendi');
+    await loadKurbanlar();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAĞIŞÇILAR
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderBagiscilar() {
+  const m = document.getElementById('main-content');
+  const orgSmall = S.orgAd ? '<small>' + esc(S.orgAd) + '</small>' : '';
+  m.innerHTML =
+    '<div class="page-header">' +
+      '<div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-users"></i></div>Bagiscilar ' + orgSmall + '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<div style="position:relative">' +
+          '<button class="btn btn-secondary" onclick="toggleBagisciPrintMenu(event)">' +
+            '<i class="fa-solid fa-print"></i> Yazdırma Seçenekleri' +
+            '<i class="fa-solid fa-chevron-down" style="margin-left:6px;font-size:10px"></i>' +
+          '</button>' +
+          '<div id="bagisci-print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:200px;z-index:1000">' +
+            '<div onclick="yazdirBagiscilar()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background=\'var(--hover-bg)\'" onmouseout="this.style.background=\'transparent\'">' +
+              '<i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>' +
+              '<span>Yazdır</span>' +
+            '</div>' +
+            '<div onclick="excelBagiscilarIndir()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background=\'var(--hover-bg)\'" onmouseout="this.style.background=\'transparent\'">' +
+              '<i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>' +
+              '<span>Excel İndir</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<button class="btn btn-primary" onclick="modalYeniBagisci()"><i class="fa-solid fa-user-plus"></i> Bagisci Ekle</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:8px">' +
+        '<div style="display:flex;align-items:center;gap:12px">' +
+          '<i class="fa-solid fa-users" style="font-size:24px;color:var(--accent)"></i>' +
+          '<div>' +
+            '<div style="font-size:24px;font-weight:700;color:var(--accent)" id="bagisci-toplam">0</div>' +
+            '<div style="font-size:12px;color:var(--text3)">Toplam Bağışçı</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="filter-bar" style="margin-bottom:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px">' +
+        '<input id="b-ara" placeholder="Ad veya telefon ile ara..." oninput="filterBagiscilar()"/>' +
+        '<select id="b-kategori" onchange="filterBagiscilar()">' +
+          '<option value="">Tüm Kategoriler</option>' +
+          '<option value="Genel Bağışçı">Genel Bağışçı</option>' +
+          '<option value="VIP Bağışçı">VIP Bağışçı</option>' +
+          '<option value="Kurumsal">Kurumsal</option>' +
+          '<option value="Sponsor">Sponsor</option>' +
+          '<option value="Düzenli Bağışçı">Düzenli Bağışçı</option>' +
+          '<option value="Yeni Bağışçı">Yeni Bağışçı</option>' +
+          '<option value="Eski Bağışçı">Eski Bağışçı</option>' +
+          '<option value="Özel Kategori">Özel Kategori</option>' +
+        '</select>' +
+        '<select id="b-odeme" onchange="filterBagiscilar()">' +
+          '<option value="">Tüm Ödemeler</option>' +
+          '<option value="odendi">Ödendi</option>' +
+          '<option value="bekliyor">Bekliyor</option>' +
+          '<option value="iptal">İptal</option>' +
+        '</select>' +
+        '<select id="b-video" onchange="filterBagiscilar()">' +
+          '<option value="">Video Durumu</option>' +
+          '<option value="1">Video İster</option>' +
+          '<option value="0">Video İstemez</option>' +
+        '</select>' +
+        '<select id="b-vekalet" onchange="filterBagiscilar()">' +
+          '<option value="">Vekalet Durumu</option>' +
+          '<option value="1">✅ Vekalet Alındı</option>' +
+          '<option value="0">❌ Vekalet Alınmadı</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="table-wrap">' +
+        '<table>' +
+          '<thead><tr>' +
+            '<th>#</th><th>Bagisci Adi</th><th>Telefon</th><th>Kategori</th><th>Kimin Adina</th>' +
+            '<th>Kurban No</th><th>Hisse</th><th>Hayvan Turu</th><th>Kurban Turu</th><th>Fiyat</th><th>Odeme</th><th>Video</th><th>Vekalet</th><th>Islem</th>' +
+          '</tr></thead>' +
+          '<tbody id="bagisci-tbody">' +
+            '<tr><td colspan="14"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></td></tr>' +
+          '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+  await tumBagiscilariGoster();
+}
+
+
+async function tumBagiscilariGoster() {
+  if (!S.orgId) return toast('Once bir organizasyon secin','error');
+  let url = `/bagiscilar/ara?q=&orgId=${S.orgId}&tumunu=1`;
+  _tumBagiscilar = await api('GET', url);
+  _filtreliBagiscilar = _tumBagiscilar;
+  renderBagisciTablosu(_tumBagiscilar);
+}
+
+async function aramaBagisci() {
+  const q = document.getElementById('b-ara').value.trim();
+  if (q.length === 0) {
+    await tumBagiscilariGoster();
+    return;
+  }
+  if (q.length < 1) return;
+  let url = `/bagiscilar/ara?q=${encodeURIComponent(q)}`;
+  if (S.orgId) url += `&orgId=${S.orgId}`;
+  const list = await api('GET', url);
+  renderBagisciTablosu(list);
+}
+
+function renderBagisciTablosu(list) {
+  const tbody = document.getElementById('bagisci-tbody');
+  // Toplam sayıyı güncelle
+  const toplamEl = document.getElementById('bagisci-toplam');
+  if (toplamEl) toplamEl.textContent = list.length;
+  
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sonuc bulunamadi.</p></div></td></tr>`;
+    return;
+  }
+  const oRenk  = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
+  const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
+  tbody.innerHTML = list.map((h,i)=>{
+    const fiyat = h.kurban_fiyat || (() => {
+      const kurban = _kurbanlar.find(k => k.id === h.kurban_id);
+      return kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
+    })();
+    const siraNo = list.length - i;
+    const vekaletBtn = h.vekalet_onay
+      ? `<button onclick="toggleVekalet(${h.id},0,event)" title="Vekalet alındı — tıkla kaldır" style="
+          display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+          background:linear-gradient(135deg,#10b981,#059669);
+          color:#fff;border:none;border-radius:20px;cursor:pointer;
+          font-size:11px;font-weight:600;box-shadow:0 2px 8px rgba(16,185,129,0.4);
+          transition:all 0.2s">
+          <i class="fa-solid fa-handshake"></i> Alındı
+        </button>`
+      : `<button onclick="toggleVekalet(${h.id},1,event)" title="Vekalet alınmadı — tıkla onayla" style="
+          display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
+          background:var(--bg4);color:var(--text3);
+          border:1px dashed var(--border2);border-radius:20px;cursor:pointer;
+          font-size:11px;font-weight:600;transition:all 0.2s"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+          onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
+          <i class="fa-solid fa-handshake-slash"></i> Alınmadı
+        </button>`;
+    return `
+    <tr>
+      <td style="color:var(--text3);font-size:12px">${siraNo}</td>
+      <td><strong>${esc(h.bagisci_adi)}</strong></td>
+      <td>${h.bagisci_telefon?esc(h.bagisci_telefon):'-'}</td>
+      <td>${h.bagisci_kategori?`<span class="badge badge-purple">${esc(h.bagisci_kategori)}</span>`:'-'}</td>
+      <td>${h.kimin_adina?`<span style="color:var(--purple)">${esc(h.kimin_adina)}</span>`:'-'}</td>
+      <td><span class="kurban-no-badge">${h.kurban_no}</span></td>
+      <td><span class="badge badge-blue">${h.hisse_no}</span></td>
+      <td>${h.tur==='buyukbas'?'<span class="badge badge-blue">Buyukbas</span>':'<span class="badge badge-gray">Kucukbas</span>'}</td>
+      <td>${h.kurban_turu?`<span class="badge badge-purple">${esc(h.kurban_turu)}</span>`:'-'}</td>
+      <td><strong style="color:var(--green)">${fiyat.toLocaleString('tr-TR')} ₺</strong></td>
+      <td><span class="badge ${oRenk[h.odeme_durumu]||'badge-gray'}">${oLabel[h.odeme_durumu]||h.odeme_durumu}</span></td>
+      <td>${h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-'}</td>
+      <td>${vekaletBtn}</td>
+      <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id},${fiyat})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── VEKALET ONAY MODAL ─────────────────────────────────────────────────────
+// opts: { bagisciAdi, kurbanNo, hisseNo, mevcutDurum, vekaletTarihi, onSec(yeniDurum) }
+// Bağımsız bir overlay olarak çalışır — ana modal (örn. hisse formu) açıkken üstüne biner.
+function vekaletModalAc(opts) {
+  const {
+    bagisciAdi = '',
+    kurbanNo = '',
+    hisseNo = '',
+    mevcutDurum = false,
+    vekaletTarihi = null,
+    onSec,
+  } = opts || {};
+
+  // Var olan vekalet overlay'i varsa kaldır
+  document.getElementById('vekalet-overlay')?.remove();
+
+  const altSatir = [];
+  if (kurbanNo) altSatir.push(`Kurban #${esc(String(kurbanNo))}`);
+  if (hisseNo)  altSatir.push(`${esc(String(hisseNo))}. Hisse`);
+  const altHtml = altSatir.length
+    ? altSatir.map((t,i) => (i>0?`<span class="dot"></span>`:'') + `<span>${t}</span>`).join('')
+    : '';
+
+  const tarihHtml = (mevcutDurum && vekaletTarihi)
+    ? `<div class="vekalet-onay-tarihi"><i class="fa-solid fa-clock"></i> Önceki onay: ${new Date(vekaletTarihi).toLocaleString('tr-TR')}</div>`
+    : '';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'vekalet-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:20px;animation:sonucFadeIn .2s ease-out';
+  overlay.innerHTML = `
+    <div id="vekalet-box" class="modal" style="position:relative;overflow:hidden;max-width:560px;width:100%;animation:modalIn .25s cubic-bezier(.34,1.56,.64,1)">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-handshake"></i> Vekalet Onayı</div>
+        <button class="modal-close" onclick="vekaletModalKapat()" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="vekalet-modal-wrap">
+          <div class="vekalet-hero"><i class="fa-solid fa-handshake"></i></div>
+          <div class="vekalet-bilgi">
+            <div class="ad">${bagisciAdi ? esc(bagisciAdi) : 'Bağışçı'}</div>
+            ${altHtml ? `<div class="alt">${altHtml}</div>` : ''}
+            ${tarihHtml}
+          </div>
+          <div class="vekalet-secimler">
+            <button type="button" class="vekalet-btn vekalet-btn--alindi ${mevcutDurum ? 'aktif' : ''}" onclick="vekaletSec(1)">
+              <div class="ikon"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="baslik">VEKALET ALINDI</div>
+              <div class="aciklama">Bağışçı vekaleti verdi</div>
+            </button>
+            <button type="button" class="vekalet-btn vekalet-btn--alinmadi ${!mevcutDurum ? 'aktif' : ''}" onclick="vekaletSec(0)">
+              <div class="ikon"><i class="fa-solid fa-circle-xmark"></i></div>
+              <div class="baslik">VEKALET ALINMADI</div>
+              <div class="aciklama">Henüz onay yok</div>
+            </button>
+          </div>
+          <div class="vekalet-mevcut-rozet">
+            <i class="fa-solid fa-circle-info"></i>
+            Mevcut durum:
+            <strong style="color:${mevcutDurum ? '#10b981' : 'var(--text3)'}">${mevcutDurum ? 'Alındı' : 'Alınmadı'}</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  // Dışarı tıklayınca kapat
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) vekaletModalKapat(); });
+  document.body.appendChild(overlay);
+
+  window._vekaletOnSec = (yeniDurum) => {
+    vekaletSonucGoster(!!yeniDurum, () => {
+      if (onSec) onSec(yeniDurum);
+    });
+  };
+}
+
+function vekaletModalKapat() {
+  document.getElementById('vekalet-overlay')?.remove();
+  window._vekaletOnSec = null;
+}
+
+function vekaletSec(yeniDurum) {
+  if (window._vekaletOnSec) window._vekaletOnSec(yeniDurum);
+}
+
+function vekaletSonucGoster(basarili, tamamlandiCb) {
+  const box = document.getElementById('vekalet-box');
+  if (!box) { vekaletModalKapat(); if (tamamlandiCb) tamamlandiCb(); return; }
+  const overlay = document.createElement('div');
+  overlay.className = 'vekalet-sonuc-overlay';
+  overlay.innerHTML = `
+    <div class="vekalet-sonuc-ikon ${basarili ? 'basari' : 'iptal'}">
+      <i class="fa-solid ${basarili ? 'fa-check' : 'fa-xmark'}"></i>
+    </div>
+    <div class="vekalet-sonuc-baslik">${basarili ? 'Vekalet Alındı' : 'Vekalet Kaldırıldı'}</div>
+    <div class="vekalet-sonuc-alt">${basarili ? 'Onay başarıyla kaydedildi' : 'Vekalet durumu temizlendi'}</div>`;
+  box.appendChild(overlay);
+  setTimeout(() => {
+    vekaletModalKapat();
+    if (tamamlandiCb) tamamlandiCb();
+  }, 1200);
+}
+
+// Hisse formundan çağrılır — modal'da seçim sonrası form üzerindeki hidden input + buton görünümü güncellenir
+function hisseVekaletAc(hisseId) {
+  const cur = document.getElementById('fh-vekalet')?.value === '1';
+  // Bağışçı adı / kurban / hisse no form alanlarından okunabiliyorsa al
+  const bagisciAdi = document.getElementById('fh-ad')?.value?.trim() || '';
+  vekaletModalAc({
+    bagisciAdi,
+    mevcutDurum: cur,
+    onSec: (yeniDurum) => {
+      const onay = !!yeniDurum;
+      const hidden = document.getElementById('fh-vekalet');
+      if (hidden) hidden.value = onay ? '1' : '0';
+      // Buton görünümünü güncelle
+      const btn = document.getElementById('fh-vekalet-btn');
+      if (btn) {
+        btn.style.background = onay
+          ? 'linear-gradient(135deg, rgba(16,185,129,0.16), rgba(5,150,105,0.08))'
+          : 'var(--bg3)';
+        btn.style.borderColor = onay ? '#10b981' : 'var(--border)';
+        btn.style.color = onay ? '#10b981' : 'var(--text2)';
+        const ikon = btn.querySelector('span:first-child');
+        if (ikon) {
+          ikon.style.background = onay ? '#10b981' : 'var(--bg4)';
+          ikon.style.color = onay ? '#fff' : 'var(--text3)';
+          const i = ikon.querySelector('i');
+          if (i) i.className = onay ? 'fa-solid fa-handshake' : 'fa-solid fa-handshake-slash';
+        }
+        const baslik = document.getElementById('fh-vekalet-baslik');
+        if (baslik) baslik.textContent = onay ? 'VEKALET ALINDI' : 'VEKALET ALINMADI';
+      }
+      // Tarih bilgisi
+      const tarih = document.getElementById('fh-vekalet-tarih');
+      if (tarih) {
+        tarih.innerHTML = onay
+          ? `<i class="fa-solid fa-clock"></i> Onay Tarihi: ${new Date().toLocaleString('tr-TR')} <span style="color:var(--text3);font-style:italic">(kaydet'e basınca kalıcı olur)</span>`
+          : '';
+      }
+    },
+  });
+}
+
+async function toggleVekalet(hisseId, yeniDurumIgnored, event) {
+  if (event) event.stopPropagation();
+  const h = _tumBagiscilar.find(x => x.id === hisseId);
+  if (!h) return;
+  vekaletModalAc({
+    bagisciAdi: h.bagisci_adi,
+    kurbanNo: h.kurban_no,
+    hisseNo: h.hisse_no,
+    mevcutDurum: !!h.vekalet_onay,
+    vekaletTarihi: h.vekalet_tarihi,
+    onSec: async (yeniDurum) => {
+      try {
+        await api('PUT', `/hisseler/${hisseId}/vekalet`, { vekalet_onay: yeniDurum });
+        h.vekalet_onay = yeniDurum;
+        if (yeniDurum) h.vekalet_tarihi = new Date().toISOString();
+        filterBagiscilar();
+      } catch(e) { toast(e.message, 'error'); }
+    },
+  });
+}
+
+async function modalYeniBagisci() {
+  if (!S.orgId) return toast('Once bir organizasyon secin', 'error');
+
+  // Mevcut kurban sayısını al → yeni kurban no = max + 1
+  const kurbanlar = await api('GET', `/organizasyonlar/${S.orgId}/kurbanlar`);
+  const org = (await api('GET', '/organizasyonlar')).find(o => o.id === S.orgId);
+  const yeniNo = kurbanlar.length + 1;
+
+  if (org && yeniNo > org.max_kurban) return toast('Maksimum kurban sayisina ulasildi', 'error');
+
+  openModal(`Bagisci Ekle — Kurban #${yeniNo}`, `
+    <div style="background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:20px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Kurban Bilgileri</div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label>Hayvan Turu *</label>
+          <select id="fb-tur" onchange="bagisciTurSecildi(); otoKupeNo()">
+            <option value="buyukbas">Buyukbas (7 Hisse)</option>
+            <option value="kucukbas">Kucukbas (1 Hisse)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Kurban Turu *</label>
+          <select id="fb-kurban-turu">${kurbanTuruOptions('Udhiye')}</select>
+        </div>
+        <div class="form-group">
+          <label>Kupe No</label>
+          <input id="fb-kupe" placeholder="Opsiyonel"/>
+        </div>
+        <div class="form-group">
+          <label>Alis Fiyati (TL)</label>
+          <input id="fb-alis" type="number" placeholder="0"/>
+        </div>
+        <div class="form-group" style="grid-column:3/4">
+          <label>Kesen Kisi</label>
+          <input id="fb-kesen" placeholder="Opsiyonel"/>
+        </div>
+      </div>
+    </div>
+
+    <div id="fb-hisseler-wrap"></div>
+
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="kaydetYeniBagisci()">
+        <i class="fa-solid fa-floppy-disk"></i> Kurban Olustur ve Kaydet
+      </button>
+    </div>
+  `, true, 'user-plus');
+
+  // Sayfa açılınca hemen büyükbaş için 7 hisse formunu göster ve küpe no ata
+  bagisciTurSecildi();
+  setTimeout(otoKupeNo, 100);
+}
+
+function bagisciTurSecildi() {
+  const tur = document.getElementById('fb-tur')?.value || 'buyukbas';
+  const toplam = tur === 'buyukbas' ? 7 : 1;
+  const wrap = document.getElementById('fb-hisseler-wrap');
+  if (!wrap) return;
+
+  let html = '<div style="font-size:12px;color:var(--text3);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">';
+  html += '<i class="fa-solid fa-users" style="color:var(--accent)"></i> Hisseler (' + toplam + ' Hisse)</div>';
+
+  for (let no = 1; no <= toplam; no++) {
+    html += '<div style="background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:10px" id="fb-hisse-block-' + no + '">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">';
+    html += '<span class="badge badge-blue"><i class="fa-solid fa-hashtag"></i> Hisse ' + no + '</span>';
+    html += '<span style="font-size:11px;color:var(--text3)" id="fb-hisse-durum-' + no + '">Bos</span>';
+    html += '</div>';
+    html += '<div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px">';
+    html += '<div class="form-group"><label>Bagisci Adi Soyadi</label>';
+    html += '<input id="fb-ad-' + no + '" placeholder="Ad Soyad" oninput="bagisciAdGirildi(' + no + ')"/></div>';
+    html += '<div class="form-group"><label>Telefon</label>';
+    html += '<input id="fb-tel-' + no + '" placeholder="05xx xxx xx xx"/></div>';
+    html += '<div class="form-group"><label>Kategori</label>';
+    html += '<select id="fb-kategori-' + no + '">' + bagisciKategoriOptions('Genel Bağışçı') + '</select></div>';
+    html += '<div class="form-group"><label>Kimin Adina <span style="color:var(--text3);font-weight:400">(Opsiyonel)</span></label>';
+    html += '<input id="fb-adina-' + no + '" placeholder="Vefat eden / baska kisi"/></div>';
+    html += '<div class="form-group"><label>Kimin Adina Tel <span style="color:var(--text3);font-weight:400">(Opsiyonel)</span></label>';
+    html += '<input id="fb-adina-tel-' + no + '" placeholder="Opsiyonel"/></div>';
+    html += '<div class="form-group"><label>Odeme Durumu</label>';
+    html += '<select id="fb-odeme-' + no + '"><option value="bekliyor">Bekliyor</option><option value="odendi">Odendi</option><option value="iptal">Iptal</option></select></div>';
+    html += '<div class="form-group"><label>Video Ister mi?</label>';
+    html += '<select id="fb-video-' + no + '"><option value="0">Hayir</option><option value="1">Evet</option></select></div>';
+    html += '</div></div>';
+  }
+
+  wrap.innerHTML = html;
+  wrap.dataset.toplam = toplam;
+}
+
+function bagisciAdGirildi(no) {
+  const ad = document.getElementById(`fb-ad-${no}`)?.value.trim();
+  const durum = document.getElementById(`fb-hisse-durum-${no}`);
+  const block = document.getElementById(`fb-hisse-block-${no}`);
+  if (ad) {
+    durum.textContent = ad;
+    durum.style.color = 'var(--green)';
+    block.style.borderColor = 'rgba(16,185,129,0.4)';
+    block.style.background = 'rgba(16,185,129,0.05)';
+  } else {
+    durum.textContent = 'Bos';
+    durum.style.color = 'var(--text3)';
+    block.style.borderColor = 'var(--border2)';
+    block.style.background = 'var(--bg4)';
+  }
+}
+
+async function kaydetYeniBagisci() {
+  const tur = document.getElementById('fb-tur').value;
+  const kurban_turu = document.getElementById('fb-kurban-turu').value;
+  const kupe_no = document.getElementById('fb-kupe').value.trim();
+  const alis_fiyati = parseFloat(document.getElementById('fb-alis').value) || 0;
+  const kesen_kisi = document.getElementById('fb-kesen').value.trim();
+  const toplam = parseInt(document.getElementById('fb-hisseler-wrap').dataset.toplam || '7');
+
+  // Hisse verilerini topla
+  const hisseler = [];
+  for (let i = 1; i <= toplam; i++) {
+    hisseler.push({
+      bagisci_adi:        document.getElementById(`fb-ad-${i}`)?.value.trim() || '',
+      bagisci_telefon:    document.getElementById(`fb-tel-${i}`)?.value.trim() || '',
+      bagisci_kategori:   document.getElementById(`fb-kategori-${i}`)?.value || 'Genel Bağışçı',
+      kimin_adina:        document.getElementById(`fb-adina-${i}`)?.value.trim() || '',
+      kimin_adina_telefon:document.getElementById(`fb-adina-tel-${i}`)?.value.trim() || '',
+      odeme_durumu:       document.getElementById(`fb-odeme-${i}`)?.value || 'bekliyor',
+      video_ister:        document.getElementById(`fb-video-${i}`)?.value === '1',
+    });
+  }
+
+  const doluSayi = hisseler.filter(h => h.bagisci_adi).length;
+  if (doluSayi === 0) return toast('En az 1 hisseye bagisci adi girin', 'error');
+
+  try {
+    const r = await api('POST', `/organizasyonlar/${S.orgId}/kurban-ve-hisseler`, {
+      tur, kurban_turu, kupe_no, alis_fiyati, kesen_kisi, hisseler
+    });
+    closeModal();
+    toast(`Kurban #${r.kurban_no} olusturuldu — ${doluSayi} bagisci kaydedildi`);
+    await loadKurbanlar();
+    tumBagiscilariGoster();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RAPORLAR
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderRaporlar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-chart-bar"></i></div>
+        Raporlar & Yazdırma
+        ${S.orgAd ? '<small>' + esc(S.orgAd) + '</small>' : ''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="position:relative">
+          <button class="btn btn-secondary" onclick="toggleRaporPrintMenu(event)">
+            <i class="fa-solid fa-print"></i> Yazdırma Seçenekleri
+            <i class="fa-solid fa-chevron-down" style="margin-left:6px;font-size:10px"></i>
+          </button>
+          <div id="rapor-print-menu" class="dropdown-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:220px;z-index:1000">
+            <div onclick="yazdir('tum')" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-print" style="width:20px;color:var(--accent)"></i>
+              <span>Tüm Raporu Yazdır</span>
+            </div>
+            <div onclick="excelIndir()" style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.2s" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid fa-file-excel" style="width:20px;color:var(--green)"></i>
+              <span>Excel İndir</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="rapor-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></div>`;
+
+  if (!S.orgId) {
+    document.getElementById('rapor-icerik').innerHTML = '<div class="empty-state"><i class="fa-solid fa-layer-group"></i><p>Once bir organizasyon secin.</p></div>';
+    return;
+  }
+  await yukleRapor();
+}
+
+async function yukleRapor() {
+  const d = await api('GET', '/organizasyonlar/' + S.orgId + '/rapor');
+  const { org, kurbanlar, hisseler, ozet } = d;
+
+  let html = '';
+
+  // Özet kartlar
+  html += '<div class="stats-grid" style="margin-bottom:20px">';
+  html += '<div class="stat-card blue"><div class="stat-icon"><i class="fa-solid fa-cow"></i></div><div class="stat-value">' + ozet.toplam_kurban + '</div><div class="stat-label">Toplam Kurban</div></div>';
+  html += '<div class="stat-card blue"><div class="stat-icon"><i class="fa-solid fa-cow"></i></div><div class="stat-value">' + ozet.buyukbas + '</div><div class="stat-label">Buyukbas</div></div>';
+  html += '<div class="stat-card yellow"><div class="stat-icon"><i class="fa-solid fa-hippo"></i></div><div class="stat-value">' + ozet.kucukbas + '</div><div class="stat-label">Kucukbas</div></div>';
+  html += '<div class="stat-card green"><div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div><div class="stat-value">' + ozet.dolu_hisse + '</div><div class="stat-label">Dolu Hisse</div></div>';
+  html += '<div class="stat-card yellow"><div class="stat-icon"><i class="fa-solid fa-circle-half-stroke"></i></div><div class="stat-value">' + ozet.bos_hisse + '</div><div class="stat-label">Bos Hisse</div></div>';
+  html += '<div class="stat-card red"><div class="stat-icon"><i class="fa-solid fa-scissors"></i></div><div class="stat-value">' + ozet.kesildi + '</div><div class="stat-label">Kesildi</div></div>';
+  html += '<div class="stat-card green"><div class="stat-icon"><i class="fa-solid fa-money-bill"></i></div><div class="stat-value" style="font-size:18px">' + para(ozet.toplam_gelir) + '</div><div class="stat-label">Tahmini Gelir</div></div>';
+  html += '<div class="stat-card green"><div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div><div class="stat-value">' + ozet.odendi + '</div><div class="stat-label">Odeme Tamam</div></div>';
+  html += '<div class="stat-card yellow"><div class="stat-icon"><i class="fa-solid fa-clock"></i></div><div class="stat-value">' + ozet.bekliyor + '</div><div class="stat-label">Odeme Bekliyor</div></div>';
+  html += '</div>';
+
+  // Kurban tablosu
+  html += '<div class="card" style="margin-bottom:16px">';
+  html += '<div class="card-title"><i class="fa-solid fa-cow"></i> Kurban Listesi';
+  html += '<button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="yazdir(\'kurbanlar\')"><i class="fa-solid fa-print"></i> Yazdir</button></div>';
+  html += '<div class="table-wrap"><table><thead><tr>';
+  html += '<th>No</th><th>Tur</th><th>Kupe No</th><th>Alis Fiyati</th><th>Hisse</th><th>Durum</th><th>Kesim</th><th>Islem</th>';
+  html += '</tr></thead><tbody>';
+  kurbanlar.forEach(k => {
+    const dolu = k.dolu_hisse, top = k.toplam_hisse;
+    const pct = Math.round(dolu/top*100);
+    const durum = k.kesildi ? '<span class="badge badge-red">Kesildi</span>' : dolu>=top ? '<span class="badge badge-yellow">Doldu</span>' : '<span class="badge badge-green">Bos</span>';
+    html += '<tr>';
+    html += '<td><span class="kurban-no-badge">' + k.kurban_no + '</span></td>';
+    html += '<td>' + (k.tur==='buyukbas'?'<span class="badge badge-blue">Buyukbas</span>':'<span class="badge badge-gray">Kucukbas</span>') + '</td>';
+    html += '<td><span class="badge badge-purple" style="font-size:10px">' + (k.kurban_turu||'Udhiye') + '</span></td>';
+    html += '<td>' + (k.kupe_no||'-') + '</td>';
+    html += '<td>' + (k.alis_fiyati?para(k.alis_fiyati):'-') + '</td>';
+    html += '<td><div style="display:flex;align-items:center;gap:6px;min-width:100px"><div class="progress-bar" style="flex:1"><div class="progress-fill ' + (dolu>=top?'full':'') + '" style="width:' + pct + '%"></div></div><span style="font-size:12px">' + dolu + '/' + top + '</span></div></td>';
+    html += '<td>' + durum + '</td>';
+    html += '<td>' + (k.kesim_tarihi||'-') + '</td>';
+    html += '<td><div style="display:flex;gap:4px">';
+    html += '<button class="btn btn-purple btn-sm" onclick="yazdirKurban(' + k.id + ',' + k.kurban_no + ',\'' + k.tur + '\')"><i class="fa-solid fa-print"></i> Yazdır</button>';
+    html += '<button class="btn btn-success btn-sm" onclick="excelIndirKurban(' + k.id + ')"><i class="fa-solid fa-file-excel"></i> Excel</button>';
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  // Bağışçı tablosu
+  html += '<div class="card">';
+  html += '<div class="card-title"><i class="fa-solid fa-users"></i> Bagisci Listesi';
+  html += '<button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="yazdir(\'bagiscilar\')"><i class="fa-solid fa-print"></i> Yazdir</button></div>';
+  html += '<div class="table-wrap"><table><thead><tr>';
+  html += '<th>#</th><th>Kurban No</th><th>Hisse</th><th>Tur</th><th>Bagisci Adi</th><th>Telefon</th><th>Kimin Adina</th><th>Odeme</th><th>Video</th>';
+  html += '</tr></thead><tbody>';
+  const oRenk = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
+  const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
+  hisseler.forEach((h,i) => {
+    html += '<tr>';
+    html += '<td style="color:var(--text3);font-size:12px">' + (i+1) + '</td>';
+    html += '<td><span class="kurban-no-badge">' + h.kurban_no + '</span></td>';
+    html += '<td><span class="badge badge-blue">' + h.hisse_no + '</span></td>';
+    html += '<td>' + (h.tur==='buyukbas'?'<span class="badge badge-blue">Buyukbas</span>':'<span class="badge badge-gray">Kucukbas</span>') + '</td>';
+    html += '<td><strong>' + esc(h.bagisci_adi) + '</strong></td>';
+    html += '<td>' + (h.bagisci_telefon||'-') + '</td>';
+    html += '<td>' + (h.kimin_adina?'<span style="color:var(--purple)">'+esc(h.kimin_adina)+'</span>':'-') + '</td>';
+    html += '<td><span class="badge ' + (oRenk[h.odeme_durumu]||'badge-gray') + '">' + (oLabel[h.odeme_durumu]||h.odeme_durumu) + '</span></td>';
+    html += '<td>' + (h.video_ister?'<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Evet</span>':'-') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  document.getElementById('rapor-icerik').innerHTML = html;
+}
+
+function excelIndir() {
+  if (!S.orgId) return toast('Once organizasyon secin', 'error');
+  downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel', 'icder-kurban-rapor.xlsx');
+}
+
+// ─── YAZDIR FONKSİYONLARI ────────────────────────────────────────────────────
+
+function yazdir(tip) {
+  if (!S.orgId) return toast('Once organizasyon secin', 'error');
+  const html = yazdirilabilirHTML(tip);
+  const blob = new Blob([html], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+  iframe.src = url;
+  iframe.onload = () => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => { document.body.removeChild(iframe); URL.revokeObjectURL(url); }, 2000);
+  };
+}
+
+async function yazdirKurban(kurbanId, kurbanNo, tur) {
+  // Direkt yatay yazdır (varsayılan)
+  toast('Yazdırma hazırlanıyor...');
+  const hisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
+  const kurbanData = _kurbanlar.find(k => k.id === kurbanId) || {};
+  const html = kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, 'landscape');
+  printHTML(html);
+}
+
+// ─── YAZDIR SEÇİM MODALI ────────────────────────────────────────────────────
+async function modalYazdirSecim(kurbanId, kurbanNo, tur) {
+  // Bayrak listesini çek
+  let bayraklar = [];
+  try { bayraklar = await api('GET', '/bayraklar'); } catch(e) {}
+
+  // Bayrak seçenekleri HTML'i
+  const bayrakSecenekleri = bayraklar.length
+    ? bayraklar.map(b => `<div id="bayrak-secim-${b.id}" onclick="bayrakSecimToggle(${b.id})" style="
+        cursor:pointer;border:2px solid var(--border);border-radius:10px;overflow:hidden;
+        background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+      " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.classList.contains('secili'))this.style.borderColor='var(--border)'">
+        <div id="bayrak-img-secim-${b.id}" style="height:50px;display:flex;align-items:center;justify-content:center">
+          <i class="fa-solid fa-spinner fa-spin" style="color:var(--text3)"></i>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.ad)}</div>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">Bayrak kütüphanesi boş — Ayarlar\'dan bayrak ekleyebilirsiniz</div>';
+
+  openModal('Yazdırma Seçenekleri', `
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+        <i class="fa-solid fa-flag"></i> Sağ Üst Bayrak Seçin
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:8px">
+        <div id="bayrak-secim-varsayilan" onclick="bayrakSecimToggle('varsayilan')" class="secili" style="
+          cursor:pointer;border:2px solid var(--accent);border-radius:10px;overflow:hidden;
+          background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+        ">
+          <div style="height:50px;display:flex;align-items:center;justify-content:center">
+            ${_kullaniciAyarlar.bayrak_data
+              ? `<img src="${_kullaniciAyarlar.bayrak_data}" style="max-height:46px;max-width:90px;object-fit:contain"/>`
+              : '<span style="font-size:11px;color:var(--text3)">Yok</span>'}
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--accent);margin-top:4px">Varsayılan</div>
+        </div>
+        <div id="bayrak-secim-yok" onclick="bayrakSecimToggle('yok')" style="
+          cursor:pointer;border:2px solid var(--border);border-radius:10px;overflow:hidden;
+          background:var(--bg4);transition:all 0.2s;text-align:center;padding:8px
+        " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="if(!this.classList.contains('secili'))this.style.borderColor='var(--border)'">
+          <div style="height:50px;display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-ban" style="font-size:24px;color:var(--text3)"></i>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:4px">Bayrak Yok</div>
+        </div>
+        ${bayrakSecenekleri}
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+        <i class="fa-solid fa-print"></i> Yazdırma Yönü
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button class="btn btn-primary" onclick="yazdirKurbanSecimle(${kurbanId}, ${kurbanNo}, '${tur}', 'landscape')" style="min-width:140px;padding:14px 20px;font-size:15px">
+          <i class="fa-solid fa-print"></i> Yatay
+        </button>
+        <button class="btn btn-green" onclick="yazdirKurbanSecimle(${kurbanId}, ${kurbanNo}, '${tur}', 'portrait')" style="min-width:140px;padding:14px 20px;font-size:15px">
+          <i class="fa-solid fa-print"></i> Dikey
+        </button>
+      </div>
+    </div>
+  `, false, 'print');
+
+  // Bayrak resimlerini yükle
+  bayraklar.forEach(b => {
+    api('GET', '/bayraklar/' + b.id + '/resim').then(r => {
+      const el = document.getElementById('bayrak-img-secim-' + b.id);
+      if (el && r.resim_data) {
+        el.innerHTML = '<img src="' + r.resim_data + '" style="max-height:46px;max-width:90px;object-fit:contain"/>';
+        // data'yı element'e sakla
+        el.closest('[id^="bayrak-secim-"]').dataset.resim = r.resim_data;
+      }
+    }).catch(() => {});
+  });
+}
+
+let _secilenBayrakData = 'varsayilan'; // 'varsayilan', 'yok', veya base64 data
+
+function bayrakSecimToggle(id) {
+  // Tüm seçimleri kaldır
+  document.querySelectorAll('[id^="bayrak-secim-"]').forEach(el => {
+    el.classList.remove('secili');
+    el.style.borderColor = 'var(--border)';
+  });
+  // Seçileni işaretle
+  const secilen = document.getElementById('bayrak-secim-' + id);
+  if (secilen) {
+    secilen.classList.add('secili');
+    secilen.style.borderColor = 'var(--accent)';
+  }
+  if (id === 'varsayilan') {
+    _secilenBayrakData = 'varsayilan';
+  } else if (id === 'yok') {
+    _secilenBayrakData = 'yok';
+  } else {
+    // Bayrak resim datasını al
+    const imgEl = document.getElementById('bayrak-img-secim-' + id);
+    const img = imgEl ? imgEl.querySelector('img') : null;
+    _secilenBayrakData = img ? img.src : 'varsayilan';
+  }
+}
+
+async function yazdirKurbanSecimle(kurbanId, kurbanNo, tur, orientation) {
+  closeModal();
+  toast('Yazdırma hazırlanıyor...');
+  const hisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
+  const kurbanData = _kurbanlar.find(k => k.id === kurbanId) || {};
+
+  // Bayrak datasını belirle
+  let bayrakData;
+  if (_secilenBayrakData === 'varsayilan') {
+    bayrakData = _kullaniciAyarlar.bayrak_data || '';
+  } else if (_secilenBayrakData === 'yok') {
+    bayrakData = '';
+  } else {
+    bayrakData = _secilenBayrakData;
+  }
+
+  const html = kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakData);
+  printHTML(html);
+  _secilenBayrakData = 'varsayilan'; // sıfırla
+}
+
+async function yazdirKurbanDikey(kurbanId, kurbanNo, tur) {
+  toast('Yazdırma hazırlanıyor...');
+  const hisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
+  const kurbanData = _kurbanlar.find(k => k.id === kurbanId) || {};
+  const html = kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, 'portrait');
+  printHTML(html);
+}
+
+async function excelIndirKurban(kurbanId) {
+  await downloadExcel('/kurbanlar/' + kurbanId + '/excel', 'kurban-' + kurbanId + '.xlsx');
+}
+
+function yazdirilabilirHTML(tip) {
+  const icerik = document.getElementById('rapor-icerik');
+  const baslik = tip === 'kurbanlar' ? 'Kurban Listesi' : tip === 'bagiscilar' ? 'Bagisci Listesi' : 'Tam Rapor';
+  const baseUrl = window.location.origin;
+  const printStyle = 'body{font-family:Arial,sans-serif;font-size:12px;color:#000;margin:20px}' +
+    '.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;border-bottom:2px solid #1a2a50;padding-bottom:10px}' +
+    '.header-left{font-size:18px;font-weight:bold;color:#1a2a50}' +
+    '.header-left small{display:block;font-size:11px;color:#666;font-weight:normal}' +
+    'h2{font-size:14px;color:#333;margin:16px 0 8px}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:20px}' +
+    'th{background:#1a2a50;color:#fff;padding:10px;text-align:left;font-size:13px;font-weight:bold}' +
+    'td{padding:9px 10px;border-bottom:1px solid #ddd;font-size:13px}' +
+    'tr:nth-child(even){background:#f5f5f5}' +
+    '.stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}' +
+    '.stat{background:#f0f4ff;border:1px solid #c0d0ff;border-radius:6px;padding:10px 16px;min-width:100px}' +
+    '.stat .v{font-size:22px;font-weight:bold;color:#1a2a50}.stat .l{font-size:10px;color:#666;text-transform:uppercase}' +
+    '.footer{display:none}' +
+    '@media print{body{margin:10px}}';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + baslik + '</title>' +
+    '<style>' + printStyle + '</style></head><body>' +
+    '<div class="header">' +
+    '<div style="display:flex;align-items:center;gap:10px">' +
+    '<img src="' + baseUrl + '/icder.png" style="height:48px;object-fit:contain" onerror="this.style.display=\'none\'" />' +
+    '<div class="header-left"><strong>İÇDER</strong><small>' + baslik + ' &mdash; ' + new Date().toLocaleDateString('tr-TR') + '</small></div>' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
+    '<img src="' + baseUrl + '/cad.png" style="height:48px;object-fit:contain" onerror="this.style.display=\'none\'" />' +
+    '<div style="font-size:12px;color:#555;text-align:right">Organizasyon: <strong>' + esc(S.orgAd) + '</strong><br>' + S.orgYil + '</div>' +
+    '</div>' +
+    '</div>' +
+    (icerik ? icerik.innerHTML : '') +
+    '<div class="footer">İÇDER</div>' +
+    '</div>' +
+    '</body></html>';
+}
+
+
+function kurbanYazdirHTML(kurbanNo, tur, hisseler, kurbanData, orientation) {
+  const bayrakSrc = _kullaniciAyarlar.bayrak_data || '';
+  return kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakSrc);
+}
+
+function kurbanYazdirHTMLWithBayrak(kurbanNo, tur, hisseler, kurbanData, orientation, bayrakSrc) {
+  orientation = orientation || 'portrait';
+  const kurbanTuru = (kurbanData && kurbanData.kurban_turu) || 'Udhiye';
+  const baseUrl = window.location.origin;
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/icder.png');
+
+  const isLandscape = orientation === 'landscape';
+  const bw = isLandscape ? '180' : '150';
+  const bh = isLandscape ? '120' : '100';
+  const logoH = isLandscape ? '100px' : '120px';
+  const titleSize = isLandscape ? '28px' : '32px';
+  const pageH = isLandscape ? '210mm' : '297mm';
+  const satirSayisi = tur === 'buyukbas' ? 7 : 1;
+
+  const turkBayrakSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="' + bw + '" height="' + bh + '"><rect width="1200" height="800" fill="#E30A17"/><circle cx="425" cy="400" r="200" fill="white"/><circle cx="475" cy="400" r="160" fill="#E30A17"/><polygon points="583.334,400 764.235,458.779 652.431,304.894 652.431,495.106 764.235,341.221" fill="white"/></svg>';
+  const bayrakImg = bayrakSrc ? '<img src="' + bayrakSrc + '" alt="Bayrak" style="height:' + bh + 'px;width:' + bw + 'px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"/>' : '';
+
+  // Font boyutunu isim uzunluğuna göre belirle — taşmasın, eşit kalsın
+  function getAdFont(ad) {
+    const len = ad ? ad.length : 0;
+    if (len > 32) return '12px';
+    if (len > 26) return '14px';
+    if (len > 20) return '17px';
+    if (len > 14) return '19px';
+    return '21px';
+  }
+
+  let rows = '';
+  for (let i = 0; i < satirSayisi; i++) {
+    const h = hisseler[i];
+    const hisseTuru = (h && h.kurban_turu) ? h.kurban_turu : kurbanTuru;
+    const ad = (h && h.bagisci_adi) ? h.bagisci_adi.toUpperCase() : '';
+    const fontSize = getAdFont(ad);
+    rows += '<tr>' +
+      '<td class="no-cell">' + (i + 1) + '</td>' +
+      '<td class="ad-cell" style="font-size:' + fontSize + '">' + ad + '</td>' +
+      '<td class="tur-cell">' + hisseTuru + '</td>' +
+      '</tr>';
+  }
+
+  const isBuyukbas = tur === 'buyukbas';
+
+  const printStyle =
+    '@page { margin: 12mm 15mm; size: A4 ' + orientation + '; }' +
+    '* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+    'html, body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000;' + (isBuyukbas ? ' height: 100%;' : '') + ' }' +
+    (isBuyukbas
+      ? '.page { display: flex; flex-direction: column; height: calc(' + pageH + ' - 24mm); overflow: hidden; }'
+      : '.page { display: block; }') +
+    '.header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 3px solid #1a2a50; margin-bottom: 8px; }' +
+    '.header-left { width: ' + bw + 'px; }' +
+    '.header-center { flex: 1; text-align: center; padding: 0 10px; }' +
+    '.header-center img { height: ' + logoH + '; max-width: 400px; object-fit: contain; }' +
+    '.header-right { width: ' + bw + 'px; display: flex; justify-content: flex-end; }' +
+    '.kurban-title { font-size: ' + titleSize + '; font-weight: 700; color: #1a2a50; text-align: center; margin: 6px 0 8px; }' +
+    (isBuyukbas
+      ? '.table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; } table { width: 100%; border-collapse: collapse; border: 2px solid #000; height: 100%; table-layout: fixed; }'
+      : '.table-wrap { } table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }') +
+    'thead { display: table-header-group; }' +
+    'th { border: 2px solid #000; padding: 6px 10px; font-size: 16px; font-weight: 700; text-align: center; }' +
+    'tbody { display: table-row-group; }' +
+    (isBuyukbas ? 'tbody tr { height: calc(100% / 7); }' : 'tbody tr { }') +
+    'td.no-cell { border: 2px solid #000; text-align: center; font-size: 22px; font-weight: 800; width: 50px; vertical-align: middle; }' +
+    'td.ad-cell { border: 2px solid #000; padding: 2px 10px; font-weight: 800; vertical-align: middle; text-align: center; white-space: nowrap; overflow: hidden; }' +
+    'td.tur-cell { border: 2px solid #000; text-align: center; font-size: 19px; font-weight: 700; width: 140px; vertical-align: middle; }' +
+    '@media print { html, body { margin: 0; padding: 0; } table { page-break-inside: avoid; } }';
+
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kurban : ' + kurbanNo + '</title>' +
+    '<style>' + printStyle + '</style></head><body>' +
+    '<div class="page">' +
+    '<div class="header">' +
+    '<div class="header-left">' + turkBayrakSVG + '</div>' +
+    '<div class="header-center"><img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/></div>' +
+    '<div class="header-right">' + bayrakImg + '</div>' +
+    '</div>' +
+    '<div class="kurban-title">Kurban : ' + kurbanNo + '</div>' +
+    '<div class="table-wrap">' +
+    '<table>' +
+    '<thead><tr>' +
+    '<th style="width:50px">No</th>' +
+    '<th style="text-align:center">Ad Soyad</th>' +
+    '<th style="width:140px">Kurban T\u00fcr\u00fc</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>' +
+    '</body></html>';
+}
+// ═══════════════════════════════════════════════════════════════════════════
+// DENETİM MASASI
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderDenetim() {
+  // IP adresini sunucudan al
+  let ipAdresleri = [];
+  try {
+    const r = await api('GET', '/sistem/ip');
+    ipAdresleri = r.ips || [];
+  } catch(e) {}
+
+  const ipRows = ipAdresleri.length
+    ? ipAdresleri.map(item => {
+        const url = 'http://' + item.ip + ':4500';
+        return '<tr><td style="color:var(--text3);padding:7px 0;width:130px">' + esc(item.ad||'WiFi') + '</td>' +
+          '<td><span style="color:var(--green);font-weight:700;font-size:14px">' + url + '</span>' +
+          ' <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="navigator.clipboard.writeText(\'' + url + '\').then(()=>toast(\'Kopyalandi\'))"><i class="fa-solid fa-copy"></i></button>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:3px">Ayni WiFi\'deki cihazlar bu adresten girebilir</div></td></tr>';
+      }).join('')
+    : '<tr><td colspan="2" style="color:var(--text3);padding:7px 0">IP adresi bulunamadi. WiFi baglantinizi kontrol edin.</td></tr>';
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-shield-halved"></i></div>
+        Denetim Masasi
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+      <div class="card" style="grid-column:1/-1;border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.05)">
+        <div class="card-title"><i class="fa-solid fa-wifi"></i> Ag Erisimi — WiFi'deki Cihazlar</div>
+        <table style="font-size:13px;width:100%">
+          ${ipRows}
+          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Kullanim</td><td style="font-size:12px;color:var(--text2)">Ayni WiFi'deki telefon veya bilgisayardan tarayicida yukardaki adresi ac</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-circle-info"></i> Uygulama Bilgileri</div>
+        <table style="font-size:13px;width:100%">
+          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Uygulama</td><td style="font-weight:600">İÇDER Kurban Programı</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Versiyon</td><td>1.0.0</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">İşbirliği</td><td style="color:var(--accent);font-weight:600">İÇDER & Defterdar</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Modul</td><td>Kurban Organizasyonu</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Lisans</td><td>İÇDER &copy; 2025</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Site</td><td><a href="https://icder.org" target="_blank" style="color:var(--accent);text-decoration:none">icder.org</a></td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-database"></i> Veritabani</div>
+        <table style="font-size:13px;width:100%">
+          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Motor</td><td>SQLite (sql.js)</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Konum</td><td>userData/data/icder-kurban.db</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Durum</td><td><span class="badge badge-green"><i class="fa-solid fa-circle"></i> Aktif</span></td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-gear"></i> Sistem</div>
+        <table style="font-size:13px;width:100%">
+          <tr><td style="color:var(--text3);padding:7px 0;width:130px">Platform</td><td>Electron + Node.js</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Sunucu</td><td>Express.js :4500</td></tr>
+          <tr><td style="color:var(--text3);padding:7px 0">Kurulum</td><td>NSIS + MSI</td></tr>
+        </table>
+      </div>
+    </div>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ÇÖP KUTUSU
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderCopKutusu() {
+  const m = document.getElementById('main-content');
+  m.innerHTML =
+    '<div class="page-header">' +
+      '<div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-trash-can"></i></div>Çöp Kutusu</div>' +
+      '<button class="btn btn-danger" onclick="copBosalt()"><i class="fa-solid fa-trash"></i> Tamamını Sil</button>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+      '<button class="btn btn-secondary btn-sm" id="cop-tab-veri" onclick="copTabSec(\'veri\')" style="border-bottom:2px solid var(--accent)">Organizasyon & Kurban</button>' +
+      '<button class="btn btn-secondary btn-sm" id="cop-tab-medya" onclick="copTabSec(\'medya\')">Medya Dosyaları</button>' +
+    '</div>' +
+    '<div class="card" id="cop-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div></div>';
+  await yuklecopKutusu('veri');
+}
+
+let _copAktifTab = 'veri';
+async function copTabSec(tab) {
+  _copAktifTab = tab;
+  const tabVeri = document.getElementById('cop-tab-veri');
+  const tabMedya = document.getElementById('cop-tab-medya');
+  if (tabVeri) tabVeri.style.borderBottom = tab === 'veri' ? '2px solid var(--accent)' : 'none';
+  if (tabMedya) tabMedya.style.borderBottom = tab === 'medya' ? '2px solid var(--accent)' : 'none';
+  await yuklecopKutusu(tab);
+}
+
+async function yuklecopKutusu(tab) {
+  tab = tab || _copAktifTab || 'veri';
+  const el = document.getElementById('cop-icerik');
+  if (!el) return;
+  if (tab === 'medya') { await yuklecopMedya(el); return; }
+  const list = await api('GET', '/cop-kutusu');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-trash-can" style="opacity:.3"></i><p>Çöp kutusu boş.</p></div>';
+    return;
+  }
+  const turIcon = { organizasyon: 'fa-layer-group', kurban: 'fa-cow' };
+  const turRenk = { organizasyon: 'badge-blue', kurban: 'badge-yellow' };
+  let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+  html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' öğe silindi</span>';
+  html += '<button class="btn btn-success btn-sm" onclick="copTumunuGeriYukle()"><i class="fa-solid fa-rotate-left"></i> Tamamını Geri Yükle</button>';
+  html += '</div>';
+  html += '<div class="table-wrap"><table><thead><tr><th>Tür</th><th>İçerik</th><th>Silinme Tarihi</th><th>İşlem</th></tr></thead><tbody>';
+  list.forEach(item => {
+    const tarih = new Date(item.silme_tarihi).toLocaleString('tr-TR');
+    html += '<tr>';
+    html += '<td><span class="badge ' + (turRenk[item.tur]||'badge-gray') + '"><i class="fa-solid ' + (turIcon[item.tur]||'fa-file') + '"></i> ' + item.tur + '</span></td>';
+    html += '<td><strong>' + esc(item.baslik) + '</strong></td>';
+    html += '<td style="font-size:12px;color:var(--text3)">' + tarih + '</td>';
+    html += '<td><div style="display:flex;gap:6px">';
+    html += '<button class="btn btn-success btn-sm" onclick="copGeriYukle(' + item.id + ')"><i class="fa-solid fa-rotate-left"></i> Geri Yükle</button>';
+    html += '<button class="btn btn-danger btn-sm btn-icon" onclick="copSil(' + item.id + ')"><i class="fa-solid fa-trash"></i></button>';
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+async function yuklecopMedya(el) {
+  try {
+    const list = await api('GET', '/medya-cop');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-photo-film" style="opacity:.3"></i><p>Silinmiş medya yok.</p></div>';
+      return;
+    }
+    let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+    html += '<span style="font-size:13px;color:var(--text2)">' + list.length + ' medya silindi</span>';
+    html += '<button class="btn btn-danger btn-sm" onclick="medyaCopBosalt()"><i class="fa-solid fa-trash"></i> Medya Çöpünü Temizle</button>';
+    html += '</div>';
+    html += '<div class="table-wrap"><table><thead><tr><th>Tür</th><th>Dosya Adı</th><th>Public ID</th><th>Silinme Tarihi</th><th>İşlem</th></tr></thead><tbody>';
+    list.forEach(item => {
+      const tarih = new Date(item.silme_tarihi).toLocaleString('tr-TR');
+      const turBadge = item.tur === 'video'
+        ? '<span class="badge badge-purple"><i class="fa-solid fa-video"></i> Video</span>'
+        : '<span class="badge badge-blue"><i class="fa-solid fa-image"></i> Resim</span>';
+      html += '<tr>';
+      html += '<td>' + turBadge + '</td>';
+      html += '<td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(item.dosya_adi || '-') + '</td>';
+      html += '<td style="font-size:11px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(item.public_id || '-') + '</td>';
+      html += '<td style="font-size:12px;color:var(--text3);white-space:nowrap">' + tarih + '</td>';
+      html += '<td><button class="btn btn-danger btn-sm btn-icon" onclick="medyaCopSil(' + item.id + ')"><i class="fa-solid fa-trash"></i></button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state"><p>Yüklenemedi: ' + e.message + '</p></div>';
+  }
+}
+
+async function medyaCopSil(id) {
+  try {
+    await api('DELETE', '/medya-cop/' + id);
+    toast('Kayıt silindi');
+    await yuklecopMedya(document.getElementById('cop-icerik'));
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function medyaCopBosalt() {
+  if (!confirm('Tüm medya çöp kayıtları silinecek. Emin misiniz?')) return;
+  try {
+    await api('DELETE', '/medya-cop');
+    toast('Medya çöp kutusu temizlendi');
+    await yuklecopMedya(document.getElementById('cop-icerik'));
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function copGeriYukle(id) {
+  try {
+    await api('POST', '/cop-kutusu/' + id + '/geri-yukle');
+    toast('Geri yuklendi');
+    await yuklecopKutusu();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function copTumunuGeriYukle() {
+  const list = await api('GET', '/cop-kutusu');
+  if (!list.length) return toast('Cop kutusu bos');
+  if (!confirm(list.length + ' oge geri yuklenecek. Emin misiniz?')) return;
+  for (const item of list) {
+    try { await api('POST', '/cop-kutusu/' + item.id + '/geri-yukle'); } catch(e) {}
+  }
+  toast('Tumu geri yuklendi');
+  await yuklecopKutusu();
+}
+
+async function copSil(id) {
+  if (!confirm('Bu oge kalici olarak silinecek. Emin misiniz?')) return;
+  try {
+    await api('DELETE', '/cop-kutusu/' + id);
+    toast('Kalici olarak silindi');
+    await yuklecopKutusu();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function copBosalt() {
+  if (!confirm('Cop kutusu tamamen bosaltilacak. Geri alinamaz. Emin misiniz?')) return;
+  try {
+    await api('DELETE', '/cop-kutusu');
+    toast('Cop kutusu bosaltildi');
+    await yuklecopKutusu();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── YAZDIR / EXCEL YARDIMCI ─────────────────────────────────────────────────
+async function printHTML(html) {
+  if (window.electronAPI && window.electronAPI.printHTML) {
+    await window.electronAPI.printHTML(html);
+  } else {
+    // Web fallback: iframe ile
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
+    document.body.appendChild(iframe);
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(html);
+    iframe.contentDocument.close();
+    setTimeout(() => {
+      try { iframe.contentWindow.print(); } catch(e) {}
+      setTimeout(() => document.body.removeChild(iframe), 3000);
+    }, 300);
+  }
+}
+
+async function downloadExcel(url, filename) {
+  try {
+    toast('Excel hazirlaniyor...');
+    if (window.electronAPI && window.electronAPI.downloadFile) {
+      // Electron: native save dialog
+      const fullUrl = url.startsWith('http') ? url : 'http://127.0.0.1:4500' + url;
+    const result = await window.electronAPI.downloadFile(fullUrl, filename);
+      if (result && result.ok) toast('Excel kaydedildi: ' + result.path);
+      else if (result && !result.ok && !result.error) toast('Iptal edildi');
+      else toast('Hata: ' + (result && result.error || 'Bilinmeyen'), 'error');
+    } else {
+      // Tarayıcı fallback
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('Sunucu hatasi');
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1000);
+      toast('Excel indirildi');
+    }
+  } catch(e) { toast('Excel indirilemedi: ' + e.message, 'error'); }
+}
+
+// ─── DROPDOWN MENU TOGGLE ─────────────────────────────────────────────────────
+function togglePrintMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('print-menu');
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
+function toggleBagisciPrintMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('bagisci-print-menu');
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
+function toggleRaporPrintMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('rapor-print-menu');
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
+function toggleRowPrintMenu(event, kurbanId) {
+  event.stopPropagation();
+  const menu = document.getElementById('row-print-menu-' + kurbanId);
+  const isVisible = menu.style.display !== 'none';
+  
+  // Close all menus first
+  document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+  
+  if (!isVisible) {
+    menu.style.display = 'block';
+    // Close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu() {
+        menu.style.display = 'none';
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 0);
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  showPage('organizasyonlar');
+
+  // Kapatma öncesi yedek
+  if (window.electronAPI && window.electronAPI.onBeforeClose) {
+    window.electronAPI.onBeforeClose(() => {
+      modalKapatmaYedek();
+    });
+  }
+});
+
+async function modalKapatmaYedek() {
+  // Overlay oluştur
+  const overlay = document.createElement('div');
+  overlay.id = 'close-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:linear-gradient(135deg,#0d1220,#111827);border:1px solid #2a3347;border-radius:16px;padding:32px;max-width:460px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6)';
+
+  const orgList = S.orgId ? [{ id: S.orgId, ad: S.orgAd }] : [];
+  let orgOpts = '<option value="">-- Organizasyon secin --</option>';
+  try {
+    const orgs = await api('GET', '/organizasyonlar');
+    orgOpts = orgs.map(o => '<option value="' + o.id + '"' + (o.id === S.orgId ? ' selected' : '') + '>' + esc(o.ad) + ' (' + o.yil + ')</option>').join('');
+  } catch(e) {}
+
+  box.innerHTML =
+    '<div style="font-size:40px;margin-bottom:12px">&#128190;</div>' +
+    '<div style="font-size:18px;font-weight:800;color:#e2e8f0;margin-bottom:8px">Kapatmadan Once Yedek Al</div>' +
+    '<div style="font-size:13px;color:#94a3b8;margin-bottom:20px;line-height:1.6">Uygulama kapatilmadan once verilerinizi yedeklemek ister misiniz?<br>Yedek Excel formatinda kaydedilecektir.</div>' +
+    '<div style="margin-bottom:16px">' +
+    '<select id="close-org-select" style="width:100%;background:#1a2235;border:1px solid #2a3347;border-radius:8px;padding:9px 12px;color:#e2e8f0;font-size:13px;outline:none">' +
+    orgOpts + '</select></div>' +
+    '<div style="display:flex;gap:10px;justify-content:center">' +
+    '<button id="btn-yedek-al" style="background:linear-gradient(135deg,#4f7ef8,#3d6ef0);color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-floppy-disk"></i> Yedekle ve Kapat</button>' +
+    '<button id="btn-yedeksiz-kapat" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer">Yedeksiz Kapat</button>' +
+    '<button id="btn-iptal" style="background:#1a2235;color:#94a3b8;border:1px solid #2a3347;border-radius:10px;padding:11px 24px;font-size:14px;cursor:pointer">Iptal</button>' +
+    '</div>' +
+    '<div id="close-status" style="margin-top:12px;font-size:12px;color:#94a3b8;min-height:18px"></div>';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('btn-iptal').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById('btn-yedeksiz-kapat').onclick = async () => {
+    if (confirm('Yedek almadan kapatmak istediginizden emin misiniz?')) {
+      await window.electronAPI.forceQuit();
+    }
+  };
+
+  document.getElementById('btn-yedek-al').onclick = async () => {
+    const orgId = document.getElementById('close-org-select').value;
+    if (!orgId) {
+      document.getElementById('close-status').textContent = 'Lutfen bir organizasyon secin.';
+      document.getElementById('close-status').style.color = '#ef4444';
+      return;
+    }
+    const statusEl = document.getElementById('close-status');
+    statusEl.textContent = 'Yedek hazirlaniyor...';
+    statusEl.style.color = '#4f7ef8';
+    document.getElementById('btn-yedek-al').disabled = true;
+
+    const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = 'icder-kurban-yedek-' + tarih + '.xlsx';
+    const excelUrl = 'http://127.0.0.1:4500/api/organizasyonlar/' + orgId + '/excel';
+
+    const result = await window.electronAPI.backupAndQuit(excelUrl);
+    if (result && result.ok) {
+      statusEl.textContent = 'Yedek kaydedildi: ' + result.path;
+      statusEl.style.color = '#10b981';
+      setTimeout(async () => { await window.electronAPI.forceQuit(); }, 1200);
+    } else if (result && result.canceled) {
+      statusEl.textContent = 'Kaydetme iptal edildi. Tekrar deneyin.';
+      statusEl.style.color = '#f59e0b';
+      document.getElementById('btn-yedek-al').disabled = false;
+    } else {
+      statusEl.textContent = 'Hata: ' + (result && result.error || 'Bilinmeyen hata');
+      statusEl.style.color = '#ef4444';
+      document.getElementById('btn-yedek-al').disabled = false;
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAĞIŞÇI YAZDIR / EXCEL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function yazdirBagiscilar() {
+  if (!S.orgId) return toast('Once organizasyon secin', 'error');
+
+  // Ekranda ne görünüyorsa onu yazdır: filtreli liste varsa onu, yoksa tümünü
+  const liste = (_filtreliBagiscilar && _filtreliBagiscilar.length > 0)
+    ? _filtreliBagiscilar
+    : _tumBagiscilar;
+
+  if (!liste || !liste.length) return toast('Bagisci listesi yuklu degil', 'error');
+
+  // Aktif filtreleri başlığa yansıt
+  const kategori = document.getElementById('b-kategori')?.value || '';
+  const odeme = document.getElementById('b-odeme')?.value || '';
+  const video = document.getElementById('b-video')?.value || '';
+  const vekalet = document.getElementById('b-vekalet')?.value || '';
+  const ara = document.getElementById('b-ara')?.value?.trim() || '';
+  const filtreler = [];
+  if (kategori) filtreler.push('Kategori: ' + kategori);
+  if (odeme) filtreler.push('Ödeme: ' + ({odendi:'Ödendi',bekliyor:'Bekliyor',iptal:'İptal'}[odeme]||odeme));
+  if (video !== '') filtreler.push(video === '1' ? 'Video İster' : 'Video İstemez');
+  if (vekalet !== '') filtreler.push(vekalet === '1' ? 'Vekalet Alındı' : 'Vekalet Alınmadı');
+  if (ara) filtreler.push('Arama: ' + ara);
+  const filtreSatiri = filtreler.length ? ' — Filtre: ' + filtreler.join(', ') : '';
+
+  const baseUrl = window.location.origin;
+  const logoSrc = _kullaniciAyarlar.logo_data || (baseUrl + '/yazi.png');
+  const oLabel = {odendi:'Ödendi', iptal:'İptal', bekliyor:'Bekliyor'};
+
+  const rows = liste.map((h, i) => {
+    const fiyat = h.kurban_fiyat || (() => {
+      const k = _kurbanlar.find(k => k.id === h.kurban_id);
+      return k ? (k.fiyat || k.alis_fiyati || 0) : 0;
+    })();
+    const siraNo = liste.length - i;
+    return `<tr>
+      <td>${siraNo}</td>
+      <td><strong>${esc(h.bagisci_adi)}</strong></td>
+      <td>${h.bagisci_telefon || '-'}</td>
+      <td>${h.bagisci_kategori || '-'}</td>
+      <td>${h.kimin_adina || '-'}</td>
+      <td>${h.kurban_no}</td>
+      <td>${h.hisse_no}</td>
+      <td>${h.tur === 'buyukbas' ? 'Büyükbaş' : 'Küçükbaş'}</td>
+      <td>${h.kurban_turu || 'Udhiye'}</td>
+      <td><strong>${fiyat ? fiyat.toLocaleString('tr-TR') + ' ₺' : '-'}</strong></td>
+      <td>${oLabel[h.odeme_durumu] || h.odeme_durumu || '-'}</td>
+      <td>${h.video_ister ? 'Evet' : 'Hayır'}</td>
+      <td>${h.vekalet_onay ? 'Alındı' : 'Alınmadı'}</td>
+    </tr>`;
+  }).join('');
+
+  const printStyle = `
+    @page { margin: 10mm 12mm; size: A4 landscape; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #000; }
+    .header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; border-bottom: 3px solid #000; padding-bottom: 10px; }
+    .header img { height: 60px; object-fit: contain; }
+    .header-info .title { font-size: 20px; font-weight: 900; }
+    .header-info .sub { font-size: 13px; color: #333; margin-top: 2px; }
+    .header-info .filtre { font-size: 11px; color: #555; margin-top: 3px; font-style: italic; }
+    .header-right { margin-left: auto; text-align: right; font-size: 13px; color: #333; }
+    table { width: 100%; border-collapse: collapse; border: 2px solid #000; font-size: 11px; }
+    th { background: #1a2a50; color: #fff; padding: 7px 5px; text-align: left; font-size: 11px; font-weight: 700; border: 1px solid #000; }
+    td { padding: 6px 5px; border: 1px solid #bbb; font-size: 11px; line-height: 1.4; }
+    tr:nth-child(even) { background: #f5f5f5; }
+    @media print { body { margin: 0; } }
+  `;
+
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bağışçı Listesi</title>' +
+    '<style>' + printStyle + '</style></head><body>' +
+    '<div class="header">' +
+    '<img src="' + logoSrc + '" alt="Logo" onerror="this.style.visibility=\'hidden\'"/>' +
+    '<div class="header-info">' +
+    '<div class="title">Bağışçı Listesi</div>' +
+    '<div class="sub">' + esc(S.orgAd) + ' — ' + new Date().toLocaleDateString('tr-TR') + '</div>' +
+    (filtreler.length ? '<div class="filtre">Filtre: ' + filtreler.join(' | ') + '</div>' : '') +
+    '</div>' +
+    '<div class="header-right">Toplam: <strong>' + liste.length + ' kişi</strong>' +
+    (liste.length < _tumBagiscilar.length ? '<br><span style="font-size:11px;color:#888">(Toplam ' + _tumBagiscilar.length + ' kişiden filtrelendi)</span>' : '') +
+    '</div>' +
+    '</div>' +
+    '<table><thead><tr>' +
+    '<th>#</th><th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kimin Adına</th>' +
+    '<th>Kurban No</th><th>Hisse</th><th>Hayvan</th><th>Kurban Türü</th>' +
+    '<th>Ücret</th><th>Ödeme</th><th>Video</th><th>Vekalet</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>' +
+    '</body></html>';
+
+  printHTML(html);
+}
+
+async function excelBagiscilarIndir() {
+  if (!S.orgId) return toast('Once organizasyon secin', 'error');
+  downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel?sayfa=bagiscilar', 'bagiscilar.xlsx');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KURBAN SATIR BUTONLARI — Yazdır + Excel + Tümünü
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function yazdirKurbanSatir(kurbanId) {
+  const k = _kurbanlar.find(x => x.id === kurbanId);
+  if (!k) return;
+  await yazdirKurban(kurbanId, k.kurban_no, k.tur);
+}
+
+async function excelIndirKurbanSatir(kurbanId) {
+  await excelIndirKurban(kurbanId);
+}
+
+async function excelKurbanSatir(kurbanId) {
+  downloadExcel('/api/kurbanlar/' + kurbanId + '/excel', 'kurban-' + kurbanId + '.xlsx');
+}
+
+async function tumKurbanlariYazdir() {
+  if (!S.orgId) return toast('Once organizasyon secin', 'error');
+  if (!_kurbanlar.length) return toast('Kurban bulunamadi', 'error');
+  toast('Hazirlanıyor...');
+  let allHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:11px;margin:10px}@media print{.pb{page-break-after:always}}</style></head><body>';
+  for (const k of _kurbanlar) {
+    const hisseler = await api('GET', '/kurbanlar/' + k.id + '/hisseler');
+    const oLabel = {odendi:'Odendi',iptal:'Iptal',bekliyor:'Bekliyor'};
+    let rows = hisseler.map(h => '<tr><td>' + h.hisse_no + '</td><td>' + (h.bagisci_adi||'-') + '</td><td>' + (h.bagisci_telefon||'-') + '</td><td>' + (h.kimin_adina||'-') + '</td><td>' + (oLabel[h.odeme_durumu]||'-') + '</td><td>' + (h.video_ister?'Evet':'Hayir') + '</td></tr>').join('');
+    allHtml += '<div style="margin-bottom:20px">';
+    allHtml += '<div style="display:flex;justify-content:space-between;border-bottom:2px solid #1a2a50;padding-bottom:6px;margin-bottom:10px">';
+    allHtml += '<strong style="font-size:14px;color:#1a2a50">İÇDER &mdash; Kurban #' + k.kurban_no + '</strong>';
+    allHtml += '<span style="font-size:11px;color:#555">' + esc(S.orgAd) + ' | ' + S.orgYil + '</span></div>';
+    allHtml += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr style="background:#1a2a50;color:#fff"><th style="padding:5px">Hisse</th><th>Bagisci</th><th>Telefon</th><th>Kimin Adina</th><th>Odeme</th><th>Video</th></tr>' + rows + '</table>';
+    allHtml += '<div style="font-size:10px;color:#999;display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:4px"><span>İÇDER</span><span></span></div>';
+    allHtml += '</div><div class="pb"></div>';
+  }
+  allHtml += '</body></html>';
+  printHTML(allHtml);
+}
+
+async function tumKurbanlariExcel() {
+  if (!S.orgId) return toast('Once organizasyon secin', 'error');
+  downloadExcel('/api/organizasyonlar/' + S.orgId + '/excel', 'icder-kurban-rapor.xlsx');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// YEDEK GERİ YÜKLEME
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderYedekGeriYukle() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-database"></i></div>
+        Yedek Geri Yükle
+      </div>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card" style="border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.05)">
+        <div class="card-title"><i class="fa-solid fa-download"></i> Tam Yedek Al</div>
+        <div style="margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7">
+          Tüm organizasyonlarınızı, kurbanları, hisseleri ve ayarlarınızı tek bir JSON dosyasına yedekleyin.
+          Bu dosyayı güvenli bir yerde saklayın.
+        </div>
+        <button class="btn btn-success" onclick="tamYedekAl()">
+          <i class="fa-solid fa-download"></i> Tam Yedek İndir (JSON)
+        </button>
+      </div>
+
+      <div class="card" style="border-color:rgba(79,126,248,0.3);background:rgba(79,126,248,0.05)">
+        <div class="card-title"><i class="fa-solid fa-upload"></i> Yedek Geri Yükle</div>
+        <div style="margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7">
+          Daha önce aldığınız JSON yedek dosyasını yükleyerek tüm verilerinizi geri yükleyin.
+          Mevcut veriler korunur, yeni veriler eklenir veya güncellenir.
+        </div>
+        <input type="file" id="yedek-dosya-input" accept=".json" style="display:none" onchange="yedekDosyaSecildi(this)"/>
+        <button class="btn btn-primary" onclick="document.getElementById('yedek-dosya-input').click()">
+          <i class="fa-solid fa-upload"></i> Yedek Dosyası Seç (JSON)
+        </button>
+      </div>
+    </div>
+
+    <div class="card" style="border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.05)">
+      <div class="card-title"><i class="fa-solid fa-file-excel"></i> Excel Yedekten Ayarları Geri Yükle</div>
+      <div style="margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7">
+        Excel yedek dosyanızdan yazdırma ayarlarınızı (logo ve bayrak) geri yükleyin.
+        Bu özellik sadece yazdırma ayarlarını geri yükler, organizasyon verilerini değil.
+      </div>
+      <input type="file" id="excel-yedek-input" accept=".xlsx" style="display:none" onchange="excelYedekSecildi(this)"/>
+      <button class="btn btn-purple" onclick="document.getElementById('excel-yedek-input').click()">
+        <i class="fa-solid fa-file-excel"></i> Excel Yedek Seç (.xlsx)
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-circle-info"></i> Yedekleme Hakkında</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8">
+        <p><strong style="color:var(--text)">Tam Yedek Sistemi:</strong></p>
+        <ul style="margin:8px 0;padding-left:20px">
+          <li>Tüm organizasyonlarınız, kurbanlar, hisseler ve bağışçı bilgileri tek dosyada</li>
+          <li>Kullanıcı ayarlarınız (logo, bayrak) dahil</li>
+          <li>JSON formatında, okunabilir ve taşınabilir</li>
+          <li>Geri yükleme sırasında mevcut veriler korunur</li>
+          <li>Aynı organizasyon varsa güncellenir, yoksa yeni eklenir</li>
+        </ul>
+        <p style="margin-top:12px"><strong style="color:var(--text)">Excel Yedek Sistemi:</strong></p>
+        <ul style="margin:8px 0;padding-left:20px">
+          <li>Organizasyon Excel yedeklerinde yazdırma ayarları (logo ve bayrak) da saklanır</li>
+          <li>Excel yedekten sadece yazdırma ayarlarını geri yükleyebilirsiniz</li>
+          <li>Mevcut ayarlarınız varsa üzerine yazılmaz, sadece boş olanlar doldurulur</li>
+        </ul>
+        <p style="margin-top:12px"><strong style="color:var(--text)">Öneriler:</strong></p>
+        <ul style="margin:8px 0;padding-left:20px">
+          <li>Düzenli olarak yedek alın (haftada bir önerilir)</li>
+          <li>Yedek dosyalarını güvenli bir yerde saklayın (USB, bulut depolama)</li>
+          <li>Önemli değişikliklerden önce mutlaka yedek alın</li>
+          <li>Yedek dosyasını başka bir bilgisayara taşıyabilirsiniz</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" id="oto-yedek-kart" style="border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.05)">
+      <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Otomatik Yedek Ayarları</div>
+      <div id="oto-yedek-yukleniyor" style="color:var(--text3);font-size:13px">Yükleniyor...</div>
+    </div>`; 
+
+  // Oto yedek ayarlarını yükle
+  yukleOtoYedekAyar();
+}
+
+async function yukleOtoYedekAyar() {
+  const wrap = document.getElementById('oto-yedek-yukleniyor');
+  if (!wrap) return;
+  try {
+    const ayar = await api('GET', '/admin/otomatik-yedek-ayar');
+    const aktif = ayar.aktif !== false;
+    const dakika = ayar.dakika || 10;
+    wrap.outerHTML = `
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Otomatik Yedek</div>
+            <div style="font-size:12px;color:var(--text3)">Sunucu çalışırken arka planda otomatik yedek alır — tarayıcı kapalı olsa bile</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <span style="font-size:13px;color:var(--text2)" id="oto-yedek-label">${aktif ? '<span style="color:var(--green);font-weight:600">Açık</span>' : '<span style="color:var(--text3)">Kapalı</span>'}</span>
+            <div style="position:relative;width:44px;height:24px">
+              <input type="checkbox" id="oto-yedek-toggle" ${aktif ? 'checked' : ''} 
+                style="opacity:0;width:0;height:0;position:absolute" onchange="otoYedekToggle()"/>
+              <div id="oto-yedek-slider" style="
+                position:absolute;inset:0;border-radius:24px;cursor:pointer;transition:.3s;
+                background:${aktif ? 'var(--accent)' : 'var(--border2)'};
+              " onclick="document.getElementById('oto-yedek-toggle').click()">
+                <div style="
+                  position:absolute;top:3px;left:${aktif ? '23px' : '3px'};
+                  width:18px;height:18px;border-radius:50%;background:#fff;
+                  transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.3);
+                " id="oto-yedek-knob"></div>
+              </div>
+            </div>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <label style="font-size:13px;color:var(--text2);white-space:nowrap">Her</label>
+          <select id="oto-yedek-dakika" style="
+            background:var(--bg4);border:1px solid var(--border2);border-radius:8px;
+            color:var(--text);padding:8px 12px;font-size:13px;min-width:120px;
+          ">
+            <option value="5"  ${dakika==5?'selected':''}>5 dakika</option>
+            <option value="10" ${dakika==10?'selected':''}>10 dakika</option>
+            <option value="15" ${dakika==15?'selected':''}>15 dakika</option>
+            <option value="30" ${dakika==30?'selected':''}>30 dakika</option>
+            <option value="60" ${dakika==60?'selected':''}>1 saat</option>
+            <option value="120" ${dakika==120?'selected':''}>2 saat</option>
+          </select>
+          <label style="font-size:13px;color:var(--text2)">bir otomatik yedek al</label>
+          <button class="btn btn-primary btn-sm" onclick="kaydetOtoYedekAyar()">
+            <i class="fa-solid fa-floppy-disk"></i> Kaydet
+          </button>
+          <button class="btn btn-green btn-sm" onclick="simdiYedekAl()">
+            <i class="fa-solid fa-bolt"></i> Şimdi Yedek Al
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--text3);background:var(--bg4);border-radius:8px;padding:10px 14px;line-height:1.7">
+          <i class="fa-solid fa-info-circle" style="color:var(--accent)"></i>
+          Yedekler sunucuda <strong>otomatik-yedek/</strong> klasörüne kaydedilir. Son 50 yedek tutulur. Tarayıcı kapalı olsa bile sunucu çalıştığı sürece yedek alınır.
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:600;color:var(--text)"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> Yedek Geçmişi</div>
+          <button class="btn btn-secondary btn-sm" onclick="yukleYedekLoglar()"><i class="fa-solid fa-rotate"></i> Yenile</button>
+        </div>
+        <div id="yedek-log-listesi">
+          <div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">
+            <i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...
+          </div>
+        </div>
+      </div>`;
+    // Logları yükle
+    yukleYedekLoglar();
+  } catch(e) {
+    if (wrap) wrap.innerHTML = '<span style="color:var(--text3);font-size:13px">Ayar yüklenemedi (admin girişi gerekebilir)</span>';
+  }
+}
+
+async function yukleYedekLoglar() {
+  const el = document.getElementById('yedek-log-listesi');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/admin/oto-yedek-loglar');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="fa-solid fa-inbox"></i> Henüz otomatik yedek alınmadı</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th>Tarih</th>
+            <th>Dosya Adı</th>
+            <th>Boyut</th>
+            <th>Durum</th>
+            <th>İndir</th>
+          </tr></thead>
+          <tbody>
+            ${list.map((log, i) => `
+              <tr>
+                <td style="color:var(--text3);font-size:12px">${list.length - i}</td>
+                <td style="font-size:12px;white-space:nowrap">${new Date(log.tarih).toLocaleString('tr-TR')}</td>
+                <td style="font-size:11px;color:var(--text3);font-family:monospace">${esc(log.dosya_adi)}</td>
+                <td style="font-size:12px">${log.boyut ? Math.round(log.boyut/1024) + ' KB' : '-'}</td>
+                <td><span class="badge ${log.durum === 'basarili' ? 'badge-green' : 'badge-red'}">${log.durum === 'basarili' ? 'Başarılı' : 'Hata'}</span></td>
+                <td>
+                  <button class="btn btn-secondary btn-sm btn-icon" onclick="yedekLogIndir('${esc(log.dosya_adi)}')" title="İndir">
+                    <i class="fa-solid fa-download"></i>
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<span style="color:var(--text3);font-size:13px">Log listesi yüklenemedi</span>';
+  }
+}
+
+function yedekLogIndir(dosyaAdi) {
+  const a = document.createElement('a');
+  a.href = '/api/admin/oto-yedek-indir/' + encodeURIComponent(dosyaAdi);
+  a.download = dosyaAdi;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); }, 1000);
+}
+
+async function simdiYedekAl() {
+  try {
+    toast('Yedek alınıyor...');
+    await api('POST', '/admin/oto-yedek-simdi', {});
+    toast('Yedek başarıyla alındı');
+    setTimeout(yukleYedekLoglar, 800);
+  } catch(e) {
+    toast('Yedek alınamadı: ' + e.message, 'error');
+  }
+}
+
+function otoYedekToggle() {
+  const cb = document.getElementById('oto-yedek-toggle');
+  const slider = document.getElementById('oto-yedek-slider');
+  const knob = document.getElementById('oto-yedek-knob');
+  const label = cb.previousElementSibling;
+  if (cb.checked) {
+    slider.style.background = 'var(--accent)';
+    knob.style.left = '23px';
+    label.innerHTML = '<span style="color:var(--green);font-weight:600">Açık</span>';
+  } else {
+    slider.style.background = 'var(--border2)';
+    knob.style.left = '3px';
+    label.innerHTML = '<span style="color:var(--text3)">Kapalı</span>';
+  }
+}
+
+async function kaydetOtoYedekAyar() {
+  const aktif  = document.getElementById('oto-yedek-toggle')?.checked ?? true;
+  const dakika = parseInt(document.getElementById('oto-yedek-dakika')?.value || '10');
+  try {
+    await api('POST', '/admin/otomatik-yedek-ayar', { aktif, dakika });
+    toast(`Oto yedek ayarı kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika`);
+  } catch(e) {
+    toast('Kayıt başarısız: ' + e.message, 'error');
+  }
+}
+
+async function tamYedekAl() {
+  try {
+    toast('Yedek hazırlanıyor...');
+    const r = await fetch('/api/tam-yedek');
+    if (!r.ok) throw new Error('Yedek alınamadı');
+    
+    const blob = await r.blob();
+    const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `icder-kurban-yedek-${tarih}.json`;
+    
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }, 1000);
+    
+    toast('Yedek başarıyla indirildi');
+  } catch(e) {
+    toast('Yedek alınamadı: ' + e.message, 'error');
+  }
+}
+
+async function yedekDosyaSecildi(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  if (!file.name.endsWith('.json')) {
+    toast('Lütfen geçerli bir JSON yedek dosyası seçin', 'error');
+    input.value = '';
+    return;
+  }
+  
+  if (!confirm(`"${file.name}" dosyası yüklenecek. Mevcut verileriniz korunacak, yeni veriler eklenecek veya güncellenecek. Devam etmek istiyor musunuz?`)) {
+    input.value = '';
+    return;
+  }
+  
+  try {
+    toast('Yedek yükleniyor...');
+    
+    const formData = new FormData();
+    formData.append('dosya', file);
+    
+    const r = await fetch('/api/yedek-geri-yukle', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const d = await r.json();
+    
+    if (!r.ok) {
+      throw new Error(d.hata || 'Yedek yüklenemedi');
+    }
+    
+    toast('Yedek başarıyla geri yüklendi!');
+    
+    // Detaylı bilgi göster
+    openModal('Yedek Geri Yüklendi', `
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <div style="font-size:16px;font-weight:600;color:var(--green);margin-bottom:8px">Yedek Başarıyla Geri Yüklendi</div>
+        <div style="font-size:13px;color:var(--text2)">${d.mesaj || 'Verileriniz geri yüklendi'}</div>
+      </div>
+      
+      ${d.detay ? `
+        <div style="background:var(--bg4);border-radius:8px;padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600">İSTATİSTİKLER</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+            <div><span style="color:var(--text3)">Yeni Organizasyon:</span> <strong>${d.detay.organizasyonlar || 0}</strong></div>
+            <div><span style="color:var(--text3)">Güncellenen:</span> <strong>${d.detay.guncellendi || 0}</strong></div>
+            <div><span style="color:var(--text3)">Yeni Kurban:</span> <strong>${d.detay.kurbanlar || 0}</strong></div>
+            <div><span style="color:var(--text3)">Yeni Hisse:</span> <strong>${d.detay.hisseler || 0}</strong></div>
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="closeModal();showPage('organizasyonlar')">
+          <i class="fa-solid fa-check"></i> Tamam
+        </button>
+      </div>
+    `, false, 'check-circle');
+    
+    input.value = '';
+    
+  } catch(e) {
+    toast('Yedek yüklenemedi: ' + e.message, 'error');
+    input.value = '';
+  }
+}
+
+async function excelYedekSecildi(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  if (!file.name.endsWith('.xlsx')) {
+    toast('Lütfen geçerli bir Excel dosyası seçin (.xlsx)', 'error');
+    input.value = '';
+    return;
+  }
+  
+  if (!confirm(`"${file.name}" Excel dosyasından yazdırma ayarları (logo ve bayrak) geri yüklenecek. Devam etmek istiyor musunuz?`)) {
+    input.value = '';
+    return;
+  }
+  
+  try {
+    toast('Excel yedek yükleniyor...');
+    
+    const formData = new FormData();
+    formData.append('dosya', file);
+    
+    const r = await fetch('/api/excel-geri-yukle', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const d = await r.json();
+    
+    if (!r.ok) {
+      throw new Error(d.hata || 'Excel yedek yüklenemedi');
+    }
+    
+    toast('Excel yedek başarıyla geri yüklendi!');
+    
+    // Ayarları yeniden yükle
+    await yukleKullaniciAyarlar();
+    
+    // Detaylı bilgi göster
+    openModal('Excel Yedek Geri Yüklendi', `
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <div style="font-size:16px;font-weight:600;color:var(--green);margin-bottom:8px">Excel Yedek Başarıyla Geri Yüklendi</div>
+        <div style="font-size:13px;color:var(--text2)">${d.mesaj || 'Yazdırma ayarlarınız geri yüklendi'}</div>
+      </div>
+      
+      ${d.detay && d.detay.ayarlar ? `
+        <div style="background:var(--bg4);border-radius:8px;padding:14px;margin-bottom:16px;text-align:center">
+          <i class="fa-solid fa-check-circle" style="font-size:32px;color:var(--green);margin-bottom:8px"></i>
+          <div style="font-size:13px;color:var(--text2)">Logo ve bayrak görselleri başarıyla geri yüklendi</div>
+        </div>
+      ` : `
+        <div style="background:var(--bg5);border-radius:8px;padding:14px;margin-bottom:16px;text-align:center">
+          <i class="fa-solid fa-info-circle" style="font-size:32px;color:var(--text3);margin-bottom:8px"></i>
+          <div style="font-size:13px;color:var(--text3)">Excel dosyasında yazdırma ayarları bulunamadı</div>
+        </div>
+      `}
+      
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="closeModal();showPage('ayarlar')">
+          <i class="fa-solid fa-gear"></i> Ayarlara Git
+        </button>
+        <button class="btn btn-secondary" onclick="closeModal()">
+          <i class="fa-solid fa-check"></i> Tamam
+        </button>
+      </div>
+    `, false, 'file-excel');
+    
+    input.value = '';
+    
+  } catch(e) {
+    toast('Excel yedek yüklenemedi: ' + e.message, 'error');
+    input.value = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEMA TOGGLE
+// ═══════════════════════════════════════════════════════════════════════════
+// TEMA SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+const TEMALAR = [
+  { id: 'dark',        name: 'Koyu Yeşil',    class: '',                  preview: '#0a1410,#10b981' },
+  { id: 'light-green', name: 'Açık Yeşil',    class: 'theme-light-green', preview: '#f0fdf7,#059669' },
+  { id: 'mint',        name: 'Nane Yeşili',   class: 'theme-mint',        preview: '#f0fdfa,#14b8a6' },
+  { id: 'olive',       name: 'Zeytin Yeşili', class: 'theme-olive',       preview: '#f7fee7,#65a30d' },
+  { id: 'light',       name: 'Beyaz/Mavi',    class: 'theme-light',       preview: '#f8fafc,#3b82f6' },
+  { id: 'dark-blue',   name: 'Koyu Mavi',     class: 'theme-dark-blue',   preview: '#0a0f1e,#6366f1' },
+  { id: 'dark-purple', name: 'Mor Gece',      class: 'theme-dark-purple', preview: '#0d0a1e,#a855f7' },
+  { id: 'dark-red',    name: 'Kırmızı Kor',   class: 'theme-dark-red',    preview: '#1a0a0a,#ef4444' },
+  { id: 'dark-gold',   name: 'Altın Çöl',     class: 'theme-dark-gold',   preview: '#1a1200,#f59e0b' },
+  { id: 'ocean',       name: 'Okyanus',       class: 'theme-ocean',       preview: '#0a1628,#0ea5e9' }
+];
+
+function toggleTheme() {
+  modalTemaSecim();
+}
+
+function modalTemaSecim() {
+  const mevcutTema = localStorage.getItem('icder-kurban-tema') || 'dark';
+  const temaButonlari = TEMALAR.map(t => {
+    const secili = t.id === mevcutTema;
+    const [bg, accent] = t.preview.split(',');
+    return `
+      <div onclick="temaDegistir('${t.id}')" style="
+        cursor:pointer;
+        border-radius:14px;
+        overflow:hidden;
+        border:3px solid ${secili ? accent : 'transparent'};
+        box-shadow:${secili ? `0 0 16px ${accent}66, 0 4px 16px rgba(0,0,0,0.3)` : '0 2px 8px rgba(0,0,0,0.2)'};
+        transition:all 0.2s;
+        transform:${secili ? 'scale(1.05)' : 'scale(1)'};
+      " onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.3)'" onmouseout="this.style.transform='${secili?'scale(1.05)':'scale(1)'}';this.style.boxShadow='${secili?`0 0 16px ${accent}66, 0 4px 16px rgba(0,0,0,0.3)`:'0 2px 8px rgba(0,0,0,0.2)'}'">
+        <div style="background:${bg};height:60px;display:flex;align-items:center;justify-content:center;gap:8px">
+          <div style="width:20px;height:20px;border-radius:50%;background:${accent};box-shadow:0 0 8px ${accent}88"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:${accent}88"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:${accent}44"></div>
+        </div>
+        <div style="background:${bg}dd;padding:8px 12px;text-align:center">
+          <div style="font-size:12px;font-weight:600;color:${accent};margin-top:2px">${t.name}</div>
+          ${secili ? '<div style="font-size:10px;color:#aaa;margin-top:2px">✓ Aktif</div>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  openModal('Tema Seçin', `
+    <div style="padding:8px 0">
+      <p style="color:var(--text2);margin-bottom:20px;font-size:13px;text-align:center">Uygulamanın görünümünü değiştirin:</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
+        ${temaButonlari}
+      </div>
+    </div>
+  `, true, 'palette');
+}
+
+function temaDegistir(temaId) {
+  const tema = TEMALAR.find(t => t.id === temaId);
+  if (!tema) return;
+
+  // Tüm tema classlarını kaldır
+  TEMALAR.forEach(t => {
+    if (t.class) document.body.classList.remove(t.class);
+  });
+
+  // Yeni temayı uygula
+  if (tema.class) {
+    document.body.classList.add(tema.class);
+  }
+
+  localStorage.setItem('icder-kurban-tema', temaId);
+  closeModal();
+  toast(`${tema.name} teması uygulandı`);
+}
+
+// Sayfa yüklenince kayıtlı temayı uygula
+(function initTheme() {
+  const saved = localStorage.getItem('icder-kurban-tema') || 'dark';
+  const tema = TEMALAR.find(t => t.id === saved);
+  if (tema && tema.class) {
+    document.body.classList.add(tema.class);
+  }
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MEDYA DEPOSU (Cloudinary)
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderMedyaDeposu() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-photo-film"></i></div>
+        Medya Deposu
+        <small>Cloudinary</small>
+      </div>
+      <div style="display:flex;gap:8px">
+        <select id="medya-folder" onchange="loadMedyaListesi()" style="background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none">
+          <option value="defterdar">Genel</option>
+          <option value="defterdar/videolar">Videolar</option>
+          <option value="defterdar/fotograflar">Fotograflar</option>
+          <option value="defterdar/belgeler">Belgeler</option>
+        </select>
+        <button class="btn btn-primary" onclick="modalMedyaYukle()">
+          <i class="fa-solid fa-upload"></i> Dosya Yukle
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-cloud"></i> Yuklenen Dosyalar</div>
+      <div id="medya-grid-wrap">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div>
+      </div>
+    </div>`;
+
+  await loadMedyaListesi();
+}
+
+async function loadMedyaListesi() {
+  const folder = document.getElementById('medya-folder')?.value || 'defterdar';
+  const wrap = document.getElementById('medya-grid-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div>`;
+  try {
+    const list = await api('GET', `/medya/list?folder=${encodeURIComponent(folder)}`);
+    if (!list.length) {
+      wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-photo-film"></i><p>Henuz dosya yok.</p></div>`;
+      return;
+    }
+    wrap.innerHTML = `<div class="medya-grid">${list.map(item => medyaKart(item)).join('')}</div>`;
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>${e.message}</p></div>`;
+  }
+}
+
+function medyaKart(item) {
+  const isVideo = item.resource_type === 'video';
+  const kb = Math.round(item.bytes / 1024);
+  const boyut = kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb + ' KB';
+  // Video için Cloudinary'nin otomatik poster (jpg) URL'i: secure_url'i .jpg ile değiştir
+  const videoPoster = isVideo && item.secure_url
+    ? item.secure_url.replace(/\/upload\//, '/upload/so_auto,w_400,h_300,c_fill/').replace(/\.[a-z0-9]+$/i, '.jpg')
+    : '';
+  const thumb = isVideo
+    ? `<div class="medya-video-thumb" style="position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden">
+         ${videoPoster ? `<img src="${videoPoster}" alt="video" loading="lazy" style="width:100%;height:100%;object-fit:cover;opacity:.85" onerror="this.style.display='none'"/>` : ''}
+         <i class="fa-solid fa-circle-play" style="position:absolute;color:#fff;font-size:32px;text-shadow:0 2px 6px rgba(0,0,0,.6)"></i>
+       </div>`
+    : `<img src="${item.secure_url}" alt="medya" loading="lazy"/>`;
+  const safeUrl = (item.secure_url || '').replace(/'/g, "\\'");
+  const safeFormat = (item.format || '').replace(/'/g, "\\'");
+  // Klasör/alt yol bilgisi (örn. "kurban-1/hisse-2")
+  const altYol = (item.public_id || '').split('/').slice(1, -1).join('/');
+  const altYolHtml = altYol ? `<div class="medya-size" style="font-size:10px;opacity:.7" title="${esc(altYol)}"><i class="fa-solid fa-folder"></i> ${esc(altYol)}</div>` : '';
+  return `
+    <div class="medya-item" onclick="medyaOnizle('${safeUrl}','${item.resource_type}')">
+      ${thumb}
+      <div class="medya-info">
+        <div class="medya-type">${isVideo ? 'Video' : 'Fotograf'} &bull; ${item.format||''}</div>
+        <div class="medya-size">${boyut}</div>
+        ${altYolHtml}
+      </div>
+      <button class="medya-del" onclick="event.stopPropagation();medyaSil('${item.public_id}','${item.resource_type}','${safeUrl}','${safeFormat}',${item.bytes||0})" title="Sil">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>`;
+}
+
+function medyaOnizle(url, type) {
+  const isVideo = type === 'video';
+  const content = isVideo
+    ? `<video src="${url}" controls style="width:100%;border-radius:8px;max-height:60vh"></video>`
+    : `<img src="${url}" style="width:100%;border-radius:8px;max-height:70vh;object-fit:contain"/>`;
+  openModal('Onizleme', `
+    ${content}
+    <div class="form-actions" style="margin-top:12px">
+      <a href="${url}" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-external-link"></i> Yeni Sekmede Ac</a>
+      <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
+    </div>`, true, 'eye');
+}
+
+async function medyaSil(publicId, resourceType, secureUrl, format, bytes) {
+  if (!confirm('Bu dosyayi silmek istediginizden emin misiniz?')) return;
+  try {
+    // dosya_adi: public_id'nin son kısmı
+    const dosyaAdi = publicId ? publicId.split('/').pop() : '';
+    await api('DELETE', '/medya/delete', {
+      public_id: publicId,
+      resource_type: resourceType,
+      url: secureUrl || null,
+      dosya_adi: dosyaAdi + (format ? '.' + format : ''),
+    });
+    toast('Dosya silindi');
+    await loadMedyaListesi();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function modalMedyaYukle() {
+  const folder = document.getElementById('medya-folder')?.value || 'defterdar';
+  openModal('Dosya Yukle', `
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('medya-file-input').click()"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleMedyaDrop(event)">
+      <i class="fa-solid fa-cloud-arrow-up"></i>
+      <p>Dosyayi buraya surukle veya tikla</p>
+      <small>Resim: JPG, PNG, WEBP &bull; Video: MP4, MOV, WEBM (maks. 100MB)</small>
+      <div class="upload-progress" id="upload-progress">
+        <div class="upload-progress-fill" id="upload-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <input type="file" id="medya-file-input" style="display:none"
+      accept="image/*,video/*"
+      onchange="yukleSeciliDosya(this.files[0],'${folder}')"/>
+    <div id="upload-result" style="margin-top:12px"></div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
+    </div>`, false, 'upload');
+}
+
+function handleMedyaDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const folder = document.getElementById('medya-folder')?.value || 'defterdar';
+  const file = e.dataTransfer.files[0];
+  if (file) yukleSeciliDosya(file, folder);
+}
+
+async function yukleSeciliDosya(file, folder) {
+  if (!file) return;
+  const prog = document.getElementById('upload-progress');
+  const fill = document.getElementById('upload-progress-fill');
+  const result = document.getElementById('upload-result');
+  if (prog) { prog.style.display = 'block'; fill.style.width = '10%'; }
+
+  const formData = new FormData();
+  formData.append('dosya', file);
+  formData.append('folder', folder);
+
+  try {
+    if (fill) fill.style.width = '40%';
+    const r = await fetch('/api/medya/upload', { method: 'POST', body: formData });
+    if (fill) fill.style.width = '90%';
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.hata || 'Yuklenemedi');
+    if (fill) fill.style.width = '100%';
+    if (result) result.innerHTML = `
+      <div class="badge badge-green" style="font-size:12px;padding:8px 14px">
+        <i class="fa-solid fa-circle-check"></i> Yuklendi: ${file.name}
+      </div>`;
+    toast('Dosya yuklendi');
+    setTimeout(() => { closeModal(); loadMedyaListesi(); }, 800);
+  } catch(e) {
+    if (result) result.innerHTML = `<div class="badge badge-red" style="font-size:12px;padding:8px 14px"><i class="fa-solid fa-circle-xmark"></i> ${e.message}</div>`;
+    toast(e.message, 'error');
+  }
+}
+
+// Hisse modalına medya yükleme butonu ekle (hisse kaydedilince çağrılabilir)
+async function modalHisseMedya(hisseId, kurbanNo, hisseNo) {
+  const folder = `defterdar/kurban-${kurbanNo}/hisse-${hisseNo}`;
+  openModal(`Kurban #${kurbanNo} Hisse ${hisseNo} — Medya`, `
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('hisse-file-input').click()"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleHisseDrop(event,'${folder}')">
+      <i class="fa-solid fa-video"></i>
+      <p>Video veya fotograf yukle</p>
+      <small>Bu hisseye ait kesim videosu veya fotografini yukleyin</small>
+      <div class="upload-progress" id="upload-progress">
+        <div class="upload-progress-fill" id="upload-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <input type="file" id="hisse-file-input" style="display:none"
+      accept="image/*,video/*"
+      onchange="yukleSeciliDosya(this.files[0],'${folder}')"/>
+    <div id="upload-result" style="margin-top:12px"></div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
+    </div>`, false, 'video');
+}
+
+function handleHisseDrop(e, folder) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) yukleSeciliDosya(file, folder);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAĞIŞ YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderBagisTurleri() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-list"></i></div>
+        Bağış Türleri
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniBagisTuru()">
+        <i class="fa-solid fa-plus"></i> Yeni Bağış Türü
+      </button>
+    </div>
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-list"></i>
+        <p>Bağış türleri yönetimi geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderBagisRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-chart-line"></i></div>
+        Bağış Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportBagisRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-chart-line"></i>
+        <p>Bağış raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderBagisciYonetimi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-user-tie"></i></div>
+        Bağışçı Yönetimi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniBagisci()">
+        <i class="fa-solid fa-plus"></i> Yeni Bağışçı
+      </button>
+    </div>
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-user-tie"></i>
+        <p>Bağışçı yönetimi geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderBagisAl() {
+  if (S.orgId) { renderBagisAlKurban(); return; }
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-hand-holding-heart"></i></div>
+        Bağış Al
+      </div>
+    </div>
+    <div class="card" style="text-align:center;padding:40px">
+      <i class="fa-solid fa-layer-group" style="font-size:48px;color:var(--accent);margin-bottom:16px;display:block"></i>
+      <h3 style="margin-bottom:8px">Önce bir organizasyon seçin</h3>
+      <p style="color:var(--text3);margin-bottom:20px">Bağış almak için sol menüden bir organizasyon seçin.</p>
+      <button class="btn btn-primary" onclick="showPage('organizasyonlar')">
+        <i class="fa-solid fa-layer-group"></i> Organizasyonlara Git
+      </button>
+    </div>`;
+}
+
+let _bagisAlMod = null;
+let _bagisAlKurban = null;
+let _bagisAlHisseler = [];
+
+async function renderBagisAlKurban() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = '<div class="page-header"><div class="page-title"><div class="icon-wrap"><i class="fa-solid fa-hand-holding-heart"></i></div>Bağış Al <small>' + esc(S.orgAd) + '</small></div></div>' +
+    '<div class="card"><div class="card-title"><i class="fa-solid fa-cow"></i> Kurban Seçimi</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">' +
+    '<button class="btn btn-primary" style="padding:20px;font-size:15px;flex-direction:column;gap:8px;height:auto" onclick="bagisAlMevcut()">' +
+    '<i class="fa-solid fa-list" style="font-size:24px"></i><span>Mevcut Kurbandan Seç</span>' +
+    '<span style="font-size:12px;opacity:0.8">Oluşturulmuş kurbanlardan birini seç</span></button>' +
+    '<button class="btn btn-success" style="padding:20px;font-size:15px;flex-direction:column;gap:8px;height:auto" onclick="bagisAlYeni()">' +
+    '<i class="fa-solid fa-plus-circle" style="font-size:24px"></i><span>Yeni Kurban Oluştur</span>' +
+    '<span style="font-size:12px;opacity:0.8">Yeni kurban ekle ve bağışçıları gir</span></button></div>' +
+    '<div id="bagis-al-icerik"></div></div>';
+}
+
+async function bagisAlMevcut() {
+  _bagisAlMod = 'mevcut';
+  const icerik = document.getElementById('bagis-al-icerik');
+  icerik.innerHTML = '<div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Kurbanlar yükleniyor...</p></div>';
+  try {
+    const kurbanlar = await api('GET', '/organizasyonlar/' + S.orgId + '/kurbanlar');
+    const bos = kurbanlar.filter(k => !k.kesildi && k.dolu_hisse < k.toplam_hisse);
+    if (!bos.length) {
+      icerik.innerHTML = '<div class="empty-state"><i class="fa-solid fa-cow"></i><p>Boş hisseli kurban bulunamadı.</p>' +
+        '<button class="btn btn-success" onclick="bagisAlYeni()" style="margin-top:12px"><i class="fa-solid fa-plus"></i> Yeni Kurban Oluştur</button></div>';
+      return;
+    }
+    let html = '<div style="margin-bottom:12px;font-size:13px;color:var(--text2)"><i class="fa-solid fa-info-circle" style="color:var(--accent)"></i> Bağışçı eklemek istediğiniz kurbanı seçin:</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
+    bos.forEach(k => {
+      html += '<div class="org-card" onclick="bagisAlKurbanSec(' + k.id + ')" style="cursor:pointer">' +
+        '<div class="org-card-name">Kurban #' + k.kurban_no + '</div>' +
+        '<div class="org-card-year"><span class="badge ' + (k.tur==='buyukbas'?'badge-green':'badge-yellow') + '">' + (k.tur==='buyukbas'?'Büyükbaş':'Küçükbaş') + '</span></div>' +
+        '<div class="org-card-stats">' +
+        '<div class="org-card-stat"><div class="val" style="color:var(--accent)">' + k.dolu_hisse + '/' + k.toplam_hisse + '</div><div class="lbl">Dolu/Toplam</div></div>' +
+        '<div class="org-card-stat"><div class="val" style="color:var(--green)">' + (k.toplam_hisse - k.dolu_hisse) + '</div><div class="lbl">Boş Hisse</div></div>' +
+        '</div></div>';
+    });
+    html += '</div>';
+    icerik.innerHTML = html;
+  } catch(e) {
+    icerik.innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Kurbanlar yüklenemedi</p></div>';
+  }
+}
+
+function bagisAlYeni() {
+  _bagisAlMod = 'yeni';
+  const icerik = document.getElementById('bagis-al-icerik');
+  icerik.innerHTML = '<div style="margin-bottom:16px;font-size:13px;color:var(--text2)"><i class="fa-solid fa-info-circle" style="color:var(--accent)"></i> Yeni kurban türünü seçin:</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+    '<button class="btn btn-primary" style="padding:18px;font-size:14px;flex-direction:column;gap:6px;height:auto" onclick="bagisAlTurSec(\'buyukbas\')">' +
+    '<i class="fa-solid fa-cow" style="font-size:28px"></i><span>Büyükbaş</span><span style="font-size:12px;opacity:0.8">7 Hisse</span></button>' +
+    '<button class="btn btn-success" style="padding:18px;font-size:14px;flex-direction:column;gap:6px;height:auto" onclick="bagisAlTurSec(\'kucukbas\')">' +
+    '<i class="fa-solid fa-hippo" style="font-size:28px"></i><span>Küçükbaş</span><span style="font-size:12px;opacity:0.8">1 Hisse</span></button></div>';
+}
+
+async function bagisAlKurbanSec(kurbanId) {
+  try {
+    const list = await api('GET', '/organizasyonlar/' + S.orgId + '/kurbanlar');
+    _bagisAlKurban = list.find(k => k.id === kurbanId);
+    if (!_bagisAlKurban) return toast('Kurban bulunamadı', 'error');
+    _bagisAlHisseler = await api('GET', '/kurbanlar/' + kurbanId + '/hisseler');
+    bagisAlFormGoster(_bagisAlKurban.tur, _bagisAlKurban, _bagisAlHisseler);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function bagisAlTurSec(tur) {
+  const toplam = tur === 'buyukbas' ? 7 : 1;
+  _bagisAlKurban = { tur, toplam_hisse: toplam, id: null };
+  _bagisAlHisseler = Array.from({length: toplam}, (_, i) => ({ hisse_no: i+1, bagisci_adi: null }));
+  bagisAlFormGoster(tur, _bagisAlKurban, _bagisAlHisseler);
+}
+
+function bagisAlFormGoster(tur, kurban, hisseler) {
+  const toplam = kurban.toplam_hisse || (tur === 'buyukbas' ? 7 : 1);
+  const icerik = document.getElementById('bagis-al-icerik');
+  let hisseFormlari = '';
+  for (let i = 0; i < toplam; i++) {
+    const h = hisseler[i] || {};
+    const dolu = h.bagisci_adi ? true : false;
+    hisseFormlari += '<div class="card" id="hisse-card-' + i + '" style="margin:0;border:1px solid ' + (dolu?'rgba(16,185,129,0.4)':'var(--border)') + ';background:' + (dolu?'rgba(16,185,129,0.05)':'var(--bg3)') + '">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
+      '<div style="width:32px;height:32px;border-radius:8px;background:var(--glow);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;border:1px solid rgba(79,126,248,.2)">' + (i+1) + '</div>' +
+      '<div style="font-weight:600;font-size:14px">' + (toplam===1?'Bağışçı Bilgileri':(i+1)+'. Hisse') + '</div>' +
+      '<span id="hisse-badge-' + i + '" class="badge ' + (dolu?'badge-green':'badge-gray') + '" style="margin-left:auto">' + (dolu?'<i class="fa-solid fa-check"></i> Dolu':'Boş') + '</span>' +
+      '</div>' +
+      '<div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">' +
+      '<div class="form-group"><label>Bağışçı Adı Soyadı *</label><input id="h-ad-' + i + '" value="' + esc(h.bagisci_adi||'') + '" placeholder="Ad Soyad" oninput="hisseGuncelle(' + i + ')"/></div>' +
+      '<div class="form-group"><label>Telefon</label><input id="h-tel-' + i + '" value="' + esc(h.bagisci_telefon||'') + '" placeholder="05xx xxx xx xx"/></div>' +
+      '<div class="form-group"><label>Kimin Adına</label><input id="h-adina-' + i + '" value="' + esc(h.kimin_adina||'') + '" placeholder="Vefat eden / başka kişi"/></div>' +
+      '<div class="form-group"><label>Adına Tel</label><input id="h-adina-tel-' + i + '" value="' + esc(h.kimin_adina_telefon||'') + '" placeholder="Opsiyonel"/></div>' +
+      '<div class="form-group"><label>Ödeme Durumu</label><select id="h-odeme-' + i + '">' +
+      '<option value="bekliyor" ' + ((h.odeme_durumu||'bekliyor')==='bekliyor'?'selected':'') + '>Bekliyor</option>' +
+      '<option value="odendi" ' + (h.odeme_durumu==='odendi'?'selected':'') + '>Ödendi</option>' +
+      '<option value="iptal" ' + (h.odeme_durumu==='iptal'?'selected':'') + '>İptal</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>Video İster mi?</label><select id="h-video-' + i + '">' +
+      '<option value="0" ' + (!h.video_ister?'selected':'') + '>Hayır</option>' +
+      '<option value="1" ' + (h.video_ister?'selected':'') + '>Evet</option>' +
+      '</select></div>' +
+      (h.id ? '<div class="form-group" style="grid-column:1/-1;display:flex;justify-content:flex-end"><button class="btn btn-danger btn-sm" onclick="hisseSil(' + h.id + ',' + i + ')"><i class="fa-solid fa-trash"></i> Hisseyi Temizle</button></div>' : '') +
+      '</div></div>';
+  }
+  const kurbanBilgi = kurban.id
+    ? '<div style="background:var(--bg4);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px"><i class="fa-solid fa-cow" style="color:var(--accent)"></i><span>Kurban <strong>#' + kurban.kurban_no + '</strong> &mdash; ' + (tur==='buyukbas'?'Büyükbaş':'Küçükbaş') + ' &mdash; ' + toplam + ' Hisse</span></div>'
+    : '<div style="background:var(--bg4);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px"><i class="fa-solid fa-plus-circle" style="color:var(--green)"></i><span>Yeni <strong>' + (tur==='buyukbas'?'Büyükbaş':'Küçükbaş') + '</strong> kurban oluşturulacak &mdash; ' + toplam + ' Hisse</span></div>';
+  icerik.innerHTML = kurbanBilgi +
+    '<div style="display:grid;gap:12px;margin-bottom:20px">' + hisseFormlari + '</div>' +
+    '<div class="form-actions">' +
+    '<button class="btn btn-secondary" onclick="' + (_bagisAlMod==='mevcut'?'bagisAlMevcut()':'bagisAlYeni()') + '"><i class="fa-solid fa-arrow-left"></i> Geri</button>' +
+    '<button class="btn btn-primary" onclick="bagisAlKaydet()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>' +
+    '</div>';
+}
+
+function hisseGuncelle(idx) {
+  const ad = document.getElementById('h-ad-' + idx)?.value?.trim();
+  const card = document.getElementById('hisse-card-' + idx);
+  const badge = document.getElementById('hisse-badge-' + idx);
+  if (!card || !badge) return;
+  if (ad) {
+    badge.className = 'badge badge-green';
+    badge.innerHTML = '<i class="fa-solid fa-check"></i> Dolu';
+    card.style.borderColor = 'rgba(16,185,129,0.4)';
+    card.style.background = 'rgba(16,185,129,0.05)';
+  } else {
+    badge.className = 'badge badge-gray';
+    badge.innerHTML = 'Boş';
+    card.style.borderColor = 'var(--border)';
+    card.style.background = 'var(--bg3)';
+  }
+}
+
+async function hisseSil(hisseId, idx) {
+  if (!confirm('Bu hisseyi temizlemek istediğinizden emin misiniz?')) return;
+  try {
+    await api('DELETE', '/hisseler/' + hisseId + '/temizle');
+    toast('Hisse temizlendi');
+    bagisAlKurbanSec(_bagisAlKurban.id);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function bagisAlKaydet() {
+  const toplam = _bagisAlKurban.toplam_hisse || (_bagisAlKurban.tur === 'buyukbas' ? 7 : 1);
+  const hisseler = [];
+  for (let i = 0; i < toplam; i++) {
+    hisseler.push({
+      bagisci_adi: document.getElementById('h-ad-' + i)?.value?.trim() || null,
+      bagisci_telefon: document.getElementById('h-tel-' + i)?.value?.trim() || null,
+      kimin_adina: document.getElementById('h-adina-' + i)?.value?.trim() || null,
+      kimin_adina_telefon: document.getElementById('h-adina-tel-' + i)?.value?.trim() || null,
+      odeme_durumu: document.getElementById('h-odeme-' + i)?.value || 'bekliyor',
+      video_ister: parseInt(document.getElementById('h-video-' + i)?.value || '0')
+    });
+  }
+  const dolular = hisseler.filter(h => h.bagisci_adi);
+  if (!dolular.length) { toast('En az bir hisse için bağışçı adı girin', 'error'); return; }
+  try {
+    if (_bagisAlMod === 'mevcut' && _bagisAlKurban.id) {
+      // Her hisseyi hisse_no ile eşleştirerek kaydet
+      for (let i = 0; i < _bagisAlHisseler.length; i++) {
+        const h = _bagisAlHisseler[i];
+        if (!h || !h.id) continue;
+        const hisseNo = h.hisse_no - 1; // hisse_no 1'den başlıyor, array 0'dan
+        const veri = hisseler[hisseNo];
+        if (!veri) continue;
+        await api('PUT', '/hisseler/' + h.id, veri);
+      }
+      toast(dolular.length + ' bağışçı kaydedildi');
+    } else {
+      await api('POST', '/organizasyonlar/' + S.orgId + '/kurban-ve-hisseler', { tur: _bagisAlKurban.tur, hisseler });
+      toast('Kurban oluşturuldu, ' + dolular.length + ' bağışçı eklendi');
+    }
+    await loadKurbanlar().catch(() => {});
+    renderBagisAlKurban();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function cikisYap() {
+  if (!confirm('Çıkış yapmak istediğinizden emin misiniz?')) return;
+  try {
+    await fetch('/api/auth/cikis', { method: 'POST' });
+  } catch(e) {}
+  window.location.href = '/icder-giris';
+}
+
+
+function renderGonulluYonetimi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-hands-helping"></i></div>
+        Gönüllü Yönetimi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniGonullu()">
+        <i class="fa-solid fa-plus"></i> Yeni Gönüllü
+      </button>
+    </div>
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-hands-helping"></i>
+        <p>Gönüllü yönetimi geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderKumbaraTalepleri() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-piggy-bank"></i></div>
+        Kumbara Talepleri
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniKumbaraTalebi()">
+        <i class="fa-solid fa-plus"></i> Yeni Talep
+      </button>
+    </div>
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-piggy-bank"></i>
+        <p>Kumbara talepleri geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderWebSitesiBagislari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-globe"></i></div>
+        Web Sitesi Bağışları
+      </div>
+      <button class="btn btn-secondary" onclick="senkronizeEtBagislar()">
+        <i class="fa-solid fa-sync"></i> Senkronize Et
+      </button>
+    </div>
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-globe"></i>
+        <p>Web sitesi bağışları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+// Placeholder fonksiyonlar
+function modalYeniBagisTuru() {
+  toast('Bağış türü ekleme özelliği yakında eklenecek', 'info');
+}
+
+function kaydetBagis() {
+  toast('Bağış kaydetme özelliği yakında eklenecek', 'info');
+}
+
+function modalYeniGonullu() {
+  toast('Gönüllü ekleme özelliği yakında eklenecek', 'info');
+}
+
+function modalYeniKumbaraTalebi() {
+  toast('Kumbara talebi ekleme özelliği yakında eklenecek', 'info');
+}
+
+function senkronizeEtBagislar() {
+  toast('Senkronizasyon özelliği yakında eklenecek', 'info');
+}
+
+function exportBagisRaporu() {
+  toast('Rapor indirme özelliği yakında eklenecek', 'info');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEPO/STOK YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderKategoriTanimlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-tags"></i></div>
+        Kategori Tanımları
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniKategori()">
+        <i class="fa-solid fa-plus"></i> Yeni Kategori
+      </button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Kategori Adı</th>
+              <th>Açıklama</th>
+              <th>Ürün Sayısı</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <i class="fa-solid fa-tags"></i>
+                  <p>Kategori tanımları geliştiriliyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderUrunTanimlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-box"></i></div>
+        Ürün Tanımları
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniUrun()">
+        <i class="fa-solid fa-plus"></i> Yeni Ürün
+      </button>
+    </div>
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Ürün ara..." oninput="filterUrunler()"/>
+        <select onchange="filterUrunler()">
+          <option value="">Tüm Kategoriler</option>
+          <option value="gida">Gıda</option>
+          <option value="temizlik">Temizlik</option>
+          <option value="kirtasiye">Kırtasiye</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Ürün Adı</th>
+              <th>Kategori</th>
+              <th>Birim</th>
+              <th>Stok Miktarı</th>
+              <th>Birim Fiyat</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="fa-solid fa-box"></i>
+                  <p>Ürün tanımları geliştiriliyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderStokGirisi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-arrow-down"></i></div>
+        Stok Girişi
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Ürün Seç *</label>
+          <select id="stok-giris-urun">
+            <option value="">Ürün seçin...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Miktar *</label>
+          <input type="number" id="stok-giris-miktar" placeholder="0"/>
+        </div>
+        <div class="form-group">
+          <label>Birim Fiyat (TL)</label>
+          <input type="number" id="stok-giris-fiyat" placeholder="0.00"/>
+        </div>
+        <div class="form-group">
+          <label>Tedarikçi</label>
+          <input id="stok-giris-tedarikci" placeholder="Tedarikçi adı"/>
+        </div>
+        <div class="form-group">
+          <label>Fatura No</label>
+          <input id="stok-giris-fatura" placeholder="Fatura numarası"/>
+        </div>
+        <div class="form-group">
+          <label>Tarih</label>
+          <input type="date" id="stok-giris-tarih" value="${new Date().toISOString().split('T')[0]}"/>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Not</label>
+          <textarea id="stok-giris-not" placeholder="Opsiyonel..."></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="kaydetStokGirisi()">
+          <i class="fa-solid fa-floppy-disk"></i> Stok Girişi Yap
+        </button>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-top:20px">
+      <h3 style="margin-bottom:16px">Son Stok Girişleri</h3>
+      <div class="empty-state">
+        <i class="fa-solid fa-arrow-down"></i>
+        <p>Stok giriş geçmişi geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderStokCikisi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-arrow-up"></i></div>
+        Stok Çıkışı
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Ürün Seç *</label>
+          <select id="stok-cikis-urun">
+            <option value="">Ürün seçin...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Miktar *</label>
+          <input type="number" id="stok-cikis-miktar" placeholder="0"/>
+        </div>
+        <div class="form-group">
+          <label>Çıkış Nedeni *</label>
+          <select id="stok-cikis-neden">
+            <option value="satis">Satış</option>
+            <option value="bagis">Bağış</option>
+            <option value="fire">Fire</option>
+            <option value="iade">İade</option>
+            <option value="diger">Diğer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Alıcı/Faydalanıcı</label>
+          <input id="stok-cikis-alici" placeholder="Alıcı adı"/>
+        </div>
+        <div class="form-group">
+          <label>Tarih</label>
+          <input type="date" id="stok-cikis-tarih" value="${new Date().toISOString().split('T')[0]}"/>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Not</label>
+          <textarea id="stok-cikis-not" placeholder="Opsiyonel..."></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="kaydetStokCikisi()">
+          <i class="fa-solid fa-floppy-disk"></i> Stok Çıkışı Yap
+        </button>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-top:20px">
+      <h3 style="margin-bottom:16px">Son Stok Çıkışları</h3>
+      <div class="empty-state">
+        <i class="fa-solid fa-arrow-up"></i>
+        <p>Stok çıkış geçmişi geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderFaturaRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-file-invoice"></i></div>
+        Fatura Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportFaturaRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-file-invoice"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Fatura</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-lira-sign"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Toplam Tutar</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bekleyen</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon"><i class="fa-solid fa-exclamation-triangle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Gecikmiş</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Fatura ara..." />
+        <select>
+          <option value="">Tüm Durumlar</option>
+          <option value="odendi">Ödendi</option>
+          <option value="bekliyor">Bekliyor</option>
+          <option value="gecikti">Gecikti</option>
+        </select>
+        <input type="date" placeholder="Başlangıç"/>
+        <input type="date" placeholder="Bitiş"/>
+      </div>
+      <div class="empty-state">
+        <i class="fa-solid fa-file-invoice"></i>
+        <p>Fatura raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderDepoSayimi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-clipboard-check"></i></div>
+        Depo Sayımı
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniSayim()">
+        <i class="fa-solid fa-plus"></i> Yeni Sayım Başlat
+      </button>
+    </div>
+    
+    <div class="card">
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card blue">
+          <div class="stat-icon"><i class="fa-solid fa-box"></i></div>
+          <div class="stat-value">0</div>
+          <div class="stat-label">Toplam Ürün</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+          <div class="stat-value">0</div>
+          <div class="stat-label">Sayıldı</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+          <div class="stat-value">0</div>
+          <div class="stat-label">Bekliyor</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-icon"><i class="fa-solid fa-exclamation-circle"></i></div>
+          <div class="stat-value">0</div>
+          <div class="stat-label">Fark Var</div>
+        </div>
+      </div>
+      
+      <div class="empty-state">
+        <i class="fa-solid fa-clipboard-check"></i>
+        <p>Depo sayımı geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+// Placeholder fonksiyonlar
+function modalYeniKategori() {
+  toast('Kategori ekleme özelliği yakında eklenecek', 'info');
+}
+
+function modalYeniUrun() {
+  toast('Ürün ekleme özelliği yakında eklenecek', 'info');
+}
+
+function filterUrunler() {
+  // Ürün filtreleme
+}
+
+function kaydetStokGirisi() {
+  toast('Stok girişi özelliği yakında eklenecek', 'info');
+}
+
+function kaydetStokCikisi() {
+  toast('Stok çıkışı özelliği yakında eklenecek', 'info');
+}
+
+function exportFaturaRaporu() {
+  toast('Fatura raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+function modalYeniSayim() {
+  toast('Sayım başlatma özelliği yakında eklenecek', 'info');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// YARDIM YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderYardimRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-chart-pie"></i></div>
+        Yardım Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportYardimRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-hands-helping"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Yardım</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Tamamlanan</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Devam Eden</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Faydalanan Kişi</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Rapor ara..." />
+        <select>
+          <option value="">Tüm Yardım Türleri</option>
+          <option value="gida">Gıda Yardımı</option>
+          <option value="egitim">Eğitim Yardımı</option>
+          <option value="saglik">Sağlık Yardımı</option>
+          <option value="nakit">Nakit Yardım</option>
+        </select>
+        <input type="date" placeholder="Başlangıç"/>
+        <input type="date" placeholder="Bitiş"/>
+      </div>
+      <div class="empty-state">
+        <i class="fa-solid fa-chart-pie"></i>
+        <p>Yardım raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderBasvuruDosyalari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-folder-open"></i></div>
+        Başvuru Dosyaları
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniBasvuru()">
+        <i class="fa-solid fa-plus"></i> Yeni Başvuru
+      </button>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Başvuru ara..." oninput="filterBasvurular()"/>
+        <select onchange="filterBasvurular()">
+          <option value="">Tüm Durumlar</option>
+          <option value="beklemede">Beklemede</option>
+          <option value="inceleniyor">İnceleniyor</option>
+          <option value="onaylandi">Onaylandı</option>
+          <option value="reddedildi">Reddedildi</option>
+        </select>
+        <select onchange="filterBasvurular()">
+          <option value="">Tüm Türler</option>
+          <option value="gida">Gıda Yardımı</option>
+          <option value="egitim">Eğitim Yardımı</option>
+          <option value="saglik">Sağlık Yardımı</option>
+          <option value="nakit">Nakit Yardım</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Başvuru No</th>
+              <th>Ad Soyad</th>
+              <th>Yardım Türü</th>
+              <th>Başvuru Tarihi</th>
+              <th>Durum</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="fa-solid fa-folder-open"></i>
+                  <p>Başvuru dosyaları geliştiriliyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderYetimOksuzYonetimi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-child"></i></div>
+        Yetim-Öksüz Yönetimi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniYetim()">
+        <i class="fa-solid fa-plus"></i> Yeni Kayıt
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-child"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Kayıt</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Eğitim Desteği</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-heart"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Sağlık Desteği</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-home"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Barınma Desteği</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="İsim ara..." oninput="filterYetimler()"/>
+        <select onchange="filterYetimler()">
+          <option value="">Tüm Yaş Grupları</option>
+          <option value="0-6">0-6 Yaş</option>
+          <option value="7-12">7-12 Yaş</option>
+          <option value="13-18">13-18 Yaş</option>
+        </select>
+        <select onchange="filterYetimler()">
+          <option value="">Tüm Durumlar</option>
+          <option value="aktif">Aktif</option>
+          <option value="pasif">Pasif</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Ad Soyad</th>
+              <th>Yaş</th>
+              <th>Veli/Vasi</th>
+              <th>Telefon</th>
+              <th>Destek Türü</th>
+              <th>Durum</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <i class="fa-solid fa-child"></i>
+                  <p>Yetim-öksüz yönetimi geliştiriliyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderIhtiyacSahibiListesi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-users"></i></div>
+        İhtiyaç Sahibi Kişi Listesi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniIhtiyacSahibi()">
+        <i class="fa-solid fa-plus"></i> Yeni Kişi Ekle
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Kişi</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Yardım Alanlar</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bekleyenler</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon"><i class="fa-solid fa-exclamation-triangle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Acil Durum</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="İsim, TC No ara..." oninput="filterIhtiyacSahibi()"/>
+        <select onchange="filterIhtiyacSahibi()">
+          <option value="">Tüm İhtiyaç Türleri</option>
+          <option value="gida">Gıda</option>
+          <option value="giyim">Giyim</option>
+          <option value="egitim">Eğitim</option>
+          <option value="saglik">Sağlık</option>
+          <option value="nakit">Nakit</option>
+        </select>
+        <select onchange="filterIhtiyacSahibi()">
+          <option value="">Tüm Öncelikler</option>
+          <option value="acil">Acil</option>
+          <option value="yuksek">Yüksek</option>
+          <option value="orta">Orta</option>
+          <option value="dusuk">Düşük</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Ad Soyad</th>
+              <th>TC No</th>
+              <th>Telefon</th>
+              <th>Adres</th>
+              <th>İhtiyaç Türü</th>
+              <th>Öncelik</th>
+              <th>Son Yardım</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="9">
+                <div class="empty-state">
+                  <i class="fa-solid fa-users"></i>
+                  <p>İhtiyaç sahibi listesi geliştiriliyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// Placeholder fonksiyonlar
+function exportYardimRaporu() {
+  toast('Yardım raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+function modalYeniBasvuru() {
+  toast('Başvuru ekleme özelliği yakında eklenecek', 'info');
+}
+
+function filterBasvurular() {
+  // Başvuru filtreleme
+}
+
+function modalYeniYetim() {
+  toast('Yetim kaydı ekleme özelliği yakında eklenecek', 'info');
+}
+
+function filterYetimler() {
+  // Yetim filtreleme
+}
+
+function modalYeniIhtiyacSahibi() {
+  toast('İhtiyaç sahibi ekleme özelliği yakında eklenecek', 'info');
+}
+
+function filterIhtiyacSahibi() {
+  // İhtiyaç sahibi filtreleme
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORGANİZASYON YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderSuKuyusuOrganizasyonu() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-water"></i></div>
+        Su Kuyusu Organizasyonu
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniSuKuyusu()">
+        <i class="fa-solid fa-plus"></i> Yeni Su Kuyusu
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-water"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Kuyu</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Tamamlanan</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Devam Eden</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-lira-sign"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Toplam Bütçe</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Kuyu ara..." oninput="filterSuKuyusu()"/>
+        <select onchange="filterSuKuyusu()">
+          <option value="">Tüm Durumlar</option>
+          <option value="planlama">Planlama</option>
+          <option value="devam">Devam Ediyor</option>
+          <option value="tamamlandi">Tamamlandı</option>
+        </select>
+        <select onchange="filterSuKuyusu()">
+          <option value="">Tüm Ülkeler</option>
+          <option value="afrika">Afrika</option>
+          <option value="asya">Asya</option>
+          <option value="ortadogu">Orta Doğu</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Kuyu Adı</th>
+              <th>Konum</th>
+              <th>Bütçe</th>
+              <th>Toplanan</th>
+              <th>Durum</th>
+              <th>Başlangıç</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <i class="fa-solid fa-water"></i>
+                  <p>Su kuyusu organizasyonu geliştiriliyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderProjeYonetimi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-project-diagram"></i></div>
+        Proje Yönetimi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniProje()">
+        <i class="fa-solid fa-plus"></i> Yeni Proje
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-project-diagram"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Proje</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Tamamlanan</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-spinner"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Devam Eden</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon"><i class="fa-solid fa-pause-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Beklemede</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Proje ara..." oninput="filterProjeler()"/>
+        <select onchange="filterProjeler()">
+          <option value="">Tüm Kategoriler</option>
+          <option value="egitim">Eğitim</option>
+          <option value="saglik">Sağlık</option>
+          <option value="altyapi">Alt Yapı</option>
+          <option value="sosyal">Sosyal</option>
+        </select>
+        <select onchange="filterProjeler()">
+          <option value="">Tüm Durumlar</option>
+          <option value="planlama">Planlama</option>
+          <option value="devam">Devam Ediyor</option>
+          <option value="tamamlandi">Tamamlandı</option>
+          <option value="beklemede">Beklemede</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Proje Adı</th>
+              <th>Kategori</th>
+              <th>Bütçe</th>
+              <th>Harcanan</th>
+              <th>İlerleme</th>
+              <th>Durum</th>
+              <th>Sorumlu</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="9">
+                <div class="empty-state">
+                  <i class="fa-solid fa-project-diagram"></i>
+                  <p>Proje yönetimi geliştiriliyor...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderDigerOrganizasyonlar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-sitemap"></i></div>
+        Diğer Organizasyonlar
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniDigerOrganizasyon()">
+        <i class="fa-solid fa-plus"></i> Yeni Organizasyon
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-sitemap"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Organizasyon</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Aktif</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Planlanan</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-archive"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Arşivlenen</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Organizasyon ara..." oninput="filterDigerOrg()"/>
+        <select onchange="filterDigerOrg()">
+          <option value="">Tüm Türler</option>
+          <option value="etkinlik">Etkinlik</option>
+          <option value="kampanya">Kampanya</option>
+          <option value="yardim">Yardım Kampanyası</option>
+          <option value="egitim">Eğitim Programı</option>
+        </select>
+        <select onchange="filterDigerOrg()">
+          <option value="">Tüm Durumlar</option>
+          <option value="aktif">Aktif</option>
+          <option value="planlanan">Planlanan</option>
+          <option value="tamamlandi">Tamamlandı</option>
+          <option value="iptal">İptal Edildi</option>
+        </select>
+      </div>
+      <div class="org-grid" id="diger-org-grid">
+        <div class="empty-state">
+          <i class="fa-solid fa-sitemap"></i>
+          <p>Diğer organizasyonlar geliştiriliyor...</p>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Placeholder fonksiyonlar
+function modalYeniSuKuyusu() {
+  toast('Su kuyusu ekleme özelliği yakında eklenecek', 'info');
+}
+
+function filterSuKuyusu() {
+  // Su kuyusu filtreleme
+}
+
+function modalYeniProje() {
+  toast('Proje ekleme özelliği yakında eklenecek', 'info');
+}
+
+function filterProjeler() {
+  // Proje filtreleme
+}
+
+function modalYeniDigerOrganizasyon() {
+  toast('Organizasyon ekleme özelliği yakında eklenecek', 'info');
+}
+
+function filterDigerOrg() {
+  // Diğer organizasyon filtreleme
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RAPOR YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderHissedarRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-users"></i></div>
+        Hissedar Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportHissedarRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Hissedar</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Ödeme Yapan</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bekleyen</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-lira-sign"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Toplam Tutar</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Hissedar ara..." />
+        <select>
+          <option value="">Tüm Organizasyonlar</option>
+        </select>
+        <input type="date" placeholder="Başlangıç"/>
+        <input type="date" placeholder="Bitiş"/>
+      </div>
+      <div class="empty-state">
+        <i class="fa-solid fa-users"></i>
+        <p>Hissedar raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderSuKuyusuRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-water"></i></div>
+        Su Kuyusu Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportSuKuyusuRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-water"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Kuyu</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Tamamlanan</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-spinner"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Devam Eden</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-lira-sign"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Toplam Bütçe</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-water"></i>
+        <p>Su kuyusu raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderBagisciRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-user-tie"></i></div>
+        Bağışçı Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportBagisciRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-user-tie"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Bağışçı</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-star"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Aktif Bağışçı</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-hand-holding-heart"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Bağış</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-lira-sign"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Toplam Tutar</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Bağışçı ara..." />
+        <select>
+          <option value="">Tüm Bağış Türleri</option>
+          <option value="nakit">Nakit</option>
+          <option value="kumbara">Kumbara</option>
+          <option value="online">Online</option>
+        </select>
+        <input type="date" placeholder="Başlangıç"/>
+        <input type="date" placeholder="Bitiş"/>
+      </div>
+      <div class="empty-state">
+        <i class="fa-solid fa-user-tie"></i>
+        <p>Bağışçı raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderIhtiyacSahibiRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-hands-helping"></i></div>
+        İhtiyaç Sahibi Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportIhtiyacSahibiRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Kişi</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Yardım Yapılan</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bekleyen</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon"><i class="fa-solid fa-exclamation-triangle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Acil Durum</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-hands-helping"></i>
+        <p>İhtiyaç sahibi raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderTahsilatRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-money-bill-wave"></i></div>
+        Tahsilat Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportTahsilatRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Toplam Tahsilat</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-credit-card"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Kredi Kartı</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-money-bill"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Nakit</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-university"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Banka Transferi</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <select>
+          <option value="">Tüm Ödeme Yöntemleri</option>
+          <option value="nakit">Nakit</option>
+          <option value="kredi-karti">Kredi Kartı</option>
+          <option value="banka">Banka Transferi</option>
+        </select>
+        <input type="date" placeholder="Başlangıç"/>
+        <input type="date" placeholder="Bitiş"/>
+      </div>
+      <div class="empty-state">
+        <i class="fa-solid fa-money-bill-wave"></i>
+        <p>Tahsilat raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderBankaServisleri() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-university"></i></div>
+        Banka Servisleri
+      </div>
+      <button class="btn btn-primary" onclick="senkronizeBanka()">
+        <i class="fa-solid fa-sync"></i> Senkronize Et
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-university"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bağlı Banka</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-wallet"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Toplam Bakiye</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-exchange-alt"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bugünkü İşlem</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">-</div>
+        <div class="stat-label">Son Senkronizasyon</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-university"></i>
+        <p>Banka servisleri geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+function renderSponsorPeriyotRaporlari() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-calendar-alt"></i></div>
+        Sponsor Periyot Raporları
+      </div>
+      <button class="btn btn-primary" onclick="exportSponsorPeriyotRaporu()">
+        <i class="fa-solid fa-file-excel"></i> Excel İndir
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-handshake"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Aktif Sponsor</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-lira-sign"></i></div>
+        <div class="stat-value">0 ₺</div>
+        <div class="stat-label">Aylık Toplam</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bu Ay Ödenen</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon"><i class="fa-solid fa-exclamation-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Gecikmiş</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input placeholder="Sponsor ara..." />
+        <select>
+          <option value="">Tüm Periyotlar</option>
+          <option value="aylik">Aylık</option>
+          <option value="3aylik">3 Aylık</option>
+          <option value="6aylik">6 Aylık</option>
+          <option value="yillik">Yıllık</option>
+        </select>
+        <select>
+          <option value="">Tüm Durumlar</option>
+          <option value="aktif">Aktif</option>
+          <option value="beklemede">Beklemede</option>
+          <option value="gecikti">Gecikti</option>
+        </select>
+      </div>
+      <div class="empty-state">
+        <i class="fa-solid fa-calendar-alt"></i>
+        <p>Sponsor periyot raporları geliştiriliyor...</p>
+      </div>
+    </div>`;
+}
+
+// Placeholder fonksiyonlar
+function exportHissedarRaporu() {
+  toast('Hissedar raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+function exportSuKuyusuRaporu() {
+  toast('Su kuyusu raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+function exportBagisciRaporu() {
+  toast('Bağışçı raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+function exportIhtiyacSahibiRaporu() {
+  toast('İhtiyaç sahibi raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+function exportTahsilatRaporu() {
+  toast('Tahsilat raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+function senkronizeBanka() {
+  toast('Banka senkronizasyonu özelliği yakında eklenecek', 'info');
+}
+
+function exportSponsorPeriyotRaporu() {
+  toast('Sponsor periyot raporu indirme özelliği yakında eklenecek', 'info');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KİŞİSEL YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderProfilBilgilerim() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-user-circle"></i></div>
+        Profil Bilgilerim
+      </div>
+    </div>
+    
+    <div class="card">
+      <div style="display:flex;gap:30px;align-items:start">
+        <div style="text-align:center">
+          <div style="width:150px;height:150px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;margin-bottom:15px;border:3px solid var(--accent)">
+            <i class="fa-solid fa-user" style="font-size:60px;color:var(--text3)"></i>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="degistirProfilFoto()">
+            <i class="fa-solid fa-camera"></i> Fotoğraf Değiştir
+          </button>
+        </div>
+        
+        <div style="flex:1">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Ad Soyad *</label>
+              <input id="profil-adsoyad" value="İÇDER Kullanıcı" placeholder="Ad Soyad"/>
+            </div>
+            <div class="form-group">
+              <label>E-posta *</label>
+              <input id="profil-email" type="email" value="kullanici@icder.org" placeholder="E-posta"/>
+            </div>
+            <div class="form-group">
+              <label>Telefon</label>
+              <input id="profil-telefon" placeholder="0 (5__) ___ __ __"/>
+            </div>
+            <div class="form-group">
+              <label>Görev/Pozisyon</label>
+              <input id="profil-gorev" placeholder="Görev"/>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Biyografi</label>
+              <textarea id="profil-bio" rows="3" placeholder="Kendiniz hakkında kısa bilgi..."></textarea>
+            </div>
+          </div>
+          
+          <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)"/>
+          
+          <h3 style="margin-bottom:15px;font-size:16px">Şifre Değiştir</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Mevcut Şifre</label>
+              <input id="profil-eski-sifre" type="password" placeholder="Mevcut şifre" autocomplete="new-password"/>
+            </div>
+            <div class="form-group">
+              <label>Yeni Şifre</label>
+              <input id="profil-yeni-sifre" type="password" placeholder="Yeni şifre" autocomplete="new-password"/>
+            </div>
+            <div class="form-group">
+              <label>Yeni Şifre Tekrar</label>
+              <input id="profil-yeni-sifre-tekrar" type="password" placeholder="Yeni şifre tekrar" autocomplete="new-password"/>
+            </div>
+          </div>
+          
+          <div class="form-actions" style="margin-top:20px">
+            <button class="btn btn-primary" onclick="kaydetProfilBilgileri()">
+              <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderOzelMesajlar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-envelope"></i></div>
+        Özel Mesajlar
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniMesaj()">
+        <i class="fa-solid fa-plus"></i> Yeni Mesaj
+      </button>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;height:calc(100vh - 200px)">
+      <div class="card" style="margin:0;overflow-y:auto">
+        <div style="margin-bottom:15px">
+          <input placeholder="Mesaj ara..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)"/>
+        </div>
+        
+        <div id="mesaj-listesi">
+          <div class="empty-state" style="padding:40px 20px">
+            <i class="fa-solid fa-envelope"></i>
+            <p style="font-size:13px">Mesaj bulunamadı</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" style="margin:0;display:flex;flex-direction:column">
+        <div style="flex:1;overflow-y:auto;padding:20px;background:var(--bg3);border-radius:8px;margin-bottom:15px">
+          <div class="empty-state">
+            <i class="fa-solid fa-comments"></i>
+            <p>Bir mesaj seçin</p>
+          </div>
+        </div>
+        
+        <div style="display:flex;gap:10px">
+          <input placeholder="Mesajınızı yazın..." style="flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)"/>
+          <button class="btn btn-primary">
+            <i class="fa-solid fa-paper-plane"></i> Gönder
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderGorevBildirimlerim() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-bell"></i></div>
+        Görev Bildirimlerim
+      </div>
+      <button class="btn btn-secondary" onclick="tumunuOkunduIsaretle()">
+        <i class="fa-solid fa-check-double"></i> Tümünü Okundu İşaretle
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-bell"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Toplam Bildirim</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon"><i class="fa-solid fa-envelope"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Okunmamış</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-tasks"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Bekleyen Görev</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">0</div>
+        <div class="stat-label">Tamamlanan</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <select onchange="filterBildirimler()">
+          <option value="">Tüm Bildirimler</option>
+          <option value="okunmamis">Okunmamış</option>
+          <option value="okunmus">Okunmuş</option>
+        </select>
+        <select onchange="filterBildirimler()">
+          <option value="">Tüm Türler</option>
+          <option value="gorev">Görev</option>
+          <option value="mesaj">Mesaj</option>
+          <option value="sistem">Sistem</option>
+          <option value="uyari">Uyarı</option>
+        </select>
+      </div>
+      
+      <div id="bildirim-listesi">
+        <div class="empty-state">
+          <i class="fa-solid fa-bell-slash"></i>
+          <p>Henüz bildirim yok</p>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Placeholder fonksiyonlar
+function degistirProfilFoto() {
+  toast('Profil fotoğrafı değiştirme özelliği yakında eklenecek', 'info');
+}
+
+function kaydetProfilBilgileri() {
+  toast('Profil bilgileri kaydetme özelliği yakında eklenecek', 'info');
+}
+
+function modalYeniMesaj() {
+  toast('Yeni mesaj gönderme özelliği yakında eklenecek', 'info');
+}
+
+function tumunuOkunduIsaretle() {
+  toast('Tümünü okundu işaretleme özelliği yakında eklenecek', 'info');
+}
+
+function filterBildirimler() {
+  // Bildirim filtreleme
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESTEK HATTI / ÇAĞRI MERKEZİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function renderDestekHatti() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-headset"></i></div>
+        Destek Hattı
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniDestek()">
+        <i class="fa-solid fa-plus"></i> Yeni Destek Talebi
+      </button>
+    </div>
+    
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title"><i class="fa-solid fa-phone"></i> İletişim</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+          <i class="fa-solid fa-phone" style="color:var(--green);font-size:18px"></i>
+          <div><div style="font-size:11px;color:var(--text3)">Telefon</div><div style="font-weight:600">0 (536) 835 10 08</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+          <i class="fa-solid fa-envelope" style="color:var(--accent);font-size:18px"></i>
+          <div><div style="font-size:11px;color:var(--text3)">E-posta</div><div style="font-weight:600">cms.teamm@gmail.com</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+          <i class="fa-brands fa-whatsapp" style="color:var(--green);font-size:18px"></i>
+          <div><div style="font-size:11px;color:var(--text3)">WhatsApp</div><div style="font-weight:600">0 (536) 835 10 08</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border-radius:8px">
+          <i class="fa-solid fa-clock" style="color:var(--yellow);font-size:18px"></i>
+          <div><div style="font-size:11px;color:var(--text3)">Çalışma Saatleri</div><div style="font-weight:600">7/24</div></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">Destek Taleplerim</h3>
+        <button class="btn btn-secondary btn-sm" onclick="yukleDestekTalepleri()">
+          <i class="fa-solid fa-refresh"></i> Yenile
+        </button>
+      </div>
+      <div id="destek-talep-listesi">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div>
+      </div>
+    </div>`;
+  
+  await yukleDestekTalepleri();
+}
+
+async function yukleDestekTalepleri() {
+  const el = document.getElementById('destek-talep-listesi');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/destek/taleplerim');
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state">
+        <i class="fa-solid fa-headset"></i>
+        <p>Henüz destek talebi bulunmuyor</p>
+        <button class="btn btn-primary" onclick="modalYeniDestek()" style="margin-top:15px">
+          <i class="fa-solid fa-plus"></i> İlk Talebi Oluştur
+        </button>
+      </div>`;
+      return;
+    }
+    const durumRenk = { bekliyor: 'badge-yellow', inceleniyor: 'badge-blue', cevaplandi: 'badge-green', kapandi: 'badge-gray' };
+    const durumText = { bekliyor: 'Bekliyor', inceleniyor: 'İnceleniyor', cevaplandi: 'Cevaplandı', kapandi: 'Kapatıldı' };
+    let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Başlık</th><th>Durum</th><th>Oluşturma</th><th>Admin Cevabı</th></tr></thead><tbody>';
+    list.forEach((t, i) => {
+      const tarih = new Date(t.olusturma).toLocaleDateString('tr-TR');
+      html += '<tr>';
+      html += '<td>' + (i+1) + '</td>';
+      html += '<td><strong>' + esc(t.baslik) + '</strong><div style="font-size:12px;color:var(--text3);margin-top:2px">' + esc(t.icerik.substring(0,60)) + (t.icerik.length>60?'...':'') + '</div></td>';
+      html += '<td><span class="badge ' + (durumRenk[t.durum]||'badge-gray') + '">' + (durumText[t.durum]||t.durum) + '</span></td>';
+      html += '<td style="font-size:12px;color:var(--text3)">' + tarih + '</td>';
+      html += '<td>' + (t.admin_cevap ? '<span style="color:var(--green)">' + esc(t.admin_cevap) + '</span>' : '<span style="color:var(--text3)">-</span>') + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Talepler yüklenemedi: ' + e.message + '</p></div>';
+  }
+}
+
+function modalYeniDestek() {
+  openModal('Yeni Destek Talebi', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Konu / Başlık *</label>
+        <input id="destek-konu" placeholder="Talep konusu"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Açıklama *</label>
+        <textarea id="destek-aciklama" rows="5" placeholder="Sorununuzu detaylı açıklayın..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="gonderDestekTalebi()">
+        <i class="fa-solid fa-paper-plane"></i> Talep Gönder
+      </button>
+    </div>
+  `, false, 'headset');
+}
+
+async function gonderDestekTalebi() {
+  const baslik = document.getElementById('destek-konu')?.value?.trim();
+  const icerik = document.getElementById('destek-aciklama')?.value?.trim();
+  if (!baslik || !icerik) { toast('Lütfen tüm alanları doldurun', 'error'); return; }
+  try {
+    await api('POST', '/destek/talep-olustur', { baslik, icerik });
+    toast('Destek talebi oluşturuldu');
+    closeModal();
+    await yukleDestekTalepleri();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function filterDestekTalepleri() { yukleDestekTalepleri(); }
+// PARTNER KURULUŞ
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderPartnerKurumListesi() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-handshake"></i></div>
+        Partner Kurum Listesi
+      </div>
+      <button class="btn btn-primary" onclick="modalYeniPartner()">
+        <i class="fa-solid fa-plus"></i> Yeni Partner Ekle
+      </button>
+    </div>
+    
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card blue">
+        <div class="stat-icon"><i class="fa-solid fa-building"></i></div>
+        <div class="stat-value">12</div>
+        <div class="stat-label">Toplam Partner</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+        <div class="stat-value">10</div>
+        <div class="stat-label">Aktif Partner</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="stat-value">2</div>
+        <div class="stat-label">Beklemede</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon"><i class="fa-solid fa-handshake-angle"></i></div>
+        <div class="stat-value">45</div>
+        <div class="stat-label">Toplam İşbirliği</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar" style="margin-bottom:16px">
+        <input id="partner-ara" placeholder="Partner ara..." oninput="filterPartnerler()"/>
+        <select id="partner-durum" onchange="filterPartnerler()">
+          <option value="">Tüm Durumlar</option>
+          <option value="aktif">Aktif</option>
+          <option value="beklemede">Beklemede</option>
+          <option value="pasif">Pasif</option>
+        </select>
+        <select id="partner-kategori" onchange="filterPartnerler()">
+          <option value="">Tüm Kategoriler</option>
+          <option value="dernekler">Dernekler</option>
+          <option value="vakiflar">Vakıflar</option>
+          <option value="belediyeler">Belediyeler</option>
+          <option value="okullar">Okullar</option>
+          <option value="diger">Diğer</option>
+        </select>
+      </div>
+      
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th>Kurum Adı</th>
+              <th>Kategori</th>
+              <th>Yetkili Kişi</th>
+              <th>İletişim</th>
+              <th>Şehir</th>
+              <th>İşbirliği Sayısı</th>
+              <th>Durum</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>
+                <div style="font-weight:600">Yardım Eli Derneği</div>
+                <div style="font-size:12px;color:var(--text3)">Kayıt: 15.01.2024</div>
+              </td>
+              <td><span class="badge badge-blue">Dernekler</span></td>
+              <td>
+                <div>Ahmet Yılmaz</div>
+                <div style="font-size:12px;color:var(--text3)">Başkan</div>
+              </td>
+              <td>
+                <div style="font-size:13px"><i class="fa-solid fa-phone" style="color:var(--accent)"></i> 0532 123 4567</div>
+                <div style="font-size:12px;color:var(--text3)"><i class="fa-solid fa-envelope"></i> info@yardimeli.org</div>
+              </td>
+              <td>İstanbul</td>
+              <td><span style="color:var(--green);font-weight:600">15</span></td>
+              <td><span class="badge badge-green">Aktif</span></td>
+              <td>
+                <button class="btn btn-secondary btn-sm" onclick="modalDuzenlePartner(1)" title="Düzenle">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="gorPartnerDetay(1)" title="Detay">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="silPartner(1)" title="Sil">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>
+                <div style="font-weight:600">Hayır Vakfı</div>
+                <div style="font-size:12px;color:var(--text3)">Kayıt: 20.02.2024</div>
+              </td>
+              <td><span class="badge badge-purple">Vakıflar</span></td>
+              <td>
+                <div>Mehmet Demir</div>
+                <div style="font-size:12px;color:var(--text3)">Genel Müdür</div>
+              </td>
+              <td>
+                <div style="font-size:13px"><i class="fa-solid fa-phone" style="color:var(--accent)"></i> 0533 987 6543</div>
+                <div style="font-size:12px;color:var(--text3)"><i class="fa-solid fa-envelope"></i> iletisim@hayirvakfi.org</div>
+              </td>
+              <td>Ankara</td>
+              <td><span style="color:var(--green);font-weight:600">12</span></td>
+              <td><span class="badge badge-green">Aktif</span></td>
+              <td>
+                <button class="btn btn-secondary btn-sm" onclick="modalDuzenlePartner(2)" title="Düzenle">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="gorPartnerDetay(2)" title="Detay">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="silPartner(2)" title="Sil">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>
+                <div style="font-weight:600">Kardeşlik Derneği</div>
+                <div style="font-size:12px;color:var(--text3)">Kayıt: 10.03.2024</div>
+              </td>
+              <td><span class="badge badge-blue">Dernekler</span></td>
+              <td>
+                <div>Fatma Kaya</div>
+                <div style="font-size:12px;color:var(--text3)">Koordinatör</div>
+              </td>
+              <td>
+                <div style="font-size:13px"><i class="fa-solid fa-phone" style="color:var(--accent)"></i> 0534 555 7788</div>
+                <div style="font-size:12px;color:var(--text3)"><i class="fa-solid fa-envelope"></i> bilgi@kardeslik.org</div>
+              </td>
+              <td>İzmir</td>
+              <td><span style="color:var(--yellow);font-weight:600">8</span></td>
+              <td><span class="badge badge-yellow">Beklemede</span></td>
+              <td>
+                <button class="btn btn-secondary btn-sm" onclick="modalDuzenlePartner(3)" title="Düzenle">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="gorPartnerDetay(3)" title="Detay">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="silPartner(3)" title="Sil">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-top:20px">
+      <h3 style="margin-bottom:15px;display:flex;align-items:center;gap:8px">
+        <i class="fa-solid fa-chart-line" style="color:var(--accent)"></i>
+        İşbirliği İstatistikleri
+      </h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px">
+        <div style="background:var(--bg3);padding:15px;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--blue);margin-bottom:5px">156</div>
+          <div style="font-size:13px;color:var(--text3)">Toplam Proje</div>
+        </div>
+        <div style="background:var(--bg3);padding:15px;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--green);margin-bottom:5px">89</div>
+          <div style="font-size:13px;color:var(--text3)">Tamamlanan</div>
+        </div>
+        <div style="background:var(--bg3);padding:15px;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--yellow);margin-bottom:5px">45</div>
+          <div style="font-size:13px;color:var(--text3)">Devam Eden</div>
+        </div>
+        <div style="background:var(--bg3);padding:15px;border-radius:8px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--purple);margin-bottom:5px">22</div>
+          <div style="font-size:13px;color:var(--text3)">Planlanan</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Placeholder fonksiyonlar
+function modalYeniPartner() {
+  openModal('Yeni Partner Kurum Ekle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Kurum Adı *</label>
+        <input id="partner-ad" placeholder="Kurum adını girin"/>
+      </div>
+      <div class="form-group">
+        <label>Kategori *</label>
+        <select id="partner-kategori-sec">
+          <option value="">Kategori seçin...</option>
+          <option value="dernekler">Dernekler</option>
+          <option value="vakiflar">Vakıflar</option>
+          <option value="belediyeler">Belediyeler</option>
+          <option value="okullar">Okullar</option>
+          <option value="diger">Diğer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Durum *</label>
+        <select id="partner-durum-sec">
+          <option value="aktif">Aktif</option>
+          <option value="beklemede">Beklemede</option>
+          <option value="pasif">Pasif</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Yetkili Kişi *</label>
+        <input id="partner-yetkili" placeholder="Ad Soyad"/>
+      </div>
+      <div class="form-group">
+        <label>Ünvan</label>
+        <input id="partner-unvan" placeholder="Başkan, Müdür, vb."/>
+      </div>
+      <div class="form-group">
+        <label>Telefon *</label>
+        <input id="partner-telefon" placeholder="0532 123 4567"/>
+      </div>
+      <div class="form-group">
+        <label>E-posta</label>
+        <input id="partner-email" type="email" placeholder="ornek@kurum.org"/>
+      </div>
+      <div class="form-group">
+        <label>Şehir *</label>
+        <input id="partner-sehir" placeholder="İstanbul"/>
+      </div>
+      <div class="form-group">
+        <label>İlçe</label>
+        <input id="partner-ilce" placeholder="Kadıköy"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Adres</label>
+        <textarea id="partner-adres" rows="2" placeholder="Tam adres..."></textarea>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Notlar</label>
+        <textarea id="partner-notlar" rows="3" placeholder="İşbirliği notları, özel bilgiler..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" onclick="kaydetPartner()">
+        <i class="fa-solid fa-floppy-disk"></i> Kaydet
+      </button>
+    </div>
+  `, true, 'handshake');
+}
+
+function kaydetPartner() {
+  toast('Partner kurum ekleme özelliği geliştiriliyor...', 'info');
+  closeModal();
+}
+
+function modalDuzenlePartner(id) {
+  toast('Partner düzenleme özelliği geliştiriliyor...', 'info');
+}
+
+function gorPartnerDetay(id) {
+  openModal('Partner Kurum Detayı', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <h4 style="margin-bottom:15px;color:var(--accent)">Kurum Bilgileri</h4>
+        <div style="background:var(--bg3);padding:15px;border-radius:8px;margin-bottom:15px">
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Kurum Adı</div>
+            <div style="font-weight:600">Yardım Eli Derneği</div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Kategori</div>
+            <div><span class="badge badge-blue">Dernekler</span></div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Durum</div>
+            <div><span class="badge badge-green">Aktif</span></div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Kayıt Tarihi</div>
+            <div>15.01.2024</div>
+          </div>
+        </div>
+        
+        <h4 style="margin-bottom:15px;color:var(--accent)">İletişim Bilgileri</h4>
+        <div style="background:var(--bg3);padding:15px;border-radius:8px">
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Yetkili Kişi</div>
+            <div style="font-weight:600">Ahmet Yılmaz</div>
+            <div style="font-size:12px;color:var(--text3)">Başkan</div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Telefon</div>
+            <div><i class="fa-solid fa-phone" style="color:var(--accent)"></i> 0532 123 4567</div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">E-posta</div>
+            <div><i class="fa-solid fa-envelope" style="color:var(--accent)"></i> info@yardimeli.org</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:3px">Adres</div>
+            <div style="font-size:13px">İstanbul, Kadıköy</div>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h4 style="margin-bottom:15px;color:var(--accent)">İşbirliği İstatistikleri</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+          <div style="background:var(--bg3);padding:12px;border-radius:8px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:var(--blue)">15</div>
+            <div style="font-size:11px;color:var(--text3)">Toplam İşbirliği</div>
+          </div>
+          <div style="background:var(--bg3);padding:12px;border-radius:8px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:var(--green)">12</div>
+            <div style="font-size:11px;color:var(--text3)">Tamamlanan</div>
+          </div>
+          <div style="background:var(--bg3);padding:12px;border-radius:8px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:var(--yellow)">3</div>
+            <div style="font-size:11px;color:var(--text3)">Devam Eden</div>
+          </div>
+          <div style="background:var(--bg3);padding:12px;border-radius:8px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:var(--purple)">250K</div>
+            <div style="font-size:11px;color:var(--text3)">Toplam Bütçe</div>
+          </div>
+        </div>
+        
+        <h4 style="margin-bottom:15px;color:var(--accent)">Son İşbirlikleri</h4>
+        <div style="background:var(--bg3);padding:15px;border-radius:8px">
+          <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:600;margin-bottom:4px">2024 Kurban Organizasyonu</div>
+            <div style="font-size:12px;color:var(--text3)">Tamamlandı • 15.07.2024</div>
+          </div>
+          <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:600;margin-bottom:4px">Ramazan Yardım Paketi</div>
+            <div style="font-size:12px;color:var(--text3)">Tamamlandı • 25.03.2024</div>
+          </div>
+          <div>
+            <div style="font-weight:600;margin-bottom:4px">Su Kuyusu Projesi</div>
+            <div style="font-size:12px;color:var(--yellow)">Devam Ediyor • Başlangıç: 10.01.2024</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions" style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="closeModal()">Kapat</button>
+      <button class="btn btn-primary" onclick="modalDuzenlePartner(${id})">
+        <i class="fa-solid fa-pen"></i> Düzenle
+      </button>
+    </div>
+  `, true, 'handshake');
+}
+
+function silPartner(id) {
+  if (confirm('Bu partner kurumu silmek istediğinizden emin misiniz?')) {
+    toast('Partner silme özelliği geliştiriliyor...', 'info');
+  }
+}
+
+function filterPartnerler() {
+  toast('Filtreleme özelliği geliştiriliyor...', 'info');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TÜM ORGANİZASYONLAR - Tüm organizasyonların kurban ve bağışçılarını göster
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderTumOrganizasyonlar() {
+  const m = document.getElementById('main-content');
+  m.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-layer-group"></i></div>
+        Tüm Organizasyonlar
+      </div>
+    </div>
+    <div id="tum-org-icerik"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yükleniyor...</p></div></div>`;
+  
+  try {
+    const data = await api('GET', '/tum-organizasyonlar-ozet');
+    
+    if (!data.length) {
+      document.getElementById('tum-org-icerik').innerHTML = 
+        '<div class="empty-state"><i class="fa-solid fa-layer-group"></i><p>Henüz organizasyon yok.</p></div>';
+      return;
+    }
+
+    let html = '';
+    
+    for (const item of data) {
+      const { org, kurbanlar, hisseler, stats } = item;
+      const toplamKurban = kurbanlar.length;
+
+      html += `
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <i class="fa-solid fa-calendar-alt"></i> ${esc(org.ad)} (${org.yil})
+            </div>
+            <div style="display:flex;gap:8px">
+              <span class="badge badge-blue">${toplamKurban} Kurban</span>
+              <span class="badge badge-purple">${stats.toplamBagisci} Bağışçı</span>
+            </div>
+          </div>
+          
+          <div class="stats-grid" style="margin-bottom:16px">
+            <div class="stat-card blue">
+              <div class="stat-icon"><i class="fa-solid fa-cow"></i></div>
+              <div class="stat-value">${stats.buyukbas}</div>
+              <div class="stat-label">Büyükbaş</div>
+            </div>
+            <div class="stat-card yellow">
+              <div class="stat-icon"><i class="fa-solid fa-hippo"></i></div>
+              <div class="stat-value">${stats.kucukbas}</div>
+              <div class="stat-label">Küçükbaş</div>
+            </div>
+            <div class="stat-card green">
+              <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+              <div class="stat-value">${stats.toplamBagisci}</div>
+              <div class="stat-label">Toplam Bağışçı</div>
+            </div>
+            <div class="stat-card purple">
+              <div class="stat-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+              <div class="stat-value" style="font-size:16px">${formatMoney(stats.toplamGelir)}</div>
+              <div class="stat-label">Toplam Gelir</div>
+            </div>
+          </div>
+
+          <details style="margin-bottom:16px">
+            <summary style="cursor:pointer;padding:10px;background:var(--bg4);border-radius:8px;font-weight:600">
+              <i class="fa-solid fa-cow"></i> Kurbanlar (${toplamKurban})
+            </summary>
+            <div class="table-wrap" style="margin-top:12px">
+              <table>
+                <thead><tr>
+                  <th>No</th><th>Tür</th><th>Fiyat</th><th>Küpe No</th><th>Hisse</th><th>Durum</th>
+                </tr></thead>
+                <tbody>
+                  ${kurbanlar.map(k => `
+                    <tr>
+                      <td><span class="kurban-no-badge">${k.kurban_no}</span></td>
+                      <td>${k.tur==='buyukbas'?'<span class="badge badge-blue">Büyükbaş</span>':'<span class="badge badge-gray">Küçükbaş</span>'}</td>
+                      <td><strong style="color:var(--green)">${para(k.fiyat||k.alis_fiyati||0)}</strong></td>
+                      <td>${k.kupe_no||'-'}</td>
+                      <td>${k.dolu_hisse}/${k.toplam_hisse}</td>
+                      <td>${k.kesildi?'<span class="badge badge-red">Kesildi</span>':k.dolu_hisse>=k.toplam_hisse?'<span class="badge badge-yellow">Doldu</span>':'<span class="badge badge-green">Boş</span>'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </details>
+
+          <details>
+            <summary style="cursor:pointer;padding:10px;background:var(--bg4);border-radius:8px;font-weight:600">
+              <i class="fa-solid fa-users"></i> Bağışçılar (${stats.toplamBagisci})
+            </summary>
+            <div class="table-wrap" style="margin-top:12px">
+              <table>
+                <thead><tr>
+                  <th>Bağışçı Adı</th><th>Telefon</th><th>Kategori</th><th>Kurban No</th><th>Hisse</th><th>Fiyat</th><th>Ödeme</th>
+                </tr></thead>
+                <tbody>
+                  ${hisseler.map(h => {
+                    const kurban = kurbanlar.find(k => k.id === h.kurban_id);
+                    const fiyat = kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
+                    return `
+                    <tr>
+                      <td><strong>${esc(h.bagisci_adi)}</strong></td>
+                      <td>${h.bagisci_telefon||'-'}</td>
+                      <td>${h.bagisci_kategori?`<span class="badge badge-purple">${esc(h.bagisci_kategori)}</span>`:'-'}</td>
+                      <td><span class="kurban-no-badge">${h.kurban_no}</span></td>
+                      <td><span class="badge badge-blue">${h.hisse_no}</span></td>
+                      <td><strong style="color:var(--green)">${para(fiyat)}</strong></td>
+                      <td><span class="badge ${h.odeme_durumu==='odendi'?'badge-green':h.odeme_durumu==='iptal'?'badge-red':'badge-gray'}">${h.odeme_durumu==='odendi'?'Ödendi':h.odeme_durumu==='iptal'?'İptal':'Bekliyor'}</span></td>
+                    </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      `;
+    }
+
+    document.getElementById('tum-org-icerik').innerHTML = html;
+    
+  } catch(e) {
+    console.error('Tüm Organizasyonlar Hatası:', e);
+    document.getElementById('tum-org-icerik').innerHTML = 
+      `<div class="empty-state"><i class="fa-solid fa-exclamation-triangle"></i><p>Hata: ${e.message}</p></div>`;
+  }
+}
+
+
+// Bağışçı filtreleme fonksiyonu
+let _tumBagiscilar = [];
+let _filtreliBagiscilar = [];
+
+async function filterBagiscilar() {
+  if (!S.orgId) return;
+  
+  if (_tumBagiscilar.length === 0) {
+    const url = `/bagiscilar/ara?q=&orgId=${S.orgId}&tumunu=1`;
+    _tumBagiscilar = await api('GET', url);
+  }
+
+  const ara = (document.getElementById('b-ara')?.value || '').toLowerCase();
+  const kategori = document.getElementById('b-kategori')?.value || '';
+  const odeme = document.getElementById('b-odeme')?.value || '';
+  const video = document.getElementById('b-video')?.value || '';
+  const vekalet = document.getElementById('b-vekalet')?.value || '';
+
+  let filtered = _tumBagiscilar.filter(h => {
+    if (ara && !h.bagisci_adi.toLowerCase().includes(ara) && !(h.bagisci_telefon||'').toLowerCase().includes(ara)) return false;
+    if (kategori && h.bagisci_kategori !== kategori) return false;
+    if (odeme && h.odeme_durumu !== odeme) return false;
+    if (video !== '') {
+      if (h.video_ister !== (video === '1')) return false;
+    }
+    if (vekalet !== '') {
+      const vekaletIster = vekalet === '1';
+      if (!!h.vekalet_onay !== vekaletIster) return false;
+    }
+    return true;
+  });
+
+  _filtreliBagiscilar = filtered;
+  renderBagisciTablosu(filtered);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORGANİZASYON SEÇ SAYFASI
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderOrganizasyonSec() {
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+        Organizasyon Seç
+      </div>
+    </div>
+    <div class="card" style="text-align:center;padding:40px">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size:32px;color:var(--accent)"></i>
+      <div style="margin-top:12px;color:var(--text3)">Yükleniyor...</div>
+    </div>
+  `;
+
+  try {
+    const data = await api('GET', '/tum-organizasyonlar-ozet');
+    
+    if (!data || data.length === 0) {
+      document.getElementById('main-content').innerHTML = `
+        <div class="page-header">
+          <div class="page-title">
+            <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+            Organizasyon Seç
+          </div>
+        </div>
+        <div class="card">
+          <div style="text-align:center;padding:40px;color:var(--text3)">
+            <i class="fa-solid fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5"></i>
+            <div style="font-size:16px">Henüz organizasyon eklenmemiş</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    let cards = data.map(item => {
+      const { org, stats } = item;
+      const isSelected = S.orgId === org.id;
+      return `
+        <div class="card" style="cursor:pointer;border:2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'};background:${isSelected ? 'rgba(59,130,246,0.05)' : 'var(--card-bg)'}" onclick="selectOrganizasyon(${org.id}, '${esc(org.ad)}', ${org.yil})">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+            <div>
+              <div style="font-size:18px;font-weight:700;color:var(--text1);margin-bottom:4px">
+                ${isSelected ? '<i class="fa-solid fa-check-circle" style="color:var(--accent);margin-right:6px"></i>' : ''}
+                ${esc(org.ad)}
+              </div>
+              <div style="font-size:13px;color:var(--text3)">${org.yil}</div>
+            </div>
+            ${isSelected ? '<span class="badge badge-blue">Seçili</span>' : ''}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px">
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Büyükbaş</div>
+              <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.buyukbas}</div>
+            </div>
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Küçükbaş</div>
+              <div style="font-size:20px;font-weight:700;color:var(--accent)">${stats.kucukbas}</div>
+            </div>
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Bağışçı</div>
+              <div style="font-size:20px;font-weight:700;color:var(--green)">${stats.toplamBagisci}</div>
+            </div>
+            <div style="background:var(--glow2);padding:12px;border-radius:8px">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Toplam Gelir</div>
+              <div style="font-size:16px;font-weight:700;color:var(--green)">${formatMoney(stats.toplamGelir)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('main-content').innerHTML = `
+      <div class="page-header">
+        <div class="page-title">
+          <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+          Organizasyon Seç
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+        ${cards}
+      </div>
+    `;
+  } catch (error) {
+    console.error('Organizasyon Seç Hatası:', error);
+    document.getElementById('main-content').innerHTML = `
+      <div class="page-header">
+        <div class="page-title">
+          <div class="icon-wrap"><i class="fa-solid fa-list-check"></i></div>
+          Organizasyon Seç
+        </div>
+      </div>
+      <div class="card" style="text-align:center;padding:40px;color:var(--red)">
+        <i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i>
+        <div>Hata: ${error.message || error}</div>
+      </div>
+    `;
+  }
+}
+
+function selectOrganizasyon(id, ad, yil) {
+  S.orgId = id;
+  S.orgAd = ad;
+  S.orgYil = yil;
+  localStorage.setItem('selectedOrg', JSON.stringify({id, ad, yil}));
+  toast('Organizasyon seçildi: ' + ad);
+  showPage('kurbanlar');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GELİR-GİDER SAYFASI
+// ═══════════════════════════════════════════════════════════════════════════
+async function renderGelirGider() {
+  const orgs = await api('GET', '/organizasyonlar');
+  
+  let orgOptions = '<option value="all">Tüm Organizasyonlar</option>';
+  for (const org of orgs) {
+    const selected = S.orgId === org.id ? 'selected' : '';
+    orgOptions += `<option value="${org.id}" ${selected}>${esc(org.ad)} - ${org.yil}</option>`;
+  }
+
+  if (orgs.length === 0) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="page-header">
+        <div class="page-title">
+          <div class="icon-wrap"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+          Gelir-Gider
+        </div>
+      </div>
+      <div class="card">
+        <div style="text-align:center;padding:40px;color:var(--text3)">
+          <i class="fa-solid fa-exclamation-circle" style="font-size:48px;margin-bottom:16px;opacity:0.5"></i>
+          <div style="font-size:16px">Henüz organizasyon eklenmemiş</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-header">
+      <div class="page-title">
+        <div class="icon-wrap"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+        Gelir-Gider
+      </div>
+      <div style="margin-top:12px">
+        <select id="gelir-org-select" onchange="gelirGiderOrgDegisti()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text1);font-size:14px;min-width:250px">
+          ${orgOptions}
+        </select>
+      </div>
+    </div>
+    <div id="gelir-gider-content"></div>
+  `;
+
+  document.getElementById('gelir-org-select').value = S.orgId || 'all';
+  await gelirGiderHesapla();
+}
+
+async function gelirGiderOrgDegisti() {
+  await gelirGiderHesapla();
+}
+
+async function gelirGiderHesapla() {
+  const seciliOrg = document.getElementById('gelir-org-select')?.value;
+  const contentDiv = document.getElementById('gelir-gider-content');
+  if (!seciliOrg) return;
+
+  contentDiv.innerHTML = '<div class="card" style="text-align:center;padding:40px"><i class="fa-solid fa-spinner fa-spin" style="font-size:32px;color:var(--accent)"></i><div style="margin-top:12px;color:var(--text3)">Hesaplanıyor...</div></div>';
+
+  let toplamGelir = 0, odenenGelir = 0, bekleyenGelir = 0, iptalGelir = 0;
+  let toplamBagisci = 0, buyukbas = 0, kucukbas = 0;
+
+  try {
+    // Tek API çağrısıyla tüm veriyi al
+    const data = await api('GET', '/tum-organizasyonlar-ozet');
+    
+    const filteredData = seciliOrg === 'all' ? data : data.filter(d => d.org.id === parseInt(seciliOrg));
+    
+    for (const item of filteredData) {
+      toplamBagisci += item.stats.toplamBagisci;
+      buyukbas += item.stats.buyukbas;
+      kucukbas += item.stats.kucukbas;
+      toplamGelir += item.stats.toplamGelir;
+      odenenGelir += item.stats.odenenGelir;
+      bekleyenGelir += item.stats.bekleyenGelir;
+      iptalGelir += item.stats.iptalGelir;
+    }
+  } catch (error) {
+    console.error('Gelir-Gider Hatası:', error);
+    contentDiv.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--red)"><i class="fa-solid fa-exclamation-triangle" style="font-size:32px;margin-bottom:12px"></i><div>Hata: ${error.message || error}</div></div>`;
+    return;
+  }
+
+  contentDiv.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px">
+      <div class="card" style="background:linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05));border-color:rgba(16,185,129,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-money-bill-wave" style="font-size:24px;color:var(--green)"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Toplam Gelir</div>
+            <div style="font-size:28px;font-weight:700;color:var(--green)">${formatMoney(toplamGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,0.2)">Tüm bağışçılardan beklenen toplam gelir</div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05));border-color:rgba(59,130,246,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-check-circle" style="font-size:24px;color:var(--accent)"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Ödenen</div>
+            <div style="font-size:28px;font-weight:700;color:var(--accent)">${formatMoney(odenenGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(59,130,246,0.2)">Tahsil edilen ödemeler</div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg, rgba(251,191,36,0.1), rgba(245,158,11,0.05));border-color:rgba(251,191,36,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(251,191,36,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-clock" style="font-size:24px;color:#f59e0b"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">Bekleyen</div>
+            <div style="font-size:28px;font-weight:700;color:#f59e0b">${formatMoney(bekleyenGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(251,191,36,0.2)">Henüz ödenmemiş tutarlar</div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg, rgba(239,68,68,0.1), rgba(220,38,38,0.05));border-color:rgba(239,68,68,0.3)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:48px;height:48px;border-radius:12px;background:rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center">
+            <i class="fa-solid fa-times-circle" style="font-size:24px;color:var(--red)"></i>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px">İptal</div>
+            <div style="font-size:28px;font-weight:700;color:var(--red)">${formatMoney(iptalGelir)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid rgba(239,68,68,0.2)">İptal edilen ödemeler</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-chart-pie"></i> Ödeme Dağılımı</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:16px">
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--green)">${toplamBagisci}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Toplam Bağışçı</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--accent)">${buyukbas}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Büyükbaş</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--accent)">${kucukbas}</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Küçükbaş</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--glow2);border-radius:8px">
+          <div style="font-size:32px;font-weight:700;color:var(--green)">${Math.round((odenenGelir / (toplamGelir||1)) * 100)}%</div>
+          <div style="font-size:13px;color:var(--text3);margin-top:4px">Tahsilat Oranı</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function formatMoney(amount) {
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BAYRAK YÖNETİMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function yukleBayraklarAyar() {
+  const el = document.getElementById('bayrak-listesi-ayar');
+  if (!el) return;
+  try {
+    const list = await api('GET', '/bayraklar');
+    if (!list.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">Henuz bayrak eklenmedi</div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">' +
+      list.map(b =>
+        '<div style="border:2px solid ' + (b.aktif ? 'var(--accent)' : 'var(--border)') + ';border-radius:10px;overflow:hidden;background:var(--bg4)">' +
+          '<div id="bayrak-img-' + b.id + '" style="height:65px;display:flex;align-items:center;justify-content:center;background:var(--bg5)">' +
+            '<i class="fa-solid fa-spinner fa-spin" style="color:var(--text3)"></i>' +
+          '</div>' +
+          '<div style="padding:6px 8px">' +
+            '<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(b.ad) + '</div>' +
+            '<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">' +
+              (b.aktif ? '<span class="badge badge-green" style="font-size:10px">Aktif</span>' : '') +
+              '<button onclick="modalDuzenleBayrak(' + b.id + ',\'' + esc(b.ad) + '\')" style="font-size:10px;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;cursor:pointer;color:var(--text2)"><i class="fa-solid fa-pen"></i></button>' +
+              '<button onclick="silBayrak(' + b.id + ')" style="font-size:10px;padding:2px 6px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:4px;cursor:pointer;color:var(--red)"><i class="fa-solid fa-trash"></i></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      ).join('') +
+    '</div>';
+    list.forEach(b => {
+      api('GET', '/bayraklar/' + b.id + '/resim').then(r => {
+        const imgEl = document.getElementById('bayrak-img-' + b.id);
+        if (imgEl && r.resim_data) {
+          imgEl.innerHTML = '<img src="' + r.resim_data + '" style="max-height:61px;max-width:100%;object-fit:contain;padding:4px"/>';
+        }
+      }).catch(() => {});
+    });
+  } catch(e) {
+    if (el) el.innerHTML = '<div style="color:var(--text3);font-size:13px">Yuklenemedi</div>';
+  }
+}
+
+function modalYeniBayrak() {
+  _yeniBayrakData = null;
+  openModal('Yeni Bayrak Ekle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Adi *</label>
+        <input id="yeni-bayrak-ad" placeholder="Orn: Tanzanya Bayragi, Turk Bayragi..."/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Resmi *</label>
+        <div class="upload-zone" style="padding:20px;text-align:center;cursor:pointer;min-height:100px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('yeni-bayrak-input').click()">
+          <div id="yeni-bayrak-preview">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:28px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:6px">Resim yukle</div>
+          </div>
+        </div>
+        <input type="file" id="yeni-bayrak-input" accept="image/*" style="display:none" onchange="onYeniBayrakResim(this)"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="kaydetYeniBayrak()"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+    </div>`, false, 'flag');
+}
+
+let _yeniBayrakData = null;
+function onYeniBayrakResim(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _yeniBayrakData = e.target.result;
+    document.getElementById('yeni-bayrak-preview').innerHTML =
+      '<img src="' + _yeniBayrakData + '" style="max-height:90px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function kaydetYeniBayrak() {
+  const ad = document.getElementById('yeni-bayrak-ad').value.trim();
+  if (!ad) return toast('Bayrak adi zorunlu', 'error');
+  if (!_yeniBayrakData) return toast('Resim secin', 'error');
+  try {
+    await api('POST', '/bayraklar', { ad, resim_data: _yeniBayrakData });
+    _yeniBayrakData = null;
+    closeModal();
+    toast('Bayrak eklendi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+let _duzenleBayrakData = null;
+function modalDuzenleBayrak(id, mevcutAd) {
+  _duzenleBayrakData = null;
+  openModal('Bayragi Duzenle', `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Bayrak Adi *</label>
+        <input id="duzenle-bayrak-ad" value="${esc(mevcutAd)}"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Yeni Resim <span style="color:var(--text3);font-weight:400">(degistirmek icin sec)</span></label>
+        <div class="upload-zone" style="padding:16px;text-align:center;cursor:pointer;min-height:80px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('duzenle-bayrak-input').click()">
+          <div id="duzenle-bayrak-preview">
+            <i class="fa-solid fa-image" style="font-size:22px;color:var(--text3)"></i>
+            <div style="color:var(--text3);font-size:12px;margin-top:4px">Degistirmek icin tikla</div>
+          </div>
+        </div>
+        <input type="file" id="duzenle-bayrak-input" accept="image/*" style="display:none" onchange="onDuzenleBayrakResim(this)"/>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Iptal</button>
+      <button class="btn btn-primary" onclick="guncelleBayrak(${id})"><i class="fa-solid fa-floppy-disk"></i> Guncelle</button>
+    </div>`, false, 'pen');
+}
+
+function onDuzenleBayrakResim(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _duzenleBayrakData = e.target.result;
+    document.getElementById('duzenle-bayrak-preview').innerHTML =
+      '<img src="' + _duzenleBayrakData + '" style="max-height:70px;max-width:100%;border-radius:6px;object-fit:contain"/>';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function guncelleBayrak(id) {
+  const ad = document.getElementById('duzenle-bayrak-ad').value.trim();
+  if (!ad) return toast('Bayrak adi zorunlu', 'error');
+  try {
+    const body = { ad };
+    if (_duzenleBayrakData) body.resim_data = _duzenleBayrakData;
+    await api('PUT', '/bayraklar/' + id, body);
+    _duzenleBayrakData = null;
+    closeModal();
+    toast('Bayrak guncellendi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function silBayrak(id) {
+  if (!confirm('Bu bayragi silmek istediginizden emin misiniz?')) return;
+  try {
+    await api('DELETE', '/bayraklar/' + id);
+    toast('Bayrak silindi');
+    yukleBayraklarAyar();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PERSONEL TAKİP SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PERSONEL_SIFRE = '5586Persona';
+let _personelSifreOnaylandi = false;
+
+async function renderPersonelTakip() {
+  const c = document.getElementById('main-content');
+  c.innerHTML = `<div style="padding:32px;text-align:center;color:var(--muted)"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</div>`;
+  let liste = [];
+  try { liste = await api('GET', '/personeller'); } catch(e) {}
+
+  const aktifSayisi = liste.filter(p => p.aktif).length;
+  const pasifSayisi = liste.filter(p => !p.aktif).length;
+  const toplamMaas = liste.reduce((s, p) => s + (p.maas || 0), 0);
+
+  c.innerHTML = `
+    <div style="padding:24px 28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2 style="font-size:20px;font-weight:800;color:var(--text)"><i class="fa-solid fa-id-card" style="color:var(--accent);margin-right:10px"></i>Personel Takip</h2>
+          <p style="font-size:13px;color:var(--muted);margin-top:4px">Dernek personelini yönetin</p>
+        </div>
+        <button onclick="modalPersonelEkle()" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px">
+          <i class="fa-solid fa-plus"></i> Personel Ekle
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+        <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)">
+          <div style="font-size:28px;font-weight:800;color:var(--accent)">${aktifSayisi}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Aktif Personel</div>
+        </div>
+        <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)">
+          <div style="font-size:28px;font-weight:800;color:#f59e0b">${pasifSayisi}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Pasif Personel</div>
+        </div>
+        <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border)">
+          <div style="font-size:28px;font-weight:800;color:#10b981">${toplamMaas.toLocaleString('tr-TR')} ₺</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Toplam Maaş</div>
+        </div>
+      </div>
+
+      ${liste.length === 0 ? `
+        <div style="text-align:center;padding:60px;color:var(--muted)">
+          <i class="fa-solid fa-users" style="font-size:48px;margin-bottom:16px;display:block;opacity:.3"></i>
+          <p>Henüz personel eklenmemiş.</p>
+          <button onclick="modalPersonelEkle()" style="margin-top:16px;background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">Personel Ekle</button>
+        </div>
+      ` : `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+          ${liste.map(p => `
+            <div style="background:var(--card);border-radius:14px;padding:20px;border:1px solid var(--border);transition:box-shadow .2s" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.3)'" onmouseout="this.style.boxShadow='none'">
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+                <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">
+                  ${p.ad[0].toUpperCase()}
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-weight:700;font-size:15px;color:var(--text)">${p.ad} ${p.soyad}</div>
+                  <div style="font-size:12px;color:var(--muted)">${p.pozisyon || 'Pozisyon belirtilmemiş'}</div>
+                </div>
+                <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${p.aktif ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)'};color:${p.aktif ? '#10b981' : '#ef4444'}">
+                  ${p.aktif ? 'Aktif' : 'Pasif'}
+                </span>
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px"><i class="fa-solid fa-building" style="width:16px"></i> ${p.departman || '-'}</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px"><i class="fa-solid fa-phone" style="width:16px"></i> ${p.telefon || '-'}</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:14px"><i class="fa-solid fa-calendar" style="width:16px"></i> ${p.ise_baslama ? new Date(p.ise_baslama).toLocaleDateString('tr-TR') : '-'}</div>
+              <div style="display:flex;gap:8px">
+                <button onclick="modalPersonelDetay(${p.id},'${p.ad} ${p.soyad}')" style="flex:1;background:var(--accent);color:#fff;border:none;padding:8px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">
+                  <i class="fa-solid fa-eye"></i> Detay
+                </button>
+                <button onclick="modalPersonelDuzenle(${p.id})" style="flex:1;background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:8px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">
+                  <i class="fa-solid fa-pen"></i> Düzenle
+                </button>
+                <button onclick="personelSil(${p.id},'${p.ad} ${p.soyad}')" style="background:rgba(239,68,68,.15);color:#ef4444;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function modalPersonelEkle() {
+  const bugun = new Date().toISOString().split('T')[0];
+  openModal('Personel Ekle', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ad *</label>
+        <input id="p-ad" class="form-input" placeholder="Ad" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Soyad *</label>
+        <input id="p-soyad" class="form-input" placeholder="Soyad" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Pozisyon</label>
+        <input id="p-pozisyon" class="form-input" placeholder="Örn: Muhasebeci" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Departman</label>
+        <input id="p-departman" class="form-input" placeholder="Örn: Finans" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Telefon</label>
+        <input id="p-telefon" class="form-input" placeholder="05XX XXX XX XX" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">E-posta</label>
+        <input id="p-email" class="form-input" type="email" placeholder="ornek@mail.com" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">İşe Başlama</label>
+        <input id="p-ise-baslama" class="form-input" type="date" value="${bugun}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Maaş (₺)</label>
+        <input id="p-maas" class="form-input" type="number" placeholder="0" /></div>
+      <div style="grid-column:span 2"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Adres</label>
+        <input id="p-adres" class="form-input" placeholder="Adres" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">TC No</label>
+        <input id="p-tc" class="form-input" placeholder="TC Kimlik No" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Doğum Tarihi</label>
+        <input id="p-dogum" class="form-input" type="date" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">IBAN</label>
+        <input id="p-iban" class="form-input" placeholder="TR..." /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Banka</label>
+        <input id="p-banka" class="form-input" placeholder="Banka adı" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Acil Kişi</label>
+        <input id="p-acil-kisi" class="form-input" placeholder="Ad Soyad" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Acil Telefon</label>
+        <input id="p-acil-tel" class="form-input" placeholder="05XX XXX XX XX" /></div>
+      <div style="grid-column:span 2"><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Notlar</label>
+        <textarea id="p-notlar" class="form-input" rows="2" placeholder="Ek notlar..."></textarea></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeModal()" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="personelKaydet()" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, true, 'id-card');
+}
+
+async function personelKaydet() {
+  const body = {
+    ad: document.getElementById('p-ad')?.value?.trim(),
+    soyad: document.getElementById('p-soyad')?.value?.trim(),
+    pozisyon: document.getElementById('p-pozisyon')?.value?.trim(),
+    departman: document.getElementById('p-departman')?.value?.trim(),
+    telefon: document.getElementById('p-telefon')?.value?.trim(),
+    email: document.getElementById('p-email')?.value?.trim(),
+    ise_baslama: document.getElementById('p-ise-baslama')?.value,
+    maas: parseFloat(document.getElementById('p-maas')?.value) || 0,
+    adres: document.getElementById('p-adres')?.value?.trim(),
+    tc_no: document.getElementById('p-tc')?.value?.trim(),
+    dogum_tarihi: document.getElementById('p-dogum')?.value,
+    iban: document.getElementById('p-iban')?.value?.trim(),
+    banka: document.getElementById('p-banka')?.value?.trim(),
+    acil_kisi: document.getElementById('p-acil-kisi')?.value?.trim(),
+    acil_telefon: document.getElementById('p-acil-tel')?.value?.trim(),
+    notlar: document.getElementById('p-notlar')?.value?.trim(),
+  };
+  if (!body.ad || !body.soyad) return toast('Ad ve soyad zorunlu', 'error');
+  try {
+    await api('POST', '/personeller', body);
+    closeModal();
+    toast('Personel eklendi');
+    renderPersonelTakip();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function personelSil(id, ad) {
+  if (!confirm(`"${ad}" adlı personeli silmek istediğinizden emin misiniz?\nTüm kayıtları (devamsızlık, avans, maaş, notlar) silinecek.`)) return;
+  try {
+    await api('DELETE', '/personeller/' + id);
+    toast('Personel silindi');
+    renderPersonelTakip();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function modalPersonelDuzenle(id) {
+  let p;
+  try {
+    const liste = await api('GET', '/personeller');
+    p = liste.find(x => x.id === id);
+  } catch(e) { return toast('Personel yüklenemedi', 'error'); }
+  if (!p) return;
+
+  openModal('Personel Düzenle', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ad *</label>
+        <input id="pe-ad" class="form-input" value="${p.ad||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Soyad *</label>
+        <input id="pe-soyad" class="form-input" value="${p.soyad||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Pozisyon</label>
+        <input id="pe-pozisyon" class="form-input" value="${p.pozisyon||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Departman</label>
+        <input id="pe-departman" class="form-input" value="${p.departman||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Telefon</label>
+        <input id="pe-telefon" class="form-input" value="${p.telefon||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Maaş (₺)</label>
+        <input id="pe-maas" class="form-input" type="number" value="${p.maas||0}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">İşe Başlama</label>
+        <input id="pe-ise-baslama" class="form-input" type="date" value="${p.ise_baslama||''}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Durum</label>
+        <select id="pe-aktif" class="form-input">
+          <option value="1" ${p.aktif ? 'selected' : ''}>Aktif</option>
+          <option value="0" ${!p.aktif ? 'selected' : ''}>Pasif</option>
+        </select></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeModal()" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="personelGuncelle(${id})" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Güncelle</button>
+    </div>
+  `, true, 'pen');
+}
+
+async function personelGuncelle(id) {
+  const body = {
+    ad: document.getElementById('pe-ad')?.value?.trim(),
+    soyad: document.getElementById('pe-soyad')?.value?.trim(),
+    pozisyon: document.getElementById('pe-pozisyon')?.value?.trim(),
+    departman: document.getElementById('pe-departman')?.value?.trim(),
+    telefon: document.getElementById('pe-telefon')?.value?.trim(),
+    maas: parseFloat(document.getElementById('pe-maas')?.value) || 0,
+    ise_baslama: document.getElementById('pe-ise-baslama')?.value,
+    aktif: parseInt(document.getElementById('pe-aktif')?.value),
+  };
+  if (!body.ad || !body.soyad) return toast('Ad ve soyad zorunlu', 'error');
+  try {
+    await api('PUT', '/personeller/' + id, body);
+    closeModal();
+    toast('Personel güncellendi');
+    renderPersonelTakip();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function modalPersonelDetay(id, adSoyad) {
+  // Önce şifre sor
+  openModal('Personel Detay — Şifre Gerekli', `
+    <div style="text-align:center;padding:16px 0">
+      <i class="fa-solid fa-lock" style="font-size:40px;color:var(--accent);margin-bottom:16px"></i>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Personel detaylarını görüntülemek için şifre gereklidir.</p>
+      <input id="detay-sifre" type="password" class="form-input" placeholder="Şifre" style="max-width:240px;margin:0 auto;display:block;text-align:center;letter-spacing:3px"
+        onkeydown="if(event.key==='Enter') personelDetayYukle(${id},'${adSoyad}')" />
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:center">
+        <button onclick="closeModal()" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+        <button onclick="personelDetayYukle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">Giriş</button>
+      </div>
+    </div>
+  `, false, 'lock');
+  setTimeout(() => document.getElementById('detay-sifre')?.focus(), 100);
+}
+
+async function personelDetayYukle(id, adSoyad) {
+  const sifre = document.getElementById('detay-sifre')?.value;
+  if (!sifre) return toast('Şifre giriniz', 'error');
+  let data;
+  try {
+    data = await api('POST', '/personeller/' + id + '/detay', { sifre });
+  } catch(e) {
+    return toast(e.message || 'Yanlış şifre', 'error');
+  }
+  const p = data.personel;
+  const devamsizlik = data.devamsizlik || [];
+  const avanslar = data.avanslar || [];
+  const maaslar = data.maaslar || [];
+  const notlar = data.notlar || [];
+  const toplamAvans = avanslar.filter(a => !a.odendi).reduce((s, a) => s + a.miktar, 0);
+
+  openModal(`${adSoyad} — Personel Detayı`, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">Kişisel Bilgiler</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>TC:</b> ${p.tc_no || '-'}</div>
+          <div><b>Doğum:</b> ${p.dogum_tarihi ? new Date(p.dogum_tarihi).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Tel:</b> ${p.telefon || '-'}</div>
+          <div><b>E-posta:</b> ${p.email || '-'}</div>
+          <div><b>Adres:</b> ${p.adres || '-'}</div>
+        </div>
+      </div>
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">İş Bilgileri</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>Pozisyon:</b> ${p.pozisyon || '-'}</div>
+          <div><b>Departman:</b> ${p.departman || '-'}</div>
+          <div><b>İşe Başlama:</b> ${p.ise_baslama ? new Date(p.ise_baslama).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Maaş:</b> <span style="color:#10b981;font-weight:700">${(p.maas||0).toLocaleString('tr-TR')} ₺</span></div>
+          <div><b>IBAN:</b> ${p.iban || '-'}</div>
+          <div><b>Banka:</b> ${p.banka || '-'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <!-- Devamsızlık -->
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Devamsızlık (${devamsizlik.length})</div>
+          <button onclick="modalDevamsizlikEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${devamsizlik.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          devamsizlik.slice(0,5).map(d => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(d.tarih).toLocaleDateString('tr-TR')} — ${d.tur}</span>
+              <button onclick="devamsizlikSil(${d.id},${id},'${adSoyad}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `).join('')
+        }
+      </div>
+
+      <!-- Avans -->
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Avans — Bekleyen: <span style="color:#f59e0b">${toplamAvans.toLocaleString('tr-TR')} ₺</span></div>
+          <button onclick="modalAvansEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${avanslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          avanslar.slice(0,5).map(a => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(a.tarih).toLocaleDateString('tr-TR')} — ${a.miktar.toLocaleString('tr-TR')} ₺</span>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${a.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${a.odendi ? '#10b981' : '#f59e0b'}">${a.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>
+
+    <!-- Maaş -->
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border);margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Maaş Ödemeleri</div>
+        <button onclick="modalMaasEkle(${id},'${adSoyad}',${p.maas||0})" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${maaslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+        `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+          ${maaslar.slice(0,6).map(m => `
+            <div style="background:var(--card);border-radius:8px;padding:10px;border:1px solid var(--border);font-size:12px">
+              <div style="font-weight:700;color:var(--text)">${m.ay}</div>
+              <div style="color:#10b981;font-weight:700">${m.maas.toLocaleString('tr-TR')} ₺</div>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${m.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${m.odendi ? '#10b981' : '#f59e0b'}">${m.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')}
+        </div>`
+      }
+    </div>
+
+    <!-- Notlar -->
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Notlar</div>
+        <button onclick="modalNotEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${notlar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Not yok</div>' :
+        notlar.slice(0,3).map(n => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <div style="font-weight:700;color:var(--text)">${n.baslik || n.tur}</div>
+            <div style="color:var(--muted);margin-top:2px">${n.icerik}</div>
+          </div>
+        `).join('')
+      }
+    </div>
+  `, true, 'id-card');
+}
+
+function modalDevamsizlikEkle(personelId, adSoyad) {
+  const bugun = new Date().toISOString().split('T')[0];
+  openModal('Devamsızlık Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tarih *</label>
+        <input id="dev-tarih" class="form-input" type="date" value="${bugun}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tür</label>
+        <select id="dev-tur" class="form-input">
+          <option value="gelmedi">Gelmedi</option>
+          <option value="izinli">İzinli</option>
+          <option value="raporlu">Raporlu</option>
+          <option value="mazeret">Mazeretli</option>
+          <option value="diger">Diğer</option>
+        </select></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Açıklama</label>
+        <input id="dev-aciklama" class="form-input" placeholder="Opsiyonel açıklama" /></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="devamsizlikKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'calendar-xmark');
+}
+
+async function devamsizlikKaydet(personelId, adSoyad) {
+  const tarih = document.getElementById('dev-tarih')?.value;
+  const tur = document.getElementById('dev-tur')?.value;
+  const aciklama = document.getElementById('dev-aciklama')?.value?.trim();
+  if (!tarih) return toast('Tarih zorunlu', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/devamsizlik', { sifre: PERSONEL_SIFRE, tarih, tur, aciklama });
+    toast('Devamsızlık kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function devamsizlikSil(devId, personelId, adSoyad) {
+  if (!confirm('Bu devamsızlık kaydını silmek istediğinizden emin misiniz?')) return;
+  try {
+    await api('DELETE', '/personel-devamsizlik/' + devId, { sifre: PERSONEL_SIFRE });
+    toast('Kayıt silindi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function modalAvansEkle(personelId, adSoyad) {
+  const bugun = new Date().toISOString().split('T')[0];
+  openModal('Avans Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Miktar (₺) *</label>
+        <input id="av-miktar" class="form-input" type="number" placeholder="0" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tarih *</label>
+        <input id="av-tarih" class="form-input" type="date" value="${bugun}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Açıklama</label>
+        <input id="av-aciklama" class="form-input" placeholder="Opsiyonel açıklama" /></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="avansKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'money-bill');
+}
+
+async function avansKaydet(personelId, adSoyad) {
+  const miktar = parseFloat(document.getElementById('av-miktar')?.value);
+  const tarih = document.getElementById('av-tarih')?.value;
+  const aciklama = document.getElementById('av-aciklama')?.value?.trim();
+  if (!miktar || miktar <= 0) return toast('Geçerli bir miktar girin', 'error');
+  if (!tarih) return toast('Tarih zorunlu', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/avans', { sifre: PERSONEL_SIFRE, miktar, tarih, aciklama });
+    toast('Avans kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function modalMaasEkle(personelId, adSoyad, varsayilanMaas) {
+  const bugun = new Date();
+  const ayStr = bugun.getFullYear() + '-' + String(bugun.getMonth() + 1).padStart(2, '0');
+  openModal('Maaş Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ay (YYYY-MM) *</label>
+        <input id="ms-ay" class="form-input" type="month" value="${ayStr}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Maaş Tutarı (₺) *</label>
+        <input id="ms-maas" class="form-input" type="number" value="${varsayilanMaas || 0}" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ödeme Durumu</label>
+        <select id="ms-odendi" class="form-input">
+          <option value="0">Bekliyor</option>
+          <option value="1">Ödendi</option>
+        </select></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ödeme Tarihi</label>
+        <input id="ms-odeme-tarihi" class="form-input" type="date" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Açıklama</label>
+        <input id="ms-aciklama" class="form-input" placeholder="Opsiyonel" /></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="maasKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'money-bill-wave');
+}
+
+async function maasKaydet(personelId, adSoyad) {
+  const ay = document.getElementById('ms-ay')?.value;
+  const maas = parseFloat(document.getElementById('ms-maas')?.value);
+  const odendi = parseInt(document.getElementById('ms-odendi')?.value);
+  const odeme_tarihi = document.getElementById('ms-odeme-tarihi')?.value || null;
+  const aciklama = document.getElementById('ms-aciklama')?.value?.trim();
+  if (!ay) return toast('Ay zorunlu', 'error');
+  if (!maas || maas <= 0) return toast('Geçerli bir tutar girin', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/maas', { sifre: PERSONEL_SIFRE, ay, maas, odendi, odeme_tarihi, aciklama });
+    toast('Maaş kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function modalNotEkle(personelId, adSoyad) {
+  openModal('Not Ekle — ' + adSoyad, `
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Tür</label>
+        <select id="not-tur" class="form-input">
+          <option value="genel">Genel</option>
+          <option value="performans">Performans</option>
+          <option value="uyari">Uyarı</option>
+          <option value="odul">Ödül</option>
+          <option value="izin">İzin</option>
+        </select></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Başlık</label>
+        <input id="not-baslik" class="form-input" placeholder="Kısa başlık" /></div>
+      <div><label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">İçerik *</label>
+        <textarea id="not-icerik" class="form-input" rows="3" placeholder="Not içeriği..."></textarea></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="personelDetayYukleGeri(${personelId},'${adSoyad}')" style="background:var(--glow2);color:var(--text);border:1px solid var(--border);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700">İptal</button>
+      <button onclick="notKaydet(${personelId},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700"><i class="fa-solid fa-save"></i> Kaydet</button>
+    </div>
+  `, false, 'note-sticky');
+}
+
+async function notKaydet(personelId, adSoyad) {
+  const tur = document.getElementById('not-tur')?.value;
+  const baslik = document.getElementById('not-baslik')?.value?.trim();
+  const icerik = document.getElementById('not-icerik')?.value?.trim();
+  if (!icerik) return toast('İçerik zorunlu', 'error');
+  try {
+    await api('POST', '/personeller/' + personelId + '/not', { sifre: PERSONEL_SIFRE, tur, baslik, icerik });
+    toast('Not kaydedildi');
+    personelDetayYukleGeri(personelId, adSoyad);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Detay modalına geri dön (şifre tekrar sormadan)
+async function personelDetayYukleGeri(id, adSoyad) {
+  let data;
+  try {
+    data = await api('POST', '/personeller/' + id + '/detay', { sifre: PERSONEL_SIFRE });
+  } catch(e) { closeModal(); return; }
+  // personelDetayYukle içindeki render mantığını tekrar çalıştır
+  // Şifre inputu olmadan direkt detay göster
+  const p = data.personel;
+  const devamsizlik = data.devamsizlik || [];
+  const avanslar = data.avanslar || [];
+  const maaslar = data.maaslar || [];
+  const notlar = data.notlar || [];
+  const toplamAvans = avanslar.filter(a => !a.odendi).reduce((s, a) => s + a.miktar, 0);
+
+  document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-id-card"></i>${adSoyad} — Personel Detayı`;
+  document.getElementById('modal-box').className = 'modal modal-lg';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">Kişisel Bilgiler</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>TC:</b> ${p.tc_no || '-'}</div>
+          <div><b>Doğum:</b> ${p.dogum_tarihi ? new Date(p.dogum_tarihi).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Tel:</b> ${p.telefon || '-'}</div>
+          <div><b>E-posta:</b> ${p.email || '-'}</div>
+          <div><b>Adres:</b> ${p.adres || '-'}</div>
+        </div>
+      </div>
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700">İş Bilgileri</div>
+        <div style="font-size:13px;color:var(--text);line-height:2">
+          <div><b>Pozisyon:</b> ${p.pozisyon || '-'}</div>
+          <div><b>Departman:</b> ${p.departman || '-'}</div>
+          <div><b>İşe Başlama:</b> ${p.ise_baslama ? new Date(p.ise_baslama).toLocaleDateString('tr-TR') : '-'}</div>
+          <div><b>Maaş:</b> <span style="color:#10b981;font-weight:700">${(p.maas||0).toLocaleString('tr-TR')} ₺</span></div>
+          <div><b>IBAN:</b> ${p.iban || '-'}</div>
+          <div><b>Banka:</b> ${p.banka || '-'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Devamsızlık (${devamsizlik.length})</div>
+          <button onclick="modalDevamsizlikEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${devamsizlik.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          devamsizlik.slice(0,5).map(d => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(d.tarih).toLocaleDateString('tr-TR')} — ${d.tur}</span>
+              <button onclick="devamsizlikSil(${d.id},${id},'${adSoyad}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `).join('')
+        }
+      </div>
+      <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Avans — Bekleyen: <span style="color:#f59e0b">${toplamAvans.toLocaleString('tr-TR')} ₺</span></div>
+          <button onclick="modalAvansEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+        </div>
+        ${avanslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+          avanslar.slice(0,5).map(a => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text)">${new Date(a.tarih).toLocaleDateString('tr-TR')} — ${a.miktar.toLocaleString('tr-TR')} ₺</span>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${a.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${a.odendi ? '#10b981' : '#f59e0b'}">${a.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>
+
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border);margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Maaş Ödemeleri</div>
+        <button onclick="modalMaasEkle(${id},'${adSoyad}',${p.maas||0})" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${maaslar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Kayıt yok</div>' :
+        `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+          ${maaslar.slice(0,6).map(m => `
+            <div style="background:var(--card);border-radius:8px;padding:10px;border:1px solid var(--border);font-size:12px">
+              <div style="font-weight:700;color:var(--text)">${m.ay}</div>
+              <div style="color:#10b981;font-weight:700">${m.maas.toLocaleString('tr-TR')} ₺</div>
+              <span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:${m.odendi ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)'};color:${m.odendi ? '#10b981' : '#f59e0b'}">${m.odendi ? 'Ödendi' : 'Bekliyor'}</span>
+            </div>
+          `).join('')}
+        </div>`
+      }
+    </div>
+
+    <div style="background:var(--glow2);border-radius:10px;padding:16px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Notlar</div>
+        <button onclick="modalNotEkle(${id},'${adSoyad}')" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700">+ Ekle</button>
+      </div>
+      ${notlar.length === 0 ? '<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px">Not yok</div>' :
+        notlar.slice(0,3).map(n => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <div style="font-weight:700;color:var(--text)">${n.baslik || n.tur}</div>
+            <div style="color:var(--muted);margin-top:2px">${n.icerik}</div>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+}

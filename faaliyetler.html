@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faaliyetler – İÇDER</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .activity-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+    .activity-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.07); transition: transform .25s; }
+    .activity-card:hover { transform: translateY(-4px); }
+    .activity-img { height: 200px; background-size: cover; background-position: center; position: relative; }
+    .activity-body { padding: 22px; }
+    .activity-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .activity-tag { background: #e8f5e9; color: #2e7d32; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .activity-date { font-size: 12px; color: #888; }
+    .activity-body h4 { font-size: 16px; font-weight: 700; color: #1b5e20; margin-bottom: 8px; line-height: 1.4; }
+    .activity-body p { font-size: 14px; color: #555; margin-bottom: 14px; }
+    .activity-link { color: #2e7d32; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+    .activity-link:hover { gap: 10px; }
+    .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 40px; }
+    .filter-btn { padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; color: #555; background: #f5f5f5; border: 2px solid transparent; cursor: pointer; transition: all .2s; }
+    .filter-btn.active, .filter-btn:hover { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+    @media (max-width: 900px) { .activity-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .activity-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <a href="tel:+908503051855"><i class="fa fa-phone"></i> 0850 305 18 55</a>
+        <a href="mailto:bilgi@icder.org"><i class="fa fa-envelope"></i> bilgi@icder.org</a>
+      </div>
+      <div class="topbar-right">
+        <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+        <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+        <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+        <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="index.html" class="logo"><img src="icderyazi.png" alt="İÇDER Logo" /></a>
+      <nav class="nav-links">
+        <div class="nav-item dropdown">
+          <a href="kurumsal.html">KURUMSAL <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="hakkimizda.html">Hakkımızda</a>
+            <a href="misyon.html">Misyonumuz</a>
+            <a href="vizyon.html">Vizyonumuz</a>
+            <a href="yonetim.html">Yönetim Kurulu</a>
+            <a href="hesap-numaralari.html">Hesap Numaraları</a>
+          </div>
+        </div>
+        <div class="nav-item dropdown">
+          <a href="projeler.html">PROJELER <i class="fa fa-chevron-down"></i></a>
+          <div class="dropdown-menu">
+            <a href="kurban.html">Kurban Bayramı</a>
+            <a href="gazze.html">Gazze Yardım</a>
+            <a href="cocuklar-gulsun.html">Çocuklar Gülsün</a>
+          </div>
+        </div>
+        <a href="faaliyetler.html" class="nav-item">FAALİYETLER</a>
+        <a href="haberler.html" class="nav-item">HABERLER</a>
+        <a href="iletisim.html" class="nav-item">İLETİŞİM</a>
+      </nav>
+      <a href="bagis.html" class="btn-donate">BAĞIŞ YAP</a>
+      <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="kurumsal.html">Kurumsal</a>
+    <a href="projeler.html">Projeler</a>
+    <a href="faaliyetler.html">Faaliyetler</a>
+    <a href="haberler.html">Haberler</a>
+    <a href="iletisim.html">İletişim</a>
+    <a href="bagis.html" class="btn-donate-mobile">Bağış Yap</a>
+  </div>
+
+  <section class="page-hero">
+    <div class="container">
+      <h1>Faaliyetler</h1>
+      <p>Sahada gerçekleştirdiğimiz çalışmalar</p>
+      <div class="breadcrumb">
+        <a href="index.html">Ana Sayfa</a>
+        <span>/</span>
+        <span>Faaliyetler</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:80px 0; background:#f9fbe7;">
+    <div class="container">
+      <div class="filter-bar">
+        <button class="filter-btn active">Tümü</button>
+        <button class="filter-btn">Afrika</button>
+        <button class="filter-btn">Gazze</button>
+        <button class="filter-btn">Türkiye</button>
+        <button class="filter-btn">Eğitim</button>
+        <button class="filter-btn">Kurban</button>
+      </div>
+
+      <div class="activity-grid">
+        <div class="activity-card">
+          <div class="activity-img" style="background:url('gazze1.jpg') center/cover no-repeat; height:200px;"></div>
+          <div class="activity-body">
+            <div class="activity-meta">
+              <span class="activity-tag">Afrika</span>
+              <span class="activity-date">01 Temmuz 2025</span>
+            </div>
+            <h4>2025 Kurbanların Kesimini Gerçekleştirdik</h4>
+            <p>Afrika – Çad'da 2025 Kurban kesimlerini gerçekleştirdik. Bağışçılarımıza teşekkür ederiz.</p>
+            <a href="#" class="activity-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-img" style="background:url('gazze2.jpg') center/cover no-repeat; height:200px;"></div>
+          <div class="activity-body">
+            <div class="activity-meta">
+              <span class="activity-tag">Afrika</span>
+              <span class="activity-date">27 Mayıs 2025</span>
+            </div>
+            <h4>Sadece 150 TL ile Bir Yetimin Karnını Doyurabilirsiniz</h4>
+            <p>Afrika Çad'da 500 yetim çocuğa umut olduk, sofralarına misafir olduk.</p>
+            <a href="#" class="activity-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-img" style="background:url('gazze3.jpg') center/cover no-repeat; height:200px;"></div>
+          <div class="activity-body">
+            <div class="activity-meta">
+              <span class="activity-tag">Gazze</span>
+              <span class="activity-date">15 Mart 2025</span>
+            </div>
+            <h4>Gazze'de Ramazan Boyunca İftar Dağıtımı</h4>
+            <p>Ramazan ayı boyunca Gazze'deki kardeşlerimize günlük iftar yemeği ulaştırdık.</p>
+            <a href="#" class="activity-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-img" style="background:url('gazze4.jpg') center/cover no-repeat; height:200px;"></div>
+          <div class="activity-body">
+            <div class="activity-meta">
+              <span class="activity-tag">Gazze</span>
+              <span class="activity-date">09 Şubat 2025</span>
+            </div>
+            <h4>Gazze'de Kesintisiz Sıcak Yemek Dağıtımı</h4>
+            <p>Gazze'deki kardeşlerimize kesintisiz sıcak yemek dağıtım çalışmalarımız devam ediyor.</p>
+            <a href="#" class="activity-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-img" style="background:url('gazze5.jpg') center/cover no-repeat; height:200px;"></div>
+          <div class="activity-body">
+            <div class="activity-meta">
+              <span class="activity-tag">Gazze</span>
+              <span class="activity-date">17 Ocak 2025</span>
+            </div>
+            <h4>İÇDER Gazze İçin Umut Olmaya Devam Ediyor</h4>
+            <p>Gazze'deki insani kriz için yardım çalışmalarımız aralıksız sürmektedir.</p>
+            <a href="#" class="activity-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-img" style="background:url('gazze6.jpg') center/cover no-repeat; height:200px;"></div>
+          <div class="activity-body">
+            <div class="activity-meta">
+              <span class="activity-tag">Gazze</span>
+              <span class="activity-date">08 Ocak 2025</span>
+            </div>
+            <h4>Gazze'ye Tıbbi Malzeme ve İlaç Desteği</h4>
+            <p>Gazze'deki hastanelere ilaç, tıbbi malzeme ve serum desteği ulaştırdık.</p>
+            <a href="#" class="activity-link">Devamını Oku <i class="fa fa-arrow-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-brand">
+        <img src="icderyazi.png" alt="İÇDER Logo" class="footer-logo" />
+        <p>İÇDER, köklü bir çınar gibi sağlam durarak Allah'ın rızasını kazanacak işler yapan bir kuruluştur.</p>
+        <div class="footer-social">
+          <a href="https://www.facebook.com/icdertr" target="_blank"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://x.com/icderorg" target="_blank"><i class="fab fa-x-twitter"></i></a>
+          <a href="https://www.instagram.com/icderorg" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.youtube.com/icderorg" target="_blank"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>KURUMSAL</h5>
+        <ul>
+          <li><a href="hakkimizda.html">Hakkımızda</a></li>
+          <li><a href="misyon.html">Misyonumuz</a></li>
+          <li><a href="vizyon.html">Vizyonumuz</a></li>
+          <li><a href="yonetim.html">Yönetim Kurulu</a></li>
+          <li><a href="hesap-numaralari.html">Hesap Numaraları</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>PROJELER</h5>
+        <ul>
+          <li><a href="kurban.html">Kurban Bayramı</a></li>
+          <li><a href="gazze.html">Gazze Yardım</a></li>
+          <li><a href="cocuklar-gulsun.html">Çocuklar Gülsün</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>İLETİŞİM</h5>
+        <ul class="footer-contact">
+          <li><i class="fa fa-location-dot"></i> Hasköy Mah. Bozkır Sokak No:49 Canik / Samsun</li>
+          <li><i class="fa fa-phone"></i> <a href="tel:+908503051855">0850 305 18 55</a></li>
+          <li><i class="fa fa-envelope"></i> <a href="mailto:bilgi@icder.org">bilgi@icder.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© 2026 Tüm Hakları Saklıdır | İslam Çınarı Derneği</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

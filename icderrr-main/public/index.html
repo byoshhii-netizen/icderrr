@@ -1,0 +1,269 @@
+﻿﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>İÇDER Kurban Programı</title>
+  <link rel="icon" type="image/png" href="icder.png"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="fa/css/all.min.css"/>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="logo-icon">
+      <img src="icder.png" alt="İÇDER" style="width:50px;height:50px;object-fit:cover;border-radius:50%" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+      <i class="fa-solid fa-mosque" style="font-size:28px;color:var(--accent);display:none"></i>
+    </div>
+    <div class="brand-text">İÇDER <span>Kurban Programı</span></div>
+  </div>
+  
+  <!-- Seçili Organizasyon Göstergesi -->
+  <div class="selected-org" id="selected-org-display" style="display:none">
+    <div class="selected-org-info">
+      <div class="selected-org-name" id="selected-org-name">Organizasyon Adı</div>
+      <div class="selected-org-year" id="selected-org-year">2026</div>
+    </div>
+    <button class="selected-org-close" onclick="cikOrganizasyondan()" title="Organizasyondan Çık">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  
+  <div class="topbar-right">
+    <div class="topbar-badge"><i class="fa-solid fa-handshake" style="color:var(--accent);margin-right:5px"></i>İÇDER & Defterdar</div>
+    <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Tema Değiştir">
+      <i class="fa-solid fa-palette" id="theme-icon"></i>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="cikisYap()" title="Çıkış Yap" style="margin-left:8px">
+      <i class="fa-solid fa-right-from-bracket"></i> Çıkış
+    </button>
+    <div class="topbar-dot" title="Sistem aktif"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo-area">
+      <div class="org-name" id="sidebar-org-name">Organizasyon Seçilmedi</div>
+      <div class="org-sub" id="sidebar-org-sub">Bir organizasyon seçin</div>
+    </div>
+
+    <div class="sidebar-section">Genel</div>
+    <div class="sidebar-item" data-page="tum-organizasyonlar" onclick="showPage('tum-organizasyonlar')">
+      <i class="fa-solid fa-layer-group"></i> Tüm Organizasyonlar
+    </div>
+    <div class="sidebar-item" data-page="gelir-gider" onclick="showPage('gelir-gider')">
+      <i class="fa-solid fa-money-bill-trend-up"></i> Gelir-Gider
+    </div>
+    <div class="sidebar-item active" data-page="kurban-organizasyonu" onclick="showPage('kurban-organizasyonu')">
+      <i class="fa-solid fa-cow"></i> Organizasyonlar
+    </div>
+    <div class="sidebar-item" data-page="organizasyon" onclick="toggleOrganizasyonMenu()">
+      <i class="fa-solid fa-globe"></i> Faaliyetler
+      <i class="fa-solid fa-chevron-down" id="organizasyon-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+    </div>
+    <div id="organizasyon-submenu" style="display:none;background:var(--glow2);border-left:3px solid var(--accent);margin-left:12px;border-radius:8px">
+      <div class="sidebar-item" data-page="su-kuyusu-organizasyonu" onclick="showPage('su-kuyusu-organizasyonu')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Su Kuyusu Organizasyonu
+      </div>
+      <div class="sidebar-item" data-page="proje-yonetimi" onclick="showPage('proje-yonetimi')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Proje Yönetimi
+      </div>
+      <div class="sidebar-item" data-page="diger-organizasyonlar" onclick="showPage('diger-organizasyonlar')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Diğer Organizasyonlar
+      </div>
+    </div>
+
+    <div class="sidebar-section">Kurban Yönetimi</div>
+    <div class="sidebar-item" data-page="kurbanlar" onclick="showPage('kurbanlar')">
+      <i class="fa-solid fa-cow"></i> Kurbanlar
+    </div>
+    <div class="sidebar-item" data-page="bagiscilar" onclick="showPage('bagiscilar')">
+      <i class="fa-solid fa-users"></i> Bağışçılar
+    </div>
+    
+    <div class="sidebar-item" data-page="bagis" onclick="toggleBagisMenu()">
+      <i class="fa-solid fa-heart"></i> Bağış
+      <i class="fa-solid fa-chevron-down" id="bagis-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+    </div>
+    <div id="bagis-submenu" style="display:none;background:var(--glow2);border-left:3px solid var(--accent);margin-left:12px;border-radius:8px">
+      <div class="sidebar-item" data-page="bagis-turleri" onclick="showPage('bagis-turleri')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Bağış Türleri
+      </div>
+      <div class="sidebar-item" data-page="bagis-raporlari" onclick="showPage('bagis-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Bağış Raporları
+      </div>
+      <div class="sidebar-item" data-page="bagisci-yonetimi" onclick="showPage('bagisci-yonetimi')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Bağışçı Yönetimi
+      </div>
+      <div class="sidebar-item" data-page="bagis-al" onclick="showPage('bagis-al')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Bağış Al
+      </div>
+      <div class="sidebar-item" data-page="gonullu-yonetimi" onclick="showPage('gonullu-yonetimi')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Gönüllü Yönetimi
+      </div>
+      <div class="sidebar-item" data-page="kumbara-talepleri" onclick="showPage('kumbara-talepleri')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Kumbara Talepleri
+      </div>
+      <div class="sidebar-item" data-page="web-sitesi-bagislari" onclick="showPage('web-sitesi-bagislari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Web Sitesi Bağışları
+      </div>
+    </div>
+
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Raporlar</div>
+    <div class="sidebar-item" data-page="raporlar" onclick="toggleRaporlarMenu()">
+      <i class="fa-solid fa-chart-bar"></i> Raporlar
+      <i class="fa-solid fa-chevron-down" id="raporlar-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+    </div>
+    <div id="raporlar-submenu" style="display:none;background:var(--glow2);border-left:3px solid var(--accent);margin-left:12px;border-radius:8px">
+      <div class="sidebar-item" data-page="bagis-raporlari-menu" onclick="showPage('bagis-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Bağış Raporları
+      </div>
+      <div class="sidebar-item" data-page="hissedar-raporlari" onclick="showPage('hissedar-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Hissedar Raporları
+      </div>
+      <div class="sidebar-item" data-page="su-kuyusu-raporlari" onclick="showPage('su-kuyusu-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Su Kuyusu Raporları
+      </div>
+      <div class="sidebar-item" data-page="bagisci-raporlari" onclick="showPage('bagisci-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Bağışçı Raporları
+      </div>
+      <div class="sidebar-item" data-page="ihtiyac-sahibi-raporlari" onclick="showPage('ihtiyac-sahibi-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> İhtiyaç Sahibi Raporları
+      </div>
+      <div class="sidebar-item" data-page="tahsilat-raporlari" onclick="showPage('tahsilat-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Tahsilat Raporları
+      </div>
+      <div class="sidebar-item" data-page="banka-servisleri" onclick="showPage('banka-servisleri')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Banka Servisleri
+      </div>
+      <div class="sidebar-item" data-page="sponsor-periyot-raporlari" onclick="showPage('sponsor-periyot-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Sponsor Periyot Raporları
+      </div>
+    </div>
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Personel</div>
+    <div class="sidebar-item" data-page="personel-takip" onclick="showPage('personel-takip')">
+      <i class="fa-solid fa-id-card"></i> Personel Takip
+    </div>
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Sistem</div>
+    <div class="sidebar-item" data-page="cop" onclick="showPage('cop')">
+      <i class="fa-solid fa-trash-can"></i> Çöp Kutusu
+    </div>
+    <div class="sidebar-item" data-page="yedek" onclick="showPage('yedek')">
+      <i class="fa-solid fa-database"></i> Yedek Geri Yükle
+    </div>
+    <div class="sidebar-item" data-page="denetim" onclick="showPage('denetim')">
+      <i class="fa-solid fa-shield-halved"></i> Denetim Masası
+    </div>
+    <div class="sidebar-item" onclick="modalAyarlar()">
+      <i class="fa-solid fa-gear"></i> Ayarlar
+    </div>
+    
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Kişisel</div>
+    <div class="sidebar-item" data-page="kisisel" onclick="toggleKisiselMenu()">
+      <i class="fa-solid fa-user"></i> Kişisel
+      <i class="fa-solid fa-chevron-down" id="kisisel-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+    </div>
+    <div id="kisisel-submenu" style="display:none;background:var(--glow2);border-left:3px solid var(--accent);margin-left:12px;border-radius:8px">
+      <div class="sidebar-item" data-page="profil-bilgilerim" onclick="showPage('profil-bilgilerim')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Profil Bilgilerim
+      </div>
+      <div class="sidebar-item" data-page="ozel-mesajlar" onclick="showPage('ozel-mesajlar')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Özel Mesajlar
+      </div>
+      <div class="sidebar-item" data-page="gorev-bildirimlerim" onclick="showPage('gorev-bildirimlerim')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Görev Bildirimlerim
+      </div>
+    </div>
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Medya</div>
+    <div class="sidebar-item" data-page="medya" onclick="showPage('medya')">
+      <i class="fa-solid fa-photo-film"></i> Medya Deposu
+    </div>
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Yardım</div>
+    <div class="sidebar-item" data-page="yardim" onclick="toggleYardimMenu()">
+      <i class="fa-solid fa-gift"></i> Yardım
+      <i class="fa-solid fa-chevron-down" id="yardim-chevron" style="margin-left:auto;font-size:12px;transition:transform 0.3s"></i>
+    </div>
+    <div id="yardim-submenu" style="display:none;background:var(--glow2);border-left:3px solid var(--accent);margin-left:12px;border-radius:8px">
+      <div class="sidebar-item" data-page="yardim-raporlari" onclick="showPage('yardim-raporlari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Yardım Raporları
+      </div>
+      <div class="sidebar-item" data-page="basvuru-dosyalari" onclick="showPage('basvuru-dosyalari')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Başvuru Dosyaları
+      </div>
+      <div class="sidebar-item" data-page="yetim-oksuz-yonetimi" onclick="showPage('yetim-oksuz-yonetimi')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> Yetim-Öksüz Yönetimi
+      </div>
+      <div class="sidebar-item" data-page="ihtiyac-sahibi-listesi" onclick="showPage('ihtiyac-sahibi-listesi')" style="padding-left:32px;font-size:13px">
+        <i class="fa-solid fa-chevron-right" style="font-size:10px"></i> İhtiyaç Sahibi Kişi Listesi
+      </div>
+    </div>
+    
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Destek</div>
+    <div class="sidebar-item" data-page="destek" onclick="showPage('destek')">
+      <i class="fa-solid fa-headset"></i> Destek Hattı
+    </div>
+  </nav>
+
+  <main class="main" id="main-content"></main>
+</div>
+
+<div class="footer">İÇDER & Defterdar İşbirliği &nbsp;&mdash;&nbsp; İÇDER Kurban Programı &nbsp;&mdash;&nbsp; <strong>İsmail DEMİRCAN</strong></div>
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Sabit Destek Hattı Butonu -->
+<div class="floating-support-btn" id="floating-destek-btn" onclick="showPage('destek')" title="Destek Hattı">
+  <i class="fa-solid fa-headset"></i>
+</div>
+
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title"></span>
+      <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+// ── Mouse wheel scroll (Electron fix)
+document.addEventListener('DOMContentLoaded', function() {
+  const main = document.getElementById('main-content');
+  const sidebar = document.getElementById('sidebar');
+
+  function handleWheel(e) {
+    const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * 800 : e.deltaY;
+
+    // Hedef elementin scroll edilebilir atalarını bul
+    let el = e.target;
+    while (el && el !== document.documentElement) {
+      const st = window.getComputedStyle(el);
+      const oy = st.overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+        const before = el.scrollTop;
+        el.scrollTop += delta;
+        if (el.scrollTop !== before) return; // scroll oldu, dur
+      }
+      el = el.parentElement;
+    }
+
+    // Hiçbiri scroll olmadıysa main'i scroll et
+    if (main) main.scrollTop += delta;
+  }
+
+  // passive:false ile preventDefault kullanabilelim
+  document.addEventListener('wheel', handleWheel, { passive: true });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "icder-web",
+  "version": "1.0.0",
+  "description": "ICDER Web Sitesi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

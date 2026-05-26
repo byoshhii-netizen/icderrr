@@ -1,0 +1,81 @@
+{
+  "name": "icder-dernek-yonetim",
+  "version": "2.0.0",
+  "description": "İÇDER Dernek Yönetim Programı - Ağ Üzerinden Erişim Destekli",
+  "main": "electron.js",
+  "author": "İÇDER & Defterdar",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "electron": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
+    "exceljs": "^4.4.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "multer": "^2.1.1",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "electron": "^29.4.6",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.icder.dernek",
+    "productName": "İÇDER Dernek Yönetim Programı",
+    "copyright": "Copyright © 2025 İÇDER & Defterdar",
+    "forceCodeSigning": false,
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "nodeGypRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "publisherName": "İÇDER",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "İÇDER Dernek Yönetim Programı",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "uninstallDisplayName": "İÇDER Dernek Yönetim Programı",
+      "include": "build/installer.nsh",
+      "warningsAsErrors": false,
+      "runAfterFinish": true,
+      "menuCategory": true,
+      "artifactName": "${productName}-Kurulum-${version}.${ext}"
+    },
+    "files": [
+      "**/*",
+      "!data/**",
+      "!dist/**",
+      "!node_modules/.cache/**",
+      "!*.md",
+      "!fix_*.py",
+      "!*.bat"
+    ],
+    "extraMetadata": {
+      "author": "İÇDER & Defterdar"
+    }
+  }
+}

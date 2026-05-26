@@ -1300,3 +1300,45 @@ tbody tr:last-child { border-bottom:none; }
 
 /* Vekalet sonuç overlay'i absolute olarak yerleşebilsin diye position:relative — overflow KORUNMALI ki uzun modaller scroll edebilsin */
 #modal-box.modal { position: relative; }
+
+/* ─── TOPLU İŞLEM BAR ─────────────────────────────────────────────────────── */
+.toplu-islem-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb, 16,185,129), 0.08), rgba(var(--accent-rgb, 16,185,129), 0.04));
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  animation: sonucFadeIn .2s ease-out;
+}
+.toplu-islem-bar.aktif {
+  display: flex;
+}
+.toplu-islem-sol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.toplu-islem-sag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.toplu-secim-sayac {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+/* Seçili satır vurgusu */
+.kurban-satir-secili {
+  background: rgba(16, 185, 129, 0.07) !important;
+}
+.kurban-satir-secili:hover {
+  background: rgba(16, 185, 129, 0.12) !important;
+}

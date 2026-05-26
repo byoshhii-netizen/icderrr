@@ -1177,6 +1177,10 @@ async function temizleHisse(hisseId, kurbanId) {
 // ═══════════════════════════════════════════════════════════════════════════
 // BAĞIŞÇILAR
 // ═══════════════════════════════════════════════════════════════════════════
+// BAĞIŞÇILAR
+// ═══════════════════════════════════════════════════════════════════════════
+let _seciliBagisciIds = new Set();
+
 async function renderBagiscilar() {
   const m = document.getElementById('main-content');
   const orgSmall = S.orgAd ? '<small>' + esc(S.orgAd) + '</small>' : '';
@@ -1213,6 +1217,20 @@ async function renderBagiscilar() {
           '</div>' +
         '</div>' +
       '</div>' +
+      // Toplu işlem barı
+      '<div class="toplu-islem-bar" id="bagisci-toplu-bar">' +
+        '<div class="toplu-islem-sol">' +
+          '<span id="bagisci-secim-sayac" class="toplu-secim-sayac">Seçili yok</span>' +
+          '<button class="btn btn-secondary btn-sm" onclick="bagisciSecimTemizle()"><i class="fa-solid fa-xmark"></i> Temizle</button>' +
+        '</div>' +
+        '<div class="toplu-islem-sag">' +
+          '<button class="btn btn-success btn-sm" onclick="bagisciTopluOdeme(1)" title="Seçilenleri ödendi yap"><i class="fa-solid fa-circle-check"></i> Ödendi Yap</button>' +
+          '<button class="btn btn-secondary btn-sm" onclick="bagisciTopluOdeme(0)" title="Seçilenleri ödenmedi yap"><i class="fa-solid fa-circle"></i> Ödenmedi Yap</button>' +
+          '<button class="btn btn-success btn-sm" onclick="bagisciTopluVekalet(1)" title="Seçilenlere vekalet al"><i class="fa-solid fa-handshake"></i> Vekalet Al</button>' +
+          '<button class="btn btn-secondary btn-sm" onclick="bagisciTopluVekalet(0)" title="Seçilenlerde vekaleti kaldır"><i class="fa-solid fa-handshake-slash"></i> Vekalet Kaldır</button>' +
+          '<button class="btn btn-danger btn-sm" id="bagisci-toplu-sil-btn" onclick="bagisciTopluSil()" title="Seçilenleri sil"><i class="fa-solid fa-trash"></i> Toplu Sil</button>' +
+        '</div>' +
+      '</div>' +
       '<div class="filter-bar" style="margin-bottom:16px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px">' +
         '<input id="b-ara" placeholder="Ad veya telefon ile ara..." oninput="filterBagiscilar()"/>' +
         '<select id="b-kategori" onchange="filterBagiscilar()">' +
@@ -1246,15 +1264,17 @@ async function renderBagiscilar() {
       '<div class="table-wrap">' +
         '<table>' +
           '<thead><tr>' +
+            '<th style="width:36px"><input type="checkbox" id="bagisci-sec-hepsi" onchange="bagisciTabloTumunuSec(this.checked)" title="Tümünü seç"/></th>' +
             '<th>#</th><th>Bagisci Adi</th><th>Telefon</th><th>Kategori</th><th>Kimin Adina</th>' +
             '<th>Kurban No</th><th>Hisse</th><th>Hayvan Turu</th><th>Kurban Turu</th><th>Fiyat</th><th>Odeme</th><th>Video</th><th>Vekalet</th><th>Islem</th>' +
           '</tr></thead>' +
           '<tbody id="bagisci-tbody">' +
-            '<tr><td colspan="14"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></td></tr>' +
+            '<tr><td colspan="15"><div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Yukleniyor...</p></div></td></tr>' +
           '</tbody>' +
         '</table>' +
       '</div>' +
     '</div>';
+  _seciliBagisciIds.clear();
   await tumBagiscilariGoster();
 }
 
@@ -1282,12 +1302,12 @@ async function aramaBagisci() {
 
 function renderBagisciTablosu(list) {
   const tbody = document.getElementById('bagisci-tbody');
-  // Toplam sayıyı güncelle
   const toplamEl = document.getElementById('bagisci-toplam');
   if (toplamEl) toplamEl.textContent = list.length;
   
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sonuc bulunamadi.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15"><div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Sonuc bulunamadi.</p></div></td></tr>`;
+    bagisciSecimSayacGuncelle();
     return;
   }
   const oRenk  = {odendi:'badge-green',iptal:'badge-red',bekliyor:'badge-gray'};
@@ -1298,6 +1318,7 @@ function renderBagisciTablosu(list) {
       return kurban ? (kurban.fiyat || kurban.alis_fiyati || 0) : 0;
     })();
     const siraNo = list.length - i;
+    const secili = _seciliBagisciIds.has(h.id);
     const vekaletBtn = h.vekalet_onay
       ? `<button onclick="toggleVekalet(${h.id},0,event)" title="Vekalet alındı — tıkla kaldır" style="
           display:inline-flex;align-items:center;gap:5px;padding:5px 10px;
@@ -1317,7 +1338,8 @@ function renderBagisciTablosu(list) {
           <i class="fa-solid fa-handshake-slash"></i> Alınmadı
         </button>`;
     return `
-    <tr>
+    <tr class="${secili ? 'kurban-satir-secili' : ''}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="bagisci-sec-cb" data-id="${h.id}" ${secili ? 'checked' : ''} onchange="bagisciSecimToggle(${h.id},this.checked)"/></td>
       <td style="color:var(--text3);font-size:12px">${siraNo}</td>
       <td><strong>${esc(h.bagisci_adi)}</strong></td>
       <td>${h.bagisci_telefon?esc(h.bagisci_telefon):'-'}</td>
@@ -1334,6 +1356,8 @@ function renderBagisciTablosu(list) {
       <td><button class="btn btn-secondary btn-sm btn-icon" onclick="modalBagisciDuzenle(${h.id},${h.kurban_id},${fiyat})" title="Duzenle"><i class="fa-solid fa-pen"></i></button></td>
     </tr>`;
   }).join('');
+  bagisciSecimSayacGuncelle();
+  bagisciTabloCheckboxSenkron(list);
 }
 
 // ─── VEKALET ONAY MODAL ─────────────────────────────────────────────────────
@@ -5846,6 +5870,101 @@ async function renderTumOrganizasyonlar() {
 // Bağışçı filtreleme fonksiyonu
 let _tumBagiscilar = [];
 let _filtreliBagiscilar = [];
+
+// ─── BAĞIŞÇI SEÇİM SİSTEMİ ───────────────────────────────────────────────────
+
+function bagisciSecimToggle(id, checked) {
+  if (checked) _seciliBagisciIds.add(id);
+  else _seciliBagisciIds.delete(id);
+  bagisciSecimSayacGuncelle();
+  const cb = document.querySelector(`.bagisci-sec-cb[data-id="${id}"]`);
+  if (cb) {
+    const tr = cb.closest('tr');
+    if (tr) tr.classList.toggle('kurban-satir-secili', checked);
+  }
+}
+
+function bagisciSecimTemizle() {
+  _seciliBagisciIds.clear();
+  bagisciSecimSayacGuncelle();
+  document.querySelectorAll('.bagisci-sec-cb').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('#bagisci-tbody tr').forEach(tr => tr.classList.remove('kurban-satir-secili'));
+  const hepsi = document.getElementById('bagisci-sec-hepsi');
+  if (hepsi) { hepsi.checked = false; hepsi.indeterminate = false; }
+}
+
+function bagisciSecimSayacGuncelle() {
+  const el = document.getElementById('bagisci-secim-sayac');
+  const n = _seciliBagisciIds.size;
+  if (el) el.textContent = n ? n + ' bağışçı seçili' : 'Seçili yok';
+  const bar = document.getElementById('bagisci-toplu-bar');
+  if (bar) bar.classList.toggle('aktif', n > 0);
+  const hepsi = document.getElementById('bagisci-sec-hepsi');
+  if (hepsi && _filtreliBagiscilar.length > 0) {
+    hepsi.checked = _filtreliBagiscilar.every(h => _seciliBagisciIds.has(h.id));
+    hepsi.indeterminate = !hepsi.checked && _filtreliBagiscilar.some(h => _seciliBagisciIds.has(h.id));
+  }
+}
+
+function bagisciTabloTumunuSec(checked) {
+  _filtreliBagiscilar.forEach(h => {
+    if (checked) _seciliBagisciIds.add(h.id);
+    else _seciliBagisciIds.delete(h.id);
+  });
+  bagisciSecimSayacGuncelle();
+  document.querySelectorAll('.bagisci-sec-cb').forEach(cb => {
+    cb.checked = checked;
+    const tr = cb.closest('tr');
+    if (tr) tr.classList.toggle('kurban-satir-secili', checked);
+  });
+}
+
+function bagisciTabloCheckboxSenkron(list) {
+  const hepsi = document.getElementById('bagisci-sec-hepsi');
+  if (!hepsi) return;
+  hepsi.checked = list.length > 0 && list.every(h => _seciliBagisciIds.has(h.id));
+  hepsi.indeterminate = list.some(h => _seciliBagisciIds.has(h.id)) && !hepsi.checked;
+}
+
+async function bagisciTopluOdeme(yeniDurum) {
+  const ids = Array.from(_seciliBagisciIds);
+  if (!ids.length) return toast('Önce bağışçı seçin', 'error');
+  const etiket = yeniDurum ? 'Ödendi' : 'Ödenmedi';
+  if (!confirm(`${ids.length} bağışçı için ödeme durumu "${etiket}" yapılacak. Onaylıyor musunuz?`)) return;
+  try {
+    const r = await api('POST', '/hisseler/toplu-odeme', { ids, odeme_durumu: yeniDurum ? 'odendi' : 'bekliyor' });
+    toast((r.etkilenen || ids.length) + ' bağışçı güncellendi');
+    bagisciSecimTemizle();
+    await tumBagiscilariGoster();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function bagisciTopluVekalet(yeniDurum) {
+  const ids = Array.from(_seciliBagisciIds);
+  if (!ids.length) return toast('Önce bağışçı seçin', 'error');
+  const etiket = yeniDurum ? 'Vekalet Al' : 'Vekalet Kaldır';
+  if (!confirm(`${ids.length} bağışçı için "${etiket}" uygulanacak. Onaylıyor musunuz?`)) return;
+  try {
+    const r = await api('POST', '/hisseler/toplu-vekalet', { ids, vekalet_onay: yeniDurum ? 1 : 0 });
+    toast((r.etkilenen || ids.length) + ' bağışçı güncellendi');
+    bagisciSecimTemizle();
+    await tumBagiscilariGoster();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function bagisciTopluSil() {
+  const ids = Array.from(_seciliBagisciIds);
+  if (!ids.length) return toast('Önce bağışçı seçin', 'error');
+  if (!confirm(`${ids.length} bağışçı silinecek. Bu işlem geri alınamaz. Onaylıyor musunuz?`)) return;
+  try {
+    const r = await api('POST', '/hisseler/toplu-sil', { ids });
+    toast((r.etkilenen || ids.length) + ' bağışçı silindi');
+    bagisciSecimTemizle();
+    await tumBagiscilariGoster();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+
 
 async function filterBagiscilar() {
   if (!S.orgId) return;

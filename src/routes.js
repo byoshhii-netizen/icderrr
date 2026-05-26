@@ -179,6 +179,47 @@ router.put('/hisseler/:id/vekalet', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── TOPLU İŞLEMLER (BAĞIŞÇI) ──────────────────────────────────────────────
+
+router.post('/hisseler/toplu-odeme', async (req, res) => {
+  try {
+    const db = await getDb();
+    const { ids, odeme_durumu } = req.body;
+    if (!ids || !ids.length) return res.status(400).json({ hata: 'ids gerekli' });
+    const placeholders = ids.map(() => '?').join(',');
+    const stmt = db.prepare(`UPDATE hisseler SET odeme_durumu=? WHERE id IN (${placeholders})`);
+    const info = stmt.run(odeme_durumu || 'bekliyor', ...ids);
+    res.json({ ok: true, etkilenen: info.changes });
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.post('/hisseler/toplu-vekalet', async (req, res) => {
+  try {
+    const db = await getDb();
+    const { ids, vekalet_onay } = req.body;
+    if (!ids || !ids.length) return res.status(400).json({ hata: 'ids gerekli' });
+    const vekalet_tarihi = vekalet_onay ? new Date().toISOString() : null;
+    const placeholders = ids.map(() => '?').join(',');
+    const stmt = db.prepare(`UPDATE hisseler SET vekalet_onay=?, vekalet_tarihi=? WHERE id IN (${placeholders})`);
+    const info = stmt.run(vekalet_onay ? 1 : 0, vekalet_tarihi, ...ids);
+    res.json({ ok: true, etkilenen: info.changes });
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.post('/hisseler/toplu-sil', async (req, res) => {
+  try {
+    const db = await getDb();
+    const { ids } = req.body;
+    if (!ids || !ids.length) return res.status(400).json({ hata: 'ids gerekli' });
+    const placeholders = ids.map(() => '?').join(',');
+    const stmt = db.prepare(`UPDATE hisseler SET bagisci_adi=NULL,bagisci_telefon=NULL,bagisci_kategori='Genel Bağışçı',kimin_adina=NULL,kimin_adina_telefon=NULL,odeme_durumu='bekliyor',video_ister=0,aciklama=NULL,kurban_turu='Udhiye',vekalet_onay=0,vekalet_tarihi=NULL WHERE id IN (${placeholders})`);
+    const info = stmt.run(...ids);
+    res.json({ ok: true, etkilenen: info.changes });
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+
+
 // ─── BAĞIŞÇI ARAMA ─────────────────────────────────────────────────────────
 
 router.get('/bagiscilar/ara', async (req, res) => {

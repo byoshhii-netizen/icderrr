@@ -16,7 +16,7 @@
       <img src="icder.png" alt="İÇDER" style="width:50px;height:50px;object-fit:cover;border-radius:50%" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
       <i class="fa-solid fa-mosque" style="font-size:28px;color:var(--accent);display:none"></i>
     </div>
-    <div class="brand-text">İÇDER <span>Dernek Yönetim Programı</span></div>
+    <div class="brand-text">İÇDER <span>Dernek Yönetim</span></div>
   </div>
   
   <!-- Seçili Organizasyon Göstergesi -->
@@ -144,6 +144,16 @@
       </div>
     </div>
     <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Personel</div>
+    <div class="sidebar-item" data-page="personel-takip" onclick="showPage('personel-takip')">
+      <i class="fa-solid fa-id-card"></i> Personel Takip
+    </div>
+    <hr class="sidebar-divider"/>
+    <div class="sidebar-section">Kasa</div>
+    <div class="sidebar-item" data-page="kasa" onclick="showPage('kasa')">
+      <i class="fa-solid fa-cash-register"></i> Kasa Yönetimi
+    </div>
+    <hr class="sidebar-divider"/>
     <div class="sidebar-section">Sistem</div>
     <div class="sidebar-item" data-page="cop" onclick="showPage('cop')">
       <i class="fa-solid fa-trash-can"></i> Çöp Kutusu
@@ -180,6 +190,9 @@
     <div class="sidebar-item" data-page="medya" onclick="showPage('medya')">
       <i class="fa-solid fa-photo-film"></i> Medya Deposu
     </div>
+    <div class="sidebar-item" data-page="sms" onclick="showPage('sms')">
+      <i class="fa-solid fa-comment-sms"></i> SMS Gönder
+    </div>
     <hr class="sidebar-divider"/>
     <div class="sidebar-section">Yardım</div>
     <div class="sidebar-item" data-page="yardim" onclick="toggleYardimMenu()">
@@ -202,12 +215,6 @@
     </div>
     
     <hr class="sidebar-divider"/>
-    <div class="sidebar-section">Personel</div>
-    <div class="sidebar-item" data-page="personel-takip" onclick="showPage('personel-takip')">
-      <i class="fa-solid fa-id-card"></i> Personel Takibi
-    </div>
-
-    <hr class="sidebar-divider"/>
     <div class="sidebar-section">Destek</div>
     <div class="sidebar-item" data-page="destek" onclick="showPage('destek')">
       <i class="fa-solid fa-headset"></i> Destek Hattı
@@ -217,7 +224,7 @@
   <main class="main" id="main-content"></main>
 </div>
 
-<div class="footer">İÇDER & Defterdar İşbirliği &nbsp;&mdash;&nbsp; İÇDER Dernek Yönetim Programı &nbsp;&mdash;&nbsp; <strong>İsmail DEMİRCAN</strong></div>
+<div class="footer">İÇDER & Defterdar İşbirliği &nbsp;&mdash;&nbsp; İÇDER Kurban Programı &nbsp;&mdash;&nbsp; <strong>İsmail DEMİRCAN</strong></div>
 <div class="toast-container" id="toast-container"></div>
 
 <!-- Sabit Destek Hattı Butonu -->
@@ -268,4 +275,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
-

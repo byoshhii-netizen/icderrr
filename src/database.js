@@ -1,11 +1,11 @@
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
-const { app } = require('electron');
 
 // Electron paketi içinde __dirname yazılamaz, userData kullan
 function getDataDir() {
   try {
+    const { app } = require('electron');
     // Electron ortamında - ProgramData altında sakla (güncelleme sonrası korunur)
     // Windows: C:\ProgramData\icder-kurban\data
     const userDataPath = app.getPath('userData');
@@ -212,6 +212,45 @@ async function getDb() {
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS personel_avans (id INTEGER PRIMARY KEY AUTOINCREMENT, personel_id INTEGER NOT NULL, miktar REAL NOT NULL, tarih TEXT NOT NULL, aciklama TEXT, odendi INTEGER DEFAULT 0, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS personel_maas (id INTEGER PRIMARY KEY AUTOINCREMENT, personel_id INTEGER NOT NULL, ay TEXT NOT NULL, maas REAL NOT NULL, odendi INTEGER DEFAULT 0, odeme_tarihi TEXT, aciklama TEXT, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS personel_notlar (id INTEGER PRIMARY KEY AUTOINCREMENT, personel_id INTEGER NOT NULL, tur TEXT DEFAULT 'genel', baslik TEXT, icerik TEXT NOT NULL, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  // hisseler tablosuna video_url kolonu ekle (yedek uyumluluğu için)
+  try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN video_url TEXT"); } catch(e) {}
+  // hisseler tablosuna video_public_id kolonu ekle (yedek uyumluluğu için)
+  try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN video_public_id TEXT"); } catch(e) {}
+  // Kasa tabloları
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS kasa_hareketleri (id INTEGER PRIMARY KEY AUTOINCREMENT, tarih TEXT NOT NULL, tur TEXT NOT NULL DEFAULT 'giris', kategori TEXT, aciklama TEXT NOT NULL, tutar REAL NOT NULL, belge_data TEXT, belge_adi TEXT, personel_id INTEGER, organizasyon_id INTEGER, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS kasa_gider_kalemleri (id INTEGER PRIMARY KEY AUTOINCREMENT, ad TEXT NOT NULL, kategori TEXT, varsayilan_tutar REAL DEFAULT 0, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  try { sqlDb.run("CREATE TABLE IF NOT EXISTS kasa_gelir_kalemleri (id INTEGER PRIMARY KEY AUTOINCREMENT, ad TEXT NOT NULL, kategori TEXT, varsayilan_tutar REAL DEFAULT 0, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)"); } catch(e) {}
+  // Varsayılan gider kalemleri (yoksa ekle)
+  try {
+    const giderSayisi = sqlDb.exec("SELECT COUNT(*) as c FROM kasa_gider_kalemleri WHERE aktif=1");
+    const sayi = giderSayisi?.[0]?.values?.[0]?.[0] || 0;
+    if (sayi === 0) {
+      const giderler = [
+        ['Ofis Kirası','kira',0],['Elektrik Faturası','fatura',0],['Su Faturası','fatura',0],
+        ['İnternet Faturası','fatura',0],['Yakıt','yakıt',0],['Kırtasiye','kırtasiye',0],
+        ['Temizlik Malzemesi','temizlik',0],['Yemek / İkram','yemek',0],['Ulaşım','ulaşım',0],
+        ['Bakım / Onarım','diger',0],['Diğer Gider','diger',0]
+      ];
+      giderler.forEach(([ad,kat,tutar]) => {
+        try { sqlDb.run("INSERT INTO kasa_gider_kalemleri (ad,kategori,varsayilan_tutar) VALUES (?,?,?)", [ad,kat,tutar]); } catch(e) {}
+      });
+    }
+  } catch(e) {}
+  // Varsayılan gelir kalemleri (yoksa ekle)
+  try {
+    const gelirSayisi = sqlDb.exec("SELECT COUNT(*) as c FROM kasa_gelir_kalemleri WHERE aktif=1");
+    const sayi2 = gelirSayisi?.[0]?.values?.[0]?.[0] || 0;
+    if (sayi2 === 0) {
+      const gelirler = [
+        ['Bağış Geliri','bagis',0],['Kurban Organizasyonu','organizasyon',0],
+        ['Su Kuyusu Organizasyonu','organizasyon',0],['Kira Geliri','kira_geliri',0],
+        ['Hibe / Destek','hibe',0],['Proje Geliri','diger',0],['Diğer Gelir','diger',0]
+      ];
+      gelirler.forEach(([ad,kat,tutar]) => {
+        try { sqlDb.run("INSERT INTO kasa_gelir_kalemleri (ad,kategori,varsayilan_tutar) VALUES (?,?,?)", [ad,kat,tutar]); } catch(e) {}
+      });
+    }
+  } catch(e) {}
   const data = sqlDb.export();
   fs.writeFileSync(DB_PATH, Buffer.from(data));
   _db = new DbWrapper(sqlDb);

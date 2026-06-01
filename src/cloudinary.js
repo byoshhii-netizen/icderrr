@@ -20,10 +20,11 @@ const upload = multer({
 });
 
 // Yükle
-router.post('/upload', upload.single('dosya'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ hata: 'Dosya bulunamadi' });
+router.post('/upload', upload.any(), async (req, res) => {
+  const file = (req.files && req.files[0]) || req.file;
+  if (!file) return res.status(400).json({ hata: 'Dosya bulunamadi' });
   try {
-    const isVideo = req.file.mimetype.startsWith('video/');
+    const isVideo = file.mimetype.startsWith('video/');
     const folder = req.body.folder || 'defterdar';
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -34,7 +35,7 @@ router.post('/upload', upload.single('dosya'), async (req, res) => {
         },
         (err, result) => err ? reject(err) : resolve(result)
       );
-      stream.end(req.file.buffer);
+      stream.end(file.buffer);
     });
     res.json({
       url: result.secure_url,

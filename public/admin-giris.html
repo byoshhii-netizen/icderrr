@@ -78,7 +78,9 @@ async function adminGiris() {
     if (!r.ok) return showError(d.hata || 'Şifre yanlış');
     
     // Başarılı giriş
-    window.location.href = '/admin';
+    const params = new URLSearchParams(window.location.search);
+    const returnUrl = params.get('returnUrl') || '/admin';
+    window.location.href = returnUrl;
   } catch(e) {
     showError('Bağlantı hatası');
   }

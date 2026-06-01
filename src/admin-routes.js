@@ -185,11 +185,76 @@ router.post('/sifre-degistir', adminKontrol, async (req, res) => {
     db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('admin_sifre', ?)").run(yeni_sifre);
   } else if (tur === 'icder') {
     db.prepare("UPDATE ayarlar SET icder_sifre=? WHERE kullanici_id=1").run(yeni_sifre);
+  } else if (tur === 'personel') {
+    db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('personel_sifre', ?)").run(yeni_sifre);
   } else {
     return res.status(400).json({ hata: 'Geçersiz tür' });
   }
 
   res.json({ ok: true });
+});
+
+// Personel şifre durumu (aktif/pasif) ve mevcut şifreyi getir
+router.get('/personel-sifre-ayar', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const sifre = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='personel_sifre'").get();
+  const aktif = db.prepare("SELECT deger FROM sistem_ayarlari WHERE anahtar='personel_sifre_aktif'").get();
+  res.json({
+    sifre: sifre?.deger || '5586Persona',
+    aktif: aktif?.deger !== '0'
+  });
+});
+
+router.post('/personel-sifre-aktif', adminKontrol, async (req, res) => {
+  const { aktif } = req.body;
+  const db = await getDb();
+  db.prepare("INSERT OR REPLACE INTO sistem_ayarlari (anahtar, deger) VALUES ('personel_sifre_aktif', ?)").run(aktif ? '1' : '0');
+  res.json({ ok: true });
+});
+
+// ─── KASA GELİR KALEMLERİ ───────────────────────────────────────────────────
+router.get('/kasa-gelir-kalemleri', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    db.exec("CREATE TABLE IF NOT EXISTS kasa_gelir_kalemleri (id INTEGER PRIMARY KEY AUTOINCREMENT, ad TEXT NOT NULL, kategori TEXT, varsayilan_tutar REAL DEFAULT 0, aktif INTEGER DEFAULT 1, olusturma DATETIME DEFAULT CURRENT_TIMESTAMP)");
+    res.json(db.prepare('SELECT * FROM kasa_gelir_kalemleri WHERE aktif=1 ORDER BY ad ASC').all());
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.post('/kasa-gelir-kalemleri', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const { ad, kategori, varsayilan_tutar } = req.body;
+  if (!ad) return res.status(400).json({ hata: 'Ad zorunlu' });
+  const r = db.prepare('INSERT INTO kasa_gelir_kalemleri (ad,kategori,varsayilan_tutar) VALUES (?,?,?)').run(ad, kategori||null, varsayilan_tutar||0);
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+router.put('/kasa-gelir-kalemleri/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const { ad, kategori, varsayilan_tutar } = req.body;
+  db.prepare('UPDATE kasa_gelir_kalemleri SET ad=?,kategori=?,varsayilan_tutar=? WHERE id=?').run(ad, kategori||null, varsayilan_tutar||0, req.params.id);
+  res.json({ ok:true });
+});
+
+router.delete('/kasa-gelir-kalemleri/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  db.prepare('UPDATE kasa_gelir_kalemleri SET aktif=0 WHERE id=?').run(req.params.id);
+  res.json({ ok:true });
+});
+
+// ─── KASA GİDER KALEMLERİ (admin CRUD) ─────────────────────────────────────
+router.get('/kasa-gider-kalemleri', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  try {
+    res.json(db.prepare('SELECT * FROM kasa_gider_kalemleri WHERE aktif=1 ORDER BY ad ASC').all());
+  } catch(e) { res.status(500).json({ hata: e.message }); }
+});
+
+router.put('/kasa-gider-kalemleri/:id', adminKontrol, async (req, res) => {
+  const db = await getDb();
+  const { ad, kategori, varsayilan_tutar } = req.body;
+  db.prepare('UPDATE kasa_gider_kalemleri SET ad=?,kategori=?,varsayilan_tutar=? WHERE id=?').run(ad, kategori||null, varsayilan_tutar||0, req.params.id);
+  res.json({ ok:true });
 });
 
 // ─── DESTEK TALEPLERİ ───────────────────────────────────────────────────────

@@ -60,18 +60,18 @@ app.use('/api', sistemModuApiBlokaj);
 app.use('/api', require('./src/routes'));
 app.use('/api/medya', require('./src/cloudinary'));
 app.use('/api/destek', require('./src/destek-routes'));
+app.use('/api', require('./src/sms-routes'));
 
 app.get('/giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'giris.html')));
 app.get('/kayit', (req, res) => res.sendFile(path.join(__dirname, 'public', 'giris.html')));
 app.get('/icder-giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'icder-giris.html')));
 app.get('/admin-giris', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-giris.html')));
-app.get('/admin', (req, res) => {
-  // Admin girişi kontrolü
-  if (!req.session.adminGiris) {
-    return res.redirect('/admin-giris');
-  }
+app.get('/dypadmin', (req, res) => {
+  if (!req.session.adminGiris) return res.redirect('/admin-giris?returnUrl=/dypadmin');
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
+
+
 
 // İçder giriş kontrolü middleware
 async function icderGirisKontrol(req, res, next) {
@@ -81,6 +81,7 @@ async function icderGirisKontrol(req, res, next) {
       req.path === '/icder-giris' || 
       req.path === '/icder-giris.html' ||
       req.path === '/admin' ||
+      req.path === '/dypadmin' ||
       req.path === '/admin-giris' ||
       req.path === '/admin-giris.html' ||
       req.path.includes('.css') ||
@@ -259,7 +260,7 @@ module.exports.otoYedekCalistir = otoYedekCalistir;
 
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Defterdar Muhasebe: http://localhost:${PORT}`);
+    console.log(`İÇDER Dernek Yönetim Programı: http://localhost:${PORT}`);
     // Sunucu başlayınca otomatik yedek başlat
     setTimeout(otoYedekBaslat, 5000);
   });

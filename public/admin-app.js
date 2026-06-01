@@ -5,8 +5,119 @@
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const AdminState = { page: 'dashboard' };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// HARD MODE SİSTEMİ
+// ═══════════════════════════════════════════════════════════════════════════
+const HARD_MODE_SIFRE = 'EyvahSıqqıntıOldu';
+let _hardModeAktif = false;
+let _hardModeIslemCallback = null;
+let _hardModeGirisCallback = null;
+
+// Sayfa yüklenince Hard Mode durumunu kontrol et
+(function hardModeBaslangicKontrol() {
+  const durum = sessionStorage.getItem('hardModeAktif');
+  if (durum === '1') {
+    // Her yenilemede şifre sor
+    sessionStorage.removeItem('hardModeAktif');
+    _hardModeAktif = false;
+  }
+})();
+
+function hardModeGoster() {
+  const overlay = document.getElementById('hardmode-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  const input = document.getElementById('hardmode-sifre-input');
+  if (input) { input.value = ''; setTimeout(() => input.focus(), 50); }
+  const hata = document.getElementById('hardmode-hata');
+  if (hata) hata.style.display = 'none';
+}
+
+function hardModeGirisIptal() {
+  const overlay = document.getElementById('hardmode-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _hardModeGirisCallback = null;
+}
+
+function hardModeGirisOnayla() {
+  const input = document.getElementById('hardmode-sifre-input');
+  const hata = document.getElementById('hardmode-hata');
+  if (!input) return;
+  if (input.value === HARD_MODE_SIFRE) {
+    _hardModeAktif = true;
+    sessionStorage.setItem('hardModeAktif', '1');
+    const overlay = document.getElementById('hardmode-overlay');
+    if (overlay) overlay.style.display = 'none';
+    const badge = document.getElementById('hardmode-badge');
+    if (badge) badge.style.display = 'flex';
+    toast('Hard Mode aktif edildi', 'success');
+    if (_hardModeGirisCallback) { _hardModeGirisCallback(); _hardModeGirisCallback = null; }
+  } else {
+    if (hata) { hata.style.display = 'block'; }
+    input.value = '';
+    input.focus();
+  }
+}
+
+function hardModeKapat() {
+  if (!confirm('Hard Mode kapatılsın mı?')) return;
+  _hardModeAktif = false;
+  sessionStorage.removeItem('hardModeAktif');
+  const badge = document.getElementById('hardmode-badge');
+  if (badge) badge.style.display = 'none';
+  toast('Hard Mode kapatıldı');
+}
+
+// Hard Mode aktifken her işlem öncesi şifre sor
+// callback: şifre doğrulanınca çalışacak fonksiyon
+// aciklama: modalda gösterilecek açıklama metni
+function hardModeOnay(aciklama, callback) {
+  if (!_hardModeAktif) { callback(); return; }
+  _hardModeIslemCallback = callback;
+  const overlay = document.getElementById('hardmode-islem-overlay');
+  const aciklamaEl = document.getElementById('hardmode-islem-aciklama');
+  const input = document.getElementById('hardmode-islem-sifre');
+  const hata = document.getElementById('hardmode-islem-hata');
+  if (aciklamaEl) aciklamaEl.textContent = aciklama || 'Bu işlemi gerçekleştirmek için Hard Mode şifresini girin.';
+  if (hata) hata.style.display = 'none';
+  if (input) { input.value = ''; }
+  if (overlay) { overlay.style.display = 'flex'; setTimeout(() => input && input.focus(), 50); }
+}
+
+function hardModeIslemIptal() {
+  const overlay = document.getElementById('hardmode-islem-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _hardModeIslemCallback = null;
+}
+
+function hardModeIslemOnayla() {
+  const input = document.getElementById('hardmode-islem-sifre');
+  const hata = document.getElementById('hardmode-islem-hata');
+  if (!input) return;
+  if (input.value === HARD_MODE_SIFRE) {
+    const overlay = document.getElementById('hardmode-islem-overlay');
+    if (overlay) overlay.style.display = 'none';
+    if (_hardModeIslemCallback) { _hardModeIslemCallback(); _hardModeIslemCallback = null; }
+  } else {
+    if (hata) hata.style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
+// Hard Mode'u gizli şifre ile aç (sidebar'dan erişim için)
+function hardModeAcGizli() {
+  if (_hardModeAktif) { hardModeKapat(); return; }
+  _hardModeGirisCallback = null;
+  hardModeGoster();
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 (async function init() {
+  // Her sayfa yüklemesinde Hard Mode kapalı başlar, şifre gerekir
+  _hardModeAktif = false;
+  const badge = document.getElementById('hardmode-badge');
+  if (badge) badge.style.display = 'none';
   await loadDashboard();
 })();
 
@@ -196,13 +307,15 @@ async function sistemModuKaydet() {
   const mod = document.getElementById('sistem-mod-select').value;
   const not = document.getElementById('sistem-not-input').value.trim();
   
-  try {
-    await adminApi('POST', '/sistem-modu', { mod, not });
-    toast('Sistem modu güncellendi');
-    renderSistemModu();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Sistem modunu değiştirmek istiyorsunuz.', async () => {
+    try {
+      await adminApi('POST', '/sistem-modu', { mod, not });
+      toast('Sistem modu güncellendi');
+      renderSistemModu();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 // ─── ORGANİZASYONLAR ─────────────────────────────────────────────────────────
@@ -278,10 +391,12 @@ async function adminKaydetOrg() {
   const buyukbas_hisse_fiyati = parseFloat(document.getElementById('ao-bb').value)||0;
   const kucukbas_hisse_fiyati = parseFloat(document.getElementById('ao-kb').value)||0;
   if (!ad||!yil||!max_kurban) return toast('Zorunlu alanlar eksik','error');
-  try {
-    await adminApi('POST', '/org-olustur', {ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati});
-    closeModal(); toast('Organizasyon oluşturuldu'); adminYukleOrg();
-  } catch(e) { toast(e.message,'error'); }
+  hardModeOnay('Yeni organizasyon oluşturulacak.', async () => {
+    try {
+      await adminApi('POST', '/org-olustur', {ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati});
+      closeModal(); toast('Organizasyon oluşturuldu'); adminYukleOrg();
+    } catch(e) { toast(e.message,'error'); }
+  });
 }
 
 async function adminDuzenleOrg(id) {
@@ -307,18 +422,22 @@ async function adminGuncOrg(id) {
   const max_kurban = parseInt(document.getElementById('ao-max').value);
   const buyukbas_hisse_fiyati = parseFloat(document.getElementById('ao-bb').value)||0;
   const kucukbas_hisse_fiyati = parseFloat(document.getElementById('ao-kb').value)||0;
-  try {
-    await adminApi('PUT', '/org-guncelle/' + id, {ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati});
-    closeModal(); toast('Güncellendi'); adminYukleOrg();
-  } catch(e) { toast(e.message,'error'); }
+  hardModeOnay('Organizasyon güncellenecek.', async () => {
+    try {
+      await adminApi('PUT', '/org-guncelle/' + id, {ad,yil,max_kurban,buyukbas_hisse_fiyati,kucukbas_hisse_fiyati});
+      closeModal(); toast('Güncellendi'); adminYukleOrg();
+    } catch(e) { toast(e.message,'error'); }
+  });
 }
 
 async function adminSilOrg(id, ad) {
   if (!confirm('"' + ad + '" organizasyonunu silmek istediğinizden emin misiniz?\nTüm kurbanlar ve hisseler de silinecek!')) return;
-  try {
-    await adminApi('DELETE', '/org-sil/' + id);
-    toast('Organizasyon silindi'); adminYukleOrg();
-  } catch(e) { toast(e.message,'error'); }
+  hardModeOnay('"' + ad + '" organizasyonu silinecek. Bu işlem geri alınamaz!', async () => {
+    try {
+      await adminApi('DELETE', '/org-sil/' + id);
+      toast('Organizasyon silindi'); adminYukleOrg();
+    } catch(e) { toast(e.message,'error'); }
+  });
 }
 
 function orgDetay(id) { adminDuzenleOrg(id); }
@@ -467,18 +586,22 @@ function adminCevapla(id) {
 async function adminGonderCevap(id) {
   const cevap = document.getElementById('talep-cevap').value.trim();
   if (!cevap) return toast('Cevap boş olamaz', 'error');
-  try {
-    await adminApi('POST', '/talep-cevapla', { id, cevap });
-    closeModal(); toast('Cevap gönderildi'); adminYukleTalepler();
-  } catch(e) { toast(e.message, 'error'); }
+  hardModeOnay('Destek talebine cevap gönderilecek.', async () => {
+    try {
+      await adminApi('POST', '/talep-cevapla', { id, cevap });
+      closeModal(); toast('Cevap gönderildi'); adminYukleTalepler();
+    } catch(e) { toast(e.message, 'error'); }
+  });
 }
 
 async function adminSilTalep(id) {
   if (!confirm('Bu talebi silmek istediğinizden emin misiniz?')) return;
-  try {
-    await adminApi('DELETE', '/talep-sil', { id });
-    toast('Talep silindi'); adminYukleTalepler();
-  } catch(e) { toast(e.message, 'error'); }
+  hardModeOnay('Destek talebi silinecek.', async () => {
+    try {
+      await adminApi('DELETE', '/talep-sil', { id });
+      toast('Talep silindi'); adminYukleTalepler();
+    } catch(e) { toast(e.message, 'error'); }
+  });
 }
 
 function talepDetay(id) { adminCevapla(id); }
@@ -535,13 +658,15 @@ async function sifreDegistir(tur) {
     return;
   }
   
-  try {
-    await adminApi('POST', '/sifre-degistir', { tur, yeni_sifre: yeniSifre });
-    toast(`${tur === 'admin' ? 'Admin' : 'İÇDER'} şifresi başarıyla değiştirildi`);
-    input.value = '';
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay(`${tur === 'admin' ? 'Admin' : 'İÇDER'} şifresi değiştirilecek.`, async () => {
+    try {
+      await adminApi('POST', '/sifre-degistir', { tur, yeni_sifre: yeniSifre });
+      toast(`${tur === 'admin' ? 'Admin' : 'İÇDER'} şifresi başarıyla değiştirildi`);
+      input.value = '';
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 // ─── YAZDIRMA AYARLARI ───────────────────────────────────────────────────────
@@ -609,14 +734,15 @@ async function renderYazdirmaAyarlari() {
 
 async function yazdirmaAyarSil(kullaniciId) {
   if (!confirm('Bu kullanıcının yazdırma ayarlarını silmek istediğinizden emin misiniz?')) return;
-  
-  try {
-    await adminApi('DELETE', '/yazdirma-ayar-sil', { kullanici_id: kullaniciId });
-    toast('Yazdırma ayarları silindi');
-    renderYazdirmaAyarlari();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Yazdırma ayarları silinecek.', async () => {
+    try {
+      await adminApi('DELETE', '/yazdirma-ayar-sil', { kullanici_id: kullaniciId });
+      toast('Yazdırma ayarları silindi');
+      renderYazdirmaAyarlari();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 // ─── ÇIKIŞ ───────────────────────────────────────────────────────────────────
@@ -733,18 +859,22 @@ async function adminBagisciKaydet(id) {
     video_ister: parseInt(document.getElementById('ab-video').value)
   };
   if (!data.bagisci_adi) return toast('Bağışçı adı zorunlu', 'error');
-  try {
-    await adminApi('PUT', '/bagisci-guncelle/' + id, data);
-    closeModal(); toast('Bağışçı güncellendi'); adminYukleBagiscilar();
-  } catch(e) { toast(e.message, 'error'); }
+  hardModeOnay('Bağışçı bilgileri güncellenecek.', async () => {
+    try {
+      await adminApi('PUT', '/bagisci-guncelle/' + id, data);
+      closeModal(); toast('Bağışçı güncellendi'); adminYukleBagiscilar();
+    } catch(e) { toast(e.message, 'error'); }
+  });
 }
 
 async function adminBagisciSil(id) {
   if (!confirm('Bu bağışçıyı silmek istediğinizden emin misiniz? (Hisse boşaltılacak)')) return;
-  try {
-    await adminApi('DELETE', '/bagisci-sil/' + id);
-    toast('Bağışçı silindi'); adminYukleBagiscilar();
-  } catch(e) { toast(e.message, 'error'); }
+  hardModeOnay('Bağışçı silinecek ve hissesi boşaltılacak.', async () => {
+    try {
+      await adminApi('DELETE', '/bagisci-sil/' + id);
+      toast('Bağışçı silindi'); adminYukleBagiscilar();
+    } catch(e) { toast(e.message, 'error'); }
+  });
 }
 
 // ─── YEDEK ───────────────────────────────────────────────────────────────────
@@ -865,20 +995,24 @@ function adminOtoYedekToggle(goster) {
 async function adminKaydetOtoYedekAyar() {
   const aktif = document.getElementById('admin-oto-toggle')?.checked ?? true;
   const dakika = parseInt(document.getElementById('admin-oto-dakika')?.value || '10');
-  try {
-    await adminApi('POST', '/otomatik-yedek-ayar', { aktif, dakika });
-    toast(`Kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika`);
-    adminYukleOtoYedekAyar();
-  } catch(e) { toast('Kayıt başarısız: ' + e.message, 'error'); }
+  hardModeOnay('Otomatik yedek ayarları kaydedilecek.', async () => {
+    try {
+      await adminApi('POST', '/otomatik-yedek-ayar', { aktif, dakika });
+      toast(`Kaydedildi — ${aktif ? 'Açık' : 'Kapalı'}, her ${dakika} dakika`);
+      adminYukleOtoYedekAyar();
+    } catch(e) { toast('Kayıt başarısız: ' + e.message, 'error'); }
+  });
 }
 
 async function adminSimdiYedekAl() {
-  try {
-    toast('Yedek alınıyor...');
-    await adminApi('POST', '/oto-yedek-simdi', {});
-    toast('Yedek başarıyla alındı');
-    setTimeout(adminOtoYedekListeYenile, 800);
-  } catch(e) { toast('Yedek alınamadı: ' + e.message, 'error'); }
+  hardModeOnay('Şimdi otomatik yedek alınacak.', async () => {
+    try {
+      toast('Yedek alınıyor...');
+      await adminApi('POST', '/oto-yedek-simdi', {});
+      toast('Yedek başarıyla alındı');
+      setTimeout(adminOtoYedekListeYenile, 800);
+    } catch(e) { toast('Yedek alınamadı: ' + e.message, 'error'); }
+  });
 }
 
 async function adminOtoYedekListeYenile() {
@@ -943,69 +1077,75 @@ async function adminOtoYedekIndir(filename) {
 async function adminOtoYedekYukle(filename) {
   if (!window.electronAPI) return;
   if (!confirm(`"${filename}" yedeği geri yüklensin mi?\n\nMevcut veriler korunur, eksik olanlar eklenir.`)) return;
-  try {
-    // Dosyayı oku
-    const { dosyalar } = await window.electronAPI.listAutoBackups();
-    const dosya = dosyalar.find(d => d.filename === filename);
-    if (!dosya) { toast('Dosya bulunamadı', 'error'); return; }
-    
-    // Electron'dan dosya içeriğini al ve API'ye gönder
-    toast('Yedek yükleniyor...');
-    const r = await fetch('/api/admin/oto-yedek-yukle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename })
-    });
-    const d = await r.json();
-    if (!r.ok) { toast(d.hata || 'Yüklenemedi', 'error'); return; }
-    toast(`Yedek yüklendi: ${d.yuklenenOrg} org, ${d.yuklenenKurban} kurban, ${d.yuklenenHisse} hisse eklendi`);
-  } catch(e) { toast(e.message, 'error'); }
+  hardModeOnay(`"${filename}" yedeği geri yüklenecek.`, async () => {
+    try {
+      const { dosyalar } = await window.electronAPI.listAutoBackups();
+      const dosya = dosyalar.find(d => d.filename === filename);
+      if (!dosya) { toast('Dosya bulunamadı', 'error'); return; }
+      toast('Yedek yükleniyor...');
+      const r = await fetch('/api/admin/oto-yedek-yukle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const d = await r.json();
+      if (!r.ok) { toast(d.hata || 'Yüklenemedi', 'error'); return; }
+      toast(`Yedek yüklendi: ${d.yuklenenOrg} org, ${d.yuklenenKurban} kurban, ${d.yuklenenHisse} hisse eklendi`);
+    } catch(e) { toast(e.message, 'error'); }
+  });
 }
 
 async function adminOtoYedekSil(filename) {
   if (!window.electronAPI) return;
   if (!confirm(`"${filename}" silinsin mi?`)) return;
-  const r = await window.electronAPI.deleteAutoBackup(filename);
-  if (r.ok) { toast('Silindi'); adminOtoYedekListeYenile(); }
-  else toast(r.error || 'Silinemedi', 'error');
+  hardModeOnay(`"${filename}" otomatik yedeği silinecek.`, async () => {
+    const r = await window.electronAPI.deleteAutoBackup(filename);
+    if (r.ok) { toast('Silindi'); adminOtoYedekListeYenile(); }
+    else toast(r.error || 'Silinemedi', 'error');
+  });
+}
 
 async function adminYedekAl() {
-  try {
-    toast('Yedek hazırlanıyor...');
-    const r = await fetch('/api/admin/yedek-al', { headers: { 'Content-Type': 'application/json' } });
-    if (!r.ok) { toast('Yedek alınamadı', 'error'); return; }
-    const blob = await r.blob();
-    const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'icder-yedek-' + tarih + '.json';
-    a.click();
-    toast('Yedek indirildi');
-  } catch(e) { toast(e.message, 'error'); }
+  hardModeOnay('Manuel yedek alınacak ve indirilecek.', async () => {
+    try {
+      toast('Yedek hazırlanıyor...');
+      const r = await fetch('/api/admin/yedek-al', { headers: { 'Content-Type': 'application/json' } });
+      if (!r.ok) { toast('Yedek alınamadı', 'error'); return; }
+      const blob = await r.blob();
+      const tarih = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'icder-yedek-' + tarih + '.json';
+      a.click();
+      toast('Yedek indirildi');
+    } catch(e) { toast(e.message, 'error'); }
+  });
 }
 
 async function adminYedekYukle(input) {
   const file = input.files[0];
   if (!file) return;
-  const sonucEl = document.getElementById('yedek-yukle-sonuc');
-  if (sonucEl) sonucEl.textContent = 'Yükleniyor...';
-  try {
-    const formData = new FormData();
-    formData.append('yedek', file);
-    const r = await fetch('/api/admin/yedek-yukle-dosya', { method: 'POST', body: formData });
-    const d = await r.json();
-    if (!r.ok) { 
-      toast(d.hata || 'Yüklenemedi', 'error');
-      if (sonucEl) sonucEl.textContent = 'Hata: ' + (d.hata || 'Yüklenemedi');
-      return;
+  hardModeOnay('Yedek dosyası geri yüklenecek. Mevcut veriler etkilenebilir.', async () => {
+    const sonucEl = document.getElementById('yedek-yukle-sonuc');
+    if (sonucEl) sonucEl.textContent = 'Yükleniyor...';
+    try {
+      const formData = new FormData();
+      formData.append('yedek', file);
+      const r = await fetch('/api/admin/yedek-yukle-dosya', { method: 'POST', body: formData });
+      const d = await r.json();
+      if (!r.ok) { 
+        toast(d.hata || 'Yüklenemedi', 'error');
+        if (sonucEl) sonucEl.textContent = 'Hata: ' + (d.hata || 'Yüklenemedi');
+        return;
+      }
+      toast(`Yedek yüklendi: ${d.yuklenenOrg} org, ${d.yuklenenKurban} kurban, ${d.yuklenenHisse} hisse eklendi`);
+      if (sonucEl) sonucEl.innerHTML = `<span style="color:#10b981">✓ ${d.yuklenenOrg} organizasyon, ${d.yuklenenKurban} kurban, ${d.yuklenenHisse} hisse eklendi</span>`;
+      input.value = '';
+    } catch(e) { 
+      toast(e.message, 'error');
+      if (sonucEl) sonucEl.textContent = 'Hata: ' + e.message;
     }
-    toast(`Yedek yüklendi: ${d.yuklenenOrg} org, ${d.yuklenenKurban} kurban, ${d.yuklenenHisse} hisse eklendi`);
-    if (sonucEl) sonucEl.innerHTML = `<span style="color:#10b981">✓ ${d.yuklenenOrg} organizasyon, ${d.yuklenenKurban} kurban, ${d.yuklenenHisse} hisse eklendi</span>`;
-    input.value = '';
-  } catch(e) { 
-    toast(e.message, 'error');
-    if (sonucEl) sonucEl.textContent = 'Hata: ' + e.message;
-  }
+  });
 }
 
 async function adminOtomatikYedekKaydet() {
@@ -1102,14 +1242,16 @@ async function kaydetKategori() {
   
   if (!kategori_adi) return toast('Kategori adı gerekli', 'error');
   
-  try {
-    await adminApi('POST', '/kategori-ekle', { kategori_adi, kategori_tipi });
-    closeModal();
-    toast('Kategori eklendi');
-    yukleKategoriler();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Yeni kategori eklenecek.', async () => {
+    try {
+      await adminApi('POST', '/kategori-ekle', { kategori_adi, kategori_tipi });
+      closeModal();
+      toast('Kategori eklendi');
+      yukleKategoriler();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 async function modalDuzenleKategori(id) {
@@ -1152,26 +1294,29 @@ async function guncelleKategori(id) {
   
   if (!kategori_adi) return toast('Kategori adı gerekli', 'error');
   
-  try {
-    await adminApi('PUT', '/kategori-guncelle/' + id, { kategori_adi, kategori_tipi, aktif });
-    closeModal();
-    toast('Kategori güncellendi');
-    yukleKategoriler();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Kategori güncellenecek.', async () => {
+    try {
+      await adminApi('PUT', '/kategori-guncelle/' + id, { kategori_adi, kategori_tipi, aktif });
+      closeModal();
+      toast('Kategori güncellendi');
+      yukleKategoriler();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 async function silKategori(id, ad) {
   if (!confirm(`"${ad}" kategorisini silmek istediğinizden emin misiniz?`)) return;
-  
-  try {
-    await adminApi('DELETE', '/kategori-sil/' + id);
-    toast('Kategori silindi');
-    yukleKategoriler();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay(`"${ad}" kategorisi silinecek.`, async () => {
+    try {
+      await adminApi('DELETE', '/kategori-sil/' + id);
+      toast('Kategori silindi');
+      yukleKategoriler();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1266,14 +1411,16 @@ async function kaydetFiltre() {
   
   if (!filtre_adi || !filtre_tipi) return toast('Filtre adı ve tipi gerekli', 'error');
   
-  try {
-    await adminApi('POST', '/filtre-ekle', { filtre_adi, filtre_tipi, filtre_degeri });
-    closeModal();
-    toast('Filtre eklendi');
-    yukleFiltreler();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Yeni filtre eklenecek.', async () => {
+    try {
+      await adminApi('POST', '/filtre-ekle', { filtre_adi, filtre_tipi, filtre_degeri });
+      closeModal();
+      toast('Filtre eklendi');
+      yukleFiltreler();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 async function modalDuzenleFiltre(id) {
@@ -1323,26 +1470,29 @@ async function guncelleFiltre(id) {
   
   if (!filtre_adi || !filtre_tipi) return toast('Filtre adı ve tipi gerekli', 'error');
   
-  try {
-    await adminApi('PUT', '/filtre-guncelle/' + id, { filtre_adi, filtre_tipi, filtre_degeri, aktif });
-    closeModal();
-    toast('Filtre güncellendi');
-    yukleFiltreler();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Filtre güncellenecek.', async () => {
+    try {
+      await adminApi('PUT', '/filtre-guncelle/' + id, { filtre_adi, filtre_tipi, filtre_degeri, aktif });
+      closeModal();
+      toast('Filtre güncellendi');
+      yukleFiltreler();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 async function silFiltre(id, ad) {
   if (!confirm(`"${ad}" filtresini silmek istediğinizden emin misiniz?`)) return;
-  
-  try {
-    await adminApi('DELETE', '/filtre-sil/' + id);
-    toast('Filtre silindi');
-    yukleFiltreler();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay(`"${ad}" filtresi silinecek.`, async () => {
+    try {
+      await adminApi('DELETE', '/filtre-sil/' + id);
+      toast('Filtre silindi');
+      yukleFiltreler();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1473,37 +1623,41 @@ function onGirisLogoChange(input) {
 
 async function kaydetGirisLogosu() {
   if (!_girisLogoData) return toast('Lütfen logo yükleyin', 'error');
-  
-  try {
-    await adminApi('POST', '/giris-logosu-ekle', { logo_data: _girisLogoData });
-    closeModal();
-    toast('Logo eklendi ve aktif yapıldı');
-    yukleGirisLogolari();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Giriş logosu eklenecek ve aktif yapılacak.', async () => {
+    try {
+      await adminApi('POST', '/giris-logosu-ekle', { logo_data: _girisLogoData });
+      closeModal();
+      toast('Logo eklendi ve aktif yapıldı');
+      yukleGirisLogolari();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 async function aktifYapGirisLogosu(id) {
-  try {
-    await adminApi('PUT', '/giris-logosu-guncelle/' + id, { aktif: true });
-    toast('Logo aktif yapıldı');
-    yukleGirisLogolari();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Logo aktif yapılacak.', async () => {
+    try {
+      await adminApi('PUT', '/giris-logosu-guncelle/' + id, { aktif: true });
+      toast('Logo aktif yapıldı');
+      yukleGirisLogolari();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 async function silGirisLogosu(id) {
   if (!confirm('Bu logoyu silmek istediğinizden emin misiniz?')) return;
-  
-  try {
-    await adminApi('DELETE', '/giris-logosu-sil/' + id);
-    toast('Logo silindi');
-    yukleGirisLogolari();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  hardModeOnay('Giriş logosu silinecek.', async () => {
+    try {
+      await adminApi('DELETE', '/giris-logosu-sil/' + id);
+      toast('Logo silindi');
+      yukleGirisLogolari();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
 }
 
 
@@ -1608,42 +1762,66 @@ async function ustLogoYukleSec(file) {
   if (file.size > 5 * 1024 * 1024) return toast('Dosya 5MB\'dan büyük olamaz', 'error');
   if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) return toast('Sadece PNG, JPG, WEBP, GIF', 'error');
 
-  const prog = document.getElementById('ust-logo-progress');
-  const fill = document.getElementById('ust-logo-progress-fill');
-  const sonuc = document.getElementById('ust-logo-sonuc');
-  if (prog) prog.style.display = 'block';
-  if (fill) fill.style.width = '15%';
+  hardModeOnay('Üst bar logosu yüklenecek.', async () => {
+    const prog = document.getElementById('ust-logo-progress');
+    const fill = document.getElementById('ust-logo-progress-fill');
+    const sonuc = document.getElementById('ust-logo-sonuc');
+    if (prog) prog.style.display = 'block';
+    if (fill) fill.style.width = '15%';
 
-  const fd = new FormData();
-  fd.append('logo', file);
+    const fd = new FormData();
+    fd.append('logo', file);
 
-  try {
-    if (fill) fill.style.width = '50%';
-    const r = await fetch('/api/admin/ui-logo', { method: 'POST', body: fd });
-    if (fill) fill.style.width = '90%';
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.hata || 'Yükleme başarısız');
-    if (fill) fill.style.width = '100%';
-    if (sonuc) sonuc.innerHTML = `
-      <div class="badge badge-green" style="padding:8px 14px">
-        <i class="fa-solid fa-circle-check"></i> Logo yüklendi (${d.boyut_kb} KB)
-      </div>`;
-    toast('Logo yüklendi — açık olan tüm sayfalarda güncelleniyor');
-    setTimeout(() => { ustLogoYukle(); if (prog) prog.style.display = 'none'; }, 500);
-  } catch (e) {
-    if (sonuc) sonuc.innerHTML = `<div class="badge badge-red" style="padding:8px 14px"><i class="fa-solid fa-circle-xmark"></i> ${e.message}</div>`;
-    toast(e.message, 'error');
-    if (prog) prog.style.display = 'none';
-  }
+    try {
+      if (fill) fill.style.width = '50%';
+      const r = await fetch('/api/admin/ui-logo', { method: 'POST', body: fd });
+      if (fill) fill.style.width = '90%';
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.hata || 'Yükleme başarısız');
+      if (fill) fill.style.width = '100%';
+      if (sonuc) sonuc.innerHTML = `
+        <div class="badge badge-green" style="padding:8px 14px">
+          <i class="fa-solid fa-circle-check"></i> Logo yüklendi (${d.boyut_kb} KB)
+        </div>`;
+      toast('Logo yüklendi — açık olan tüm sayfalarda güncelleniyor');
+      setTimeout(() => { ustLogoYukle(); if (prog) prog.style.display = 'none'; }, 500);
+    } catch (e) {
+      if (sonuc) sonuc.innerHTML = `<div class="badge badge-red" style="padding:8px 14px"><i class="fa-solid fa-circle-xmark"></i> ${e.message}</div>`;
+      toast(e.message, 'error');
+      if (prog) prog.style.display = 'none';
+    }
+  });
 }
 
 async function ustLogoSil() {
   if (!confirm('Üst bar logosunu silmek istediğinizden emin misiniz?')) return;
-  try {
-    await adminApi('DELETE', '/ui-logo');
-    toast('Logo silindi');
-    ustLogoYukle();
-  } catch (e) {
-    toast(e.message, 'error');
+  hardModeOnay('Üst bar logosu silinecek.', async () => {
+    try {
+      await adminApi('DELETE', '/ui-logo');
+      toast('Logo silindi');
+      ustLogoYukle();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  });
+}
+
+
+// ─── HARD MODE GİZLİ TETİKLEYİCİ ────────────────────────────────────────────
+// Sidebar'daki "Admin Paneli" yazısına 3 kez hızlı tıklanınca açılır
+let _hardModeTikSayisi = 0;
+let _hardModeTikTimer = null;
+
+function hardModeGizliTetikle() {
+  _hardModeTikSayisi++;
+  clearTimeout(_hardModeTikTimer);
+  _hardModeTikTimer = setTimeout(() => { _hardModeTikSayisi = 0; }, 1000);
+  if (_hardModeTikSayisi >= 3) {
+    _hardModeTikSayisi = 0;
+    if (_hardModeAktif) {
+      hardModeKapat();
+    } else {
+      hardModeGoster();
+    }
   }
 }

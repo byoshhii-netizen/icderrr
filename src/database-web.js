@@ -236,6 +236,9 @@ async function getDb() {
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN vekalet_onay INTEGER DEFAULT 0"); } catch(e) {}
   // hisseler tablosuna vekalet_tarihi kolonu ekle
   try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN vekalet_tarihi DATETIME"); } catch(e) {}
+  // hisseler tablosuna video_url kolonu ekle
+  try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN video_url TEXT"); } catch(e) {}
+  try { sqlDb.run("ALTER TABLE hisseler ADD COLUMN video_public_id TEXT"); } catch(e) {}
   // oto_yedek_loglar tablosu
   try { sqlDb.run("CREATE TABLE IF NOT EXISTS oto_yedek_loglar (id INTEGER PRIMARY KEY AUTOINCREMENT, dosya_adi TEXT NOT NULL, boyut INTEGER DEFAULT 0, tarih DATETIME DEFAULT CURRENT_TIMESTAMP, durum TEXT DEFAULT 'basarili')"); } catch(e) {}
   // ozel_kategoriler tablosu - admin panelinden yönetilebilir kategoriler

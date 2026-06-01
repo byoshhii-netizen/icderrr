@@ -79,7 +79,7 @@ async function adminGiris() {
     
     // Başarılı giriş
     const params = new URLSearchParams(window.location.search);
-    const returnUrl = params.get('returnUrl') || '/admin';
+    const returnUrl = params.get('returnUrl') || '/dypadmin';
     window.location.href = returnUrl;
   } catch(e) {
     showError('Bağlantı hatası');

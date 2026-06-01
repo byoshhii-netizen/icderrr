@@ -609,6 +609,14 @@ function talepDetay(id) { adminCevapla(id); }
 // ─── ŞİFRE YÖNETİMİ ──────────────────────────────────────────────────────────
 async function renderSifreler() {
   const m = document.getElementById('main-content');
+  
+  // Kısıtlı şifre mevcut değerini çek
+  let kisitliSifre = '';
+  try {
+    const d = await adminApi('GET', '/personel-sifre-ayar');
+    kisitliSifre = d.sifre || '';
+  } catch(e) {}
+
   m.innerHTML = `
     <div class="page-header">
       <div class="page-title">
@@ -616,7 +624,7 @@ async function renderSifreler() {
         Şifre Yönetimi
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
       <div class="card">
         <div class="card-title"><i class="fa-solid fa-shield-halved"></i> Admin Şifresi</div>
         <div class="form-group">
@@ -641,11 +649,30 @@ async function renderSifreler() {
           </button>
         </div>
       </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-lock"></i> Kısıtlı Şifre</div>
+        <div class="form-group">
+          <label>Mevcut Kısıtlı Şifre</label>
+          <input id="kisitli-mevcut-goster" type="text" value="${kisitliSifre}" readonly
+            style="background:var(--bg3);cursor:default;letter-spacing:1px"
+            onclick="this.select()"/>
+        </div>
+        <div class="form-group">
+          <label>Yeni Kısıtlı Şifre</label>
+          <input id="kisitli-sifre-input" type="password" placeholder="Yeni şifre girin"/>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-success" onclick="sifreDegistir('personel')">
+            <i class="fa-solid fa-key"></i> Kısıtlı Şifreyi Değiştir
+          </button>
+        </div>
+      </div>
     </div>`;
 }
 
 async function sifreDegistir(tur) {
-  const input = document.getElementById(tur + '-sifre-input');
+  const inputId = tur === 'personel' ? 'kisitli-sifre-input' : tur + '-sifre-input';
+  const input = document.getElementById(inputId);
   const yeniSifre = input.value.trim();
   
   if (!yeniSifre) {
@@ -658,11 +685,13 @@ async function sifreDegistir(tur) {
     return;
   }
   
-  hardModeOnay(`${tur === 'admin' ? 'Admin' : 'İÇDER'} şifresi değiştirilecek.`, async () => {
+  const turAdi = tur === 'admin' ? 'Admin' : tur === 'icder' ? 'İÇDER' : 'Kısıtlı';
+  hardModeOnay(`${turAdi} şifresi değiştirilecek.`, async () => {
     try {
       await adminApi('POST', '/sifre-degistir', { tur, yeni_sifre: yeniSifre });
-      toast(`${tur === 'admin' ? 'Admin' : 'İÇDER'} şifresi başarıyla değiştirildi`);
+      toast(`${turAdi} şifresi başarıyla değiştirildi`);
       input.value = '';
+      if (tur === 'personel') renderSifreler(); // mevcut şifreyi yenile
     } catch (e) {
       toast(e.message, 'error');
     }
